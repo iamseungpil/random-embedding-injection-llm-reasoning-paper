@@ -1,0 +1,99 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter 4. Why RSP Works
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Theoretical Analysis: Why RSP Works}\label{sec:why_rsp_works}
+
+% ================================================================
+\subsection{RSP as Controlled Exploration on the Energy Landscape}\label{sec:energy_landscape}
+% ================================================================
+
+Under the two simplifying assumptions introduced below, this section provides a theoretical account of two properties observed in our experiments: (1)~RSP can change the model's output distribution, and (2)~RSP does not degrade reasoning performance. We show that RSP converts the transformer's deterministic forward pass into a controlled stochastic process on the Hopfield energy landscape, where the noise introduced through attention naturally decays with both layer depth and generation step. We build on the equivalence between softmax attention and gradient descent on the Modern Hopfield energy \citep{ramsauer2021hopfield}. The analysis relies on two simplifying assumptions: (A1)~$\mathbf{K}=\mathbf{V}$ in attention (exact in Hopfield models, approximate in standard transformers) and (A2)~weight-tied layers (exact in deep equilibrium models \citep{bai2019deep}, approximate otherwise). Full proofs are in Appendix~\ref{app:proofs}.
+
+\paragraph{Transformer layers as energy minimization.}
+The Modern Hopfield Energy for stored patterns $\boldsymbol{\Xi} \in \mathbb{R}^{d \times m}$ and state $\boldsymbol{\sigma} \in \mathbb{R}^d$ is $E(\boldsymbol{\sigma}; \boldsymbol{\Xi}) = -\beta^{-1} \log \sum_{j=1}^{m} \exp(\beta \, \boldsymbol{\xi}_j^\top \boldsymbol{\sigma}) + \frac{1}{2} \|\boldsymbol{\sigma}\|^2$, where $\beta = 1/\sqrt{d}$. A full gradient step on this energy yields $\boldsymbol{\sigma}^{\mathrm{new}} = \boldsymbol{\Xi} \cdot \mathrm{softmax}(\beta \, \boldsymbol{\Xi}^\top \boldsymbol{\sigma})$, which is identical to softmax attention \citep{ramsauer2021hopfield}. Each transformer layer thus performs one gradient descent step on this energy landscape: the hidden state moves toward a lower-energy configuration at every layer.
+
+\paragraph{The trapping problem.}
+This monotone descent implies that, without perturbation, the forward pass converges to the local minimum in the basin of attraction of $\boldsymbol{\sigma}^{(0)}$. If a better minimum $\boldsymbol{\sigma}_g^*$ exists in a different basin, the deterministic forward pass cannot reach it because it cannot cross energy barriers.
+
+\paragraph{Why temperature scaling and additive noise do not resolve this.}
+Temperature scaling modifies only the final output distribution: $p^{(\tau)}(v) = \mathrm{softmax}(\mathbf{z}^{(L)}/\tau)$, leaving the internal trajectory $\mathbf{x}^{(l+1)}|_{\tau} = \mathbf{x}^{(l+1)}|_{\tau=1}$ for all $l < L$ identical. It cannot help escape a local minimum during inference. Additive Gaussian noise $\mathbf{x}^{(0)} + \boldsymbol{\epsilon}$ perturbs the initial state, but in subsequent layers the perturbation magnitude is bounded by $\prod_{l'} L_{f_{l'}} \cdot \sigma$ where $L_{f_{l'}}$ is the Lipschitz constant of layer $l'$. When $L_{f_{l'}} > 1$, the noise amplifies rather than decays, providing no controlled exploration schedule.
+
+\paragraph{RSP as controlled exploration via attention.}
+RSP resolves both limitations through two mechanisms.
+
+First, concatenating $k$ random vectors sampled from $\mathcal{N}(\mu_E, \sigma_E^2 \mathbf{I})$ causes each token to attend to both real and random keys, yielding
+\begin{equation}
+\mathbf{x}_i^{(l+1)}
+=
+(1 - w_{r,i}^{(l)}) \, \tilde{\mathbf{x}}_i^{(l+1)}
++
+\boldsymbol{\eta}_i^{(l)},
+\end{equation}
+where $\tilde{\mathbf{x}}_i^{(l+1)}$ is the standard attention update over real tokens, and $\boldsymbol{\eta}_i^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}$ aggregates the contribution of random tokens with total attention mass $w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}$.
+
+The perturbation magnitude is controlled by $w_{r,i}^{(l)}$, with variance scaling on the order of $(w_{r,i}^{(l)})^2$. In practice, since the embedding mean is negligible relative to its standard deviation ($|\mu_E|/\sigma_E \ll 1$), the bias term is dominated by the stochastic component, and the dynamics are well-approximated by a gradient descent process with approximately zero-mean structured noise (see Appendix~\ref{app:rsp_noise}).
+
+This yields a Langevin-like stochastic process that enables exploration beyond local minima.
+
+Second, RSP modifies the energy landscape. Adding $k$ random keys changes the Hopfield energy as
+\begin{equation}\label{eq:barrier_main}
+  \tilde{E}_i - E_i = -\beta^{-1} \log\!\left(1 + \frac{B_i}{A_i}\right) \leq 0,
+\end{equation}
+where $A_i = \sum_j \exp(\beta \, \mathbf{k}_j^\top \mathbf{q}_i)$ and $B_i = \sum_j \exp(\beta \, \mathbf{k}_{r_j}^\top \mathbf{q}_i) > 0$.
+The magnitude scales with $w_{r,i}^{(l)}/(1 - w_{r,i}^{(l)})$, so tokens assigning more attention to random keys experience larger energy perturbations.
+
+While this does not directly reduce barrier height, it alters the local energy landscape, and together with stochastic perturbations increases the probability of crossing energy barriers between basins.
+
+Both mechanisms are governed by $w_{r,i}^{(l)}$, which controls the overall strength of exploration.
+
+\paragraph{Why performance is preserved: dual decay of $w_{r,i}^{(l)}$.}
+The attention decay bound is:
+\begin{equation}\label{eq:decay_main}
+  w_{r,i}^{(l)} \leq \frac{k}{k + n \cdot \exp(\Delta_i^{(l)} / \sqrt{d})},
+\end{equation}
+where $\Delta_i^{(l)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [k]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$ is the real-vs-random logit gap and $n$ is the number of real tokens. Since the bias, stochastic scale, and energy modification are all controlled by $w_{r,i}^{(l)}$, this bound governs the overall perturbation strength.
+
+\textbf{Layer-wise decay.} If deeper layers increase the real-vs-random logit gap $\Delta_i^{(l)}$, then $w_{r,i}^{(l)}$ correspondingly decays toward zero. Empirically, as deeper layers develop task-specific representations, $\Delta_i^{(l)}$ tends to increase, making RSP's perturbation strongest in early layers and negligible in deeper layers.
+
+\textbf{Sequence-wise decay.} In autoregressive generation, each newly generated token adds a real key to the KV cache, so $n$ increases at every generation step while $k$ remains fixed. The growing $n$ in Eq.~\eqref{eq:decay_main} causes $w_{r,i}^{(l)}$ to decrease monotonically, progressively diluting RSP's influence as the sequence grows.
+
+This dual decay provides a natural annealing schedule: RSP enables exploration in the early stage of both the internal forward pass and the generation sequence, while the direct influence of the perturbation progressively diminishes as the model accumulates real tokens and converges to task-specific representations.
+
+\paragraph{Empirical verification.}\label{sec:attention_mass}
+We empirically verify this dual decay on Qwen2.5-Math-7B with suffix injection over 500 MATH-500 problems. For each problem, we measure the per-token attention mass directed to the RSP embeddings and to the question tokens within the same sequence, with the question tokens serving as a baseline that factors out sequence-length effects. Figure~\ref{fig:attention_mass} shows the expected contrast: the question tokens, which remain task-relevant throughout reasoning, receive attention whose distribution varies across layers and reasoning positions without a consistent trend, while the RSP embeddings, which carry no task-relevant content and act as noise, receive attention that decreases along both the layer and sequence axes, directly instantiating the layer-wise and sequence-wise dilution predicted by Eq.~\eqref{eq:decay_main}.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). The layer and reasoning-position axes are each partitioned into five quantile bins; every cell reports the 500-sample mean per-token attention mass directed to \textbf{(a)} the RSP embeddings and \textbf{(b)} the question tokens within that region. The horizontal axis spans reasoning position from early (left) to late (right) generation steps, and the vertical axis spans layer depth from shallow (top) to deep (bottom). Attention to the RSP embeddings in (a) decays along both axes --- concentrating at shallow layers and early reasoning positions --- while attention to the question tokens in (b) remains comparatively uniform, visually confirming the layer-wise and sequence-wise dilution predicted by Eq.~\eqref{eq:decay_main}.}
+  \label{fig:attention_mass}
+\end{figure}
+
+\subsection{Output Distribution Shift and Exploration}
+
+We study how Random Soft Prompting (RSP) alters the output distribution of an autoregressive language model and how this leads to improved exploration.
+
+In autoregressive decoding, generation proceeds via prefix-conditioned distributions $p(y_t \mid x, y_{<t})$. RSP does not modify a single global distribution, but perturbs the sequence of conditional distributions across decoding steps. In Section~\ref{sec:energy_landscape}, we analyzed this from an internal, layer-wise and sequence-wise perspective, showing that RSP introduces structured perturbations through attention that naturally decay across layers. We now examine how these perturbations manifest at the output level.
+
+\paragraph{Limitation of temperature scaling.}
+Temperature scaling transforms probabilities as $p_i^{(\tau)} \propto p_i^{1/\tau}$ and preserves token ranking, i.e., $p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$. Hence it cannot introduce new token orderings at a fixed decoding state.
+
+\paragraph{Effect of RSP.}
+RSP induces stochastic perturbations to the hidden state, which we locally approximate as $z_i(h) \approx z_i + a_i^\top h$, where $h$ is a random soft prompt.
+
+\paragraph{Proposition 1 (Stochastic ranking).}
+If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, then
+\[
+0 < \Pr_h\big(z_i(h) > z_j(h)\big) < 1.
+\]
+Thus, unlike temperature scaling, RSP randomizes token rankings at each decoding step.
+
+\paragraph{Proposition 2 (Support expansion).}
+Let $\mathrm{TopK}_{\mathrm{Temp}}(s_t)$ be the top-$K$ tokens under temperature scaling at state $s_t$. Under the same condition, there exists $i \notin \mathrm{TopK}_{\mathrm{Temp}}(s_t)$ such that
+\[
+\Pr_h\big(i \in \mathrm{TopK}(p^{\mathrm{RSP}}(\cdot \mid s_t, h))\big) > 0.
+\]
+
+\paragraph{Implication.}
+RSP expands the effective support of the output distribution, enabling tokens that are effectively inaccessible under temperature scaling. Since autoregressive generation composes these distributions over time, such perturbations can lead to distinct trajectories, explaining the empirical gains in exploration.
