@@ -467,12 +467,16 @@ Assume \emph{(A1)} $\mathbf{K}=\mathbf{V}$, \emph{(A2)} the attention component 
 By Lemma~\ref{lem:descent}, $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)}) - (1 - L_E/2)\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|^2$. Under (A3), the coefficient $1 - L_E/2 > 0$, so $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)})$ with strict inequality unless $\nabla E_{\mathbf{K}}(\sigma^{(l)}) = 0$, which proves forward invariance.
 \end{proof}
 
-\begin{corollary}[Connected-component containment]\label{cor:connected_basin}
-Let $C(\sigma^{(0)})$ denote the connected component of $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ containing $\sigma^{(0)}$. Either of the following implies the trajectory remains in $C(\sigma^{(0)})$ for all $l$: \emph{(i)} the iterate uses step size $\eta\in(0,1/L_E]$ small enough that consecutive iterates are connected by a continuous descent path within $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$; or \emph{(ii)} the per-step displacement $\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|$ is smaller than the spatial separation between connected components of the sublevel set, which is the standard regime in which the Modern Hopfield iterate converges in a small number of steps \citep{ramsauer2021hopfield}.
+\begin{corollary}[Connected-component containment for the unit-step iterate]\label{cor:connected_basin}
+Let $C(\sigma^{(0)})$ denote the connected component of the sublevel set $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ containing $\sigma^{(0)}$, and let $\mathrm{sep}(C)$ denote the spatial separation between $C$ and any other connected component of the sublevel set. The unit-step iterate $\sigma^{(l+1)}=\sigma^{(l)}-\nabla E_{\mathbf{K}}(\sigma^{(l)})$ remains in $C(\sigma^{(0)})$ for all $l$ whenever
+\[
+\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\| \;<\; \mathrm{sep}(C(\sigma^{(0)})) \qquad \text{for every } l.
+\]
+This holds in particular whenever the Modern Hopfield iterate converges in $O(1)$ steps with bounded gradient \citep{ramsauer2021hopfield}.
 \end{corollary}
 
 \begin{proof}
-Under (i), the discrete iterate is a forward Euler step of $\dot\sigma=-\nabla E_{\mathbf{K}}(\sigma)$ on a sublevel set, and the continuous gradient flow cannot exit a connected component of its sublevel set without crossing the boundary, where $\nabla E_{\mathbf{K}}$ would necessarily point inward (otherwise descent would increase $E_{\mathbf{K}}$). Under (ii), $\sigma^{(l+1)}$ stays in the same component as $\sigma^{(l)}$ for every $l$ by direct inspection: a jump to a different component would require the displacement vector $\nabla E_{\mathbf{K}}(\sigma^{(l)})$ to span at least the inter-component separation distance, which (ii) excludes.
+By Theorem~\ref{thm:basin_trapping}, $\sigma^{(l+1)}$ lies in the sublevel set. The displacement $\sigma^{(l+1)}-\sigma^{(l)}=-\nabla E_{\mathbf{K}}(\sigma^{(l)})$ has Euclidean length $\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|$. A jump from component $C$ to a distinct component $C'$ would require the displacement to span at least $\mathrm{sep}(C)$, which the hypothesis excludes. Hence $\sigma^{(l+1)}\in C$.
 \end{proof}
 
 \paragraph{Caveats and scope.}
