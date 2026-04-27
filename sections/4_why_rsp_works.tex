@@ -31,9 +31,10 @@ Lemma~\ref{lem:semantic_neutrality} gives the precise sense in which the perturb
 
 To formalize the exploration part, let $\bar{h}$ be the centered prompt vector and consider the local first-order surrogate
 \[
-z_i(\bar{h}) \approx z_i + a_i^\top \bar{h}.
+z_i(\bar{h}) \approx z_i + a_i^\top \bar{h},
+\qquad a_i := \nabla_{\bar h} z_i(0),
 \]
-For a token pair $(i,j)$, the perturbed logit gap becomes
+valid for sufficiently small $\|\bar{h}\|$ (Appendix~\ref{app:rsp_noise}); we use this surrogate throughout the section to identify the direction of perturbation rather than to predict its exact magnitude. For a token pair $(i,j)$, the perturbed logit gap becomes
 \[
 \Delta_{ij}(\bar{h}) \approx \Delta_{ij} + b_{ij}^\top \bar{h},
 \qquad
@@ -75,7 +76,7 @@ Following the Modern Hopfield correspondence \citep{ramsauer2021hopfield}, one a
 \[
 E_{\mathbf{K}}(\sigma) = -\beta^{-1} \log\!\sum_j \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2
 \]
-when $\mathbf{K}=\mathbf{V}$. Under this assumption together with weight-tying, the unperturbed attention iterates produce a monotone descent trajectory that remains in the basin of attraction of the initial state (Appendix~\ref{app:hopfield_descent}). This is the formal sense in which a fully deterministic forward pass is exploration-poor: it cannot leave the basin selected by initialization, and temperature scaling only acts after the trajectory has already terminated. We do not use this view to claim formal escape rates for real transformers; its role is to identify why injecting an isotropic stochastic perturbation at every block is the relevant intervention.
+when $\mathbf{K}=\mathbf{V}$. Appendix~\ref{app:hopfield_descent} states three idealized assumptions \emph{(A1)~$\mathbf{K}=\mathbf{V}$, (A2)~weight-tied attention, (A3)~$L_E$-smoothness with $L_E<2$} under which the unperturbed iterates produce a monotone descent trajectory that remains in the basin of attraction of the initial state. (A1) and (A2) are not literally satisfied by real transformers; the Hopfield view here is therefore a structural picture of attention-only iteration, not a literal statement about every transformer block. Its role in the argument is to identify why a deterministic forward pass is exploration-poor: it cannot leave the basin selected by initialization, and temperature scaling only acts after the trajectory has already terminated. We do not use this view to claim formal escape rates for real transformers; we use it to motivate why injecting an isotropic stochastic perturbation at every block is the relevant intervention. Throughout the rest of the section we work with the actual transformer attention; the random values $\mathbf{v}_{r_j}^{(l)}$ inherit a Gaussian distribution induced by the prompt construction in Section~\ref{sec:why_random_prompt} and the value projection $\mathbf{W}_V^{(l)}$. Centered isotropic prompts yield value-space distributions with covariance $\sigma_E^2\mathbf{W}_V^{(l)}\mathbf{W}_V^{(l)\top}$, which is full-rank whenever $\mathbf{W}_V^{(l)}$ is, and remains positive-definite in every direction with $\lambda_{\min}(\mathbf{W}_V^{(l)}\mathbf{W}_V^{(l)\top}) > 0$. We adopt the convention that $\sigma_E^2$ in subsequent bounds refers to a per-coordinate variance scale that already absorbs this projection so that the value-space directional variance is bounded below by $\sigma_E^2$ in every direction; under this convention the directional-coverage property of Theorem~\ref{thm:minimax_directional_coverage} carries to value space, and Appendix~\ref{app:rsp_noise} verifies the embedding-scale statistics empirically.
 
 \paragraph{Exact decomposition.}
 When $k$ random vectors are inserted as additional keys and values, the attention update can be written as
@@ -118,7 +119,7 @@ The decomposition above governs the attention sublayer. A real transformer block
 \le
 (1 + L^{(l)})\,\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big),
 \]
-which together with $\|\boldsymbol{\eta}_i^{(l)}\| \le w_{r,i}^{(l)} \max_j \|\mathbf{v}_{r_j}^{(l)}\|$ shows that the per-block perturbation amplitude scales linearly with $w_{r,i}^{(l)}$. Iterating across blocks gives a cumulative bound that remains finite under standard architectural assumptions (LayerNorm and GELU/SwiGLU activations are locally Lipschitz on bounded sets). Combined with the decay bound on $w_{r,i}^{(l)}$, the random perturbation enters with controlled magnitude at early blocks and shrinks toward later blocks, propagating without exponential blow-up.
+which together with $\|\boldsymbol{\eta}_i^{(l)}\| \le w_{r,i}^{(l)} \max_j \|\mathbf{v}_{r_j}^{(l)}\|$ shows that the per-block perturbation amplitude scales linearly with $w_{r,i}^{(l)}$. The bounded-set assumption holds in practice because LayerNorm constrains the post-attention norm, so the perturbed and unperturbed states traversed during a single forward pass lie in a common bounded ball. Iterating across blocks gives a cumulative bound that remains finite under standard architectural assumptions (LayerNorm and GELU/SwiGLU activations are locally Lipschitz on this ball). Combined with the decay bound on $w_{r,i}^{(l)}$, the random perturbation enters with controlled magnitude at early blocks and shrinks toward later blocks, propagating without exponential blow-up.
 
 \paragraph{Empirical verification.}\label{sec:attention_mass}
 We test exactly these model-dependent steps on Qwen2.5-Math-7B under suffix injection. If $w_{r,i}^{(l)}$ really acts as an annealed exploration coefficient, then the realized attention to RSP tokens should decay across reasoning positions and layers, whereas attention to question tokens should not exhibit the same monotone pattern because they remain task-relevant throughout decoding. Figure~\ref{fig:attention_mass} shows precisely this contrast. The figure therefore serves a specific logical role: it validates the model-side sharpening behavior that Eq.~\eqref{eq:decay_main} by itself does not prove.
