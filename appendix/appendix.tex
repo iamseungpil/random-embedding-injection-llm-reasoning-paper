@@ -459,12 +459,20 @@ E_{\mathbf{K}}(\sigma^{\text{new}}) \le E_{\mathbf{K}}(\sigma) - \big(1 - \tfrac
 The standard $L_E$-smooth quadratic upper bound \citep[Lemma~1.2.3]{nesterov2018lectures} states $E(\sigma+v)\le E(\sigma)+\nabla E(\sigma)^\top v+(L_E/2)\|v\|^2$ for any $v$ in the smoothness neighborhood. Applying this to $v=-\nabla E(\sigma)$ gives $E(\sigma-\nabla E)\le E(\sigma)-\|\nabla E\|^2+(L_E/2)\|\nabla E\|^2 = E(\sigma)-(1-L_E/2)\|\nabla E\|^2$.
 \end{proof}
 
-\begin{theorem}[Deterministic descent and basin trapping]\label{thm:basin_trapping}
-Assume \emph{(A1)} $\mathbf{K}=\mathbf{V}$, \emph{(A2)} the attention component is weight-tied across blocks, and \emph{(A3)} $E_{\mathbf{K}}$ is $L_E$-smooth on a neighborhood of the unperturbed trajectory with $L_E < 2$. Then the unit-step iterate $\sigma^{(l+1)} = \sigma^{(l)} - \nabla E_{\mathbf{K}}(\sigma^{(l)})$ is strictly monotone-descending in $E_{\mathbf{K}}$ at every non-stationary point, the sublevel set $\{\sigma : E_{\mathbf{K}}(\sigma) \le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant, and the trajectory remains in the connected component of this sublevel set that contains $\sigma^{(0)}$.
+\begin{theorem}[Deterministic descent and sublevel-set invariance]\label{thm:basin_trapping}
+Assume \emph{(A1)} $\mathbf{K}=\mathbf{V}$, \emph{(A2)} the attention component is weight-tied across blocks, and \emph{(A3)} $E_{\mathbf{K}}$ is $L_E$-smooth on a neighborhood of the unperturbed trajectory with $L_E < 2$. Then the unit-step iterate $\sigma^{(l+1)} = \sigma^{(l)} - \nabla E_{\mathbf{K}}(\sigma^{(l)})$ is strictly monotone-descending in $E_{\mathbf{K}}$ at every non-stationary point, and the sublevel set $\{\sigma : E_{\mathbf{K}}(\sigma) \le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant.
 \end{theorem}
 
 \begin{proof}
-By Lemma~\ref{lem:descent}, $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)}) - (1 - L_E/2)\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|^2$. Under (A3), the coefficient $1 - L_E/2 > 0$, so $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)})$ with strict inequality unless $\nabla E_{\mathbf{K}}(\sigma^{(l)}) = 0$. The sublevel set is therefore forward-invariant. Continuity of $\nabla E_{\mathbf{K}}$ implies the iterate path is continuous in the iterate index, so the trajectory remains within the same connected component as $\sigma^{(0)}$.
+By Lemma~\ref{lem:descent}, $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)}) - (1 - L_E/2)\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|^2$. Under (A3), the coefficient $1 - L_E/2 > 0$, so $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)})$ with strict inequality unless $\nabla E_{\mathbf{K}}(\sigma^{(l)}) = 0$, which proves forward invariance.
+\end{proof}
+
+\begin{corollary}[Connected-component containment]\label{cor:connected_basin}
+Let $C(\sigma^{(0)})$ denote the connected component of $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ containing $\sigma^{(0)}$. Either of the following implies the trajectory remains in $C(\sigma^{(0)})$ for all $l$: \emph{(i)} the iterate uses step size $\eta\in(0,1/L_E]$ small enough that consecutive iterates are connected by a continuous descent path within $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$; or \emph{(ii)} the per-step displacement $\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|$ is smaller than the spatial separation between connected components of the sublevel set, which is the standard regime in which the Modern Hopfield iterate converges in a small number of steps \citep{ramsauer2021hopfield}.
+\end{corollary}
+
+\begin{proof}
+Under (i), the discrete iterate is a forward Euler step of $\dot\sigma=-\nabla E_{\mathbf{K}}(\sigma)$ on a sublevel set, and the continuous gradient flow cannot exit a connected component of its sublevel set without crossing the boundary, where $\nabla E_{\mathbf{K}}$ would necessarily point inward (otherwise descent would increase $E_{\mathbf{K}}$). Under (ii), $\sigma^{(l+1)}$ stays in the same component as $\sigma^{(l)}$ for every $l$ by direct inspection: a jump to a different component would require the displacement vector $\nabla E_{\mathbf{K}}(\sigma^{(l)})$ to span at least the inter-component separation distance, which (ii) excludes.
 \end{proof}
 
 \paragraph{Caveats and scope.}
