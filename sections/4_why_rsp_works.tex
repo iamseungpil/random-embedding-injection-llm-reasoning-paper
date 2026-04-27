@@ -31,9 +31,10 @@ Lemma~\ref{lem:semantic_neutrality} gives the precise sense in which the perturb
 
 To formalize the exploration part, let $\bar{h}$ be the centered prompt vector and consider the local first-order surrogate
 \[
-z_i(\bar{h}) \approx z_i + a_i^\top \bar{h}.
+z_i(\bar{h}) \approx z_i + a_i^\top \bar{h},
+\qquad a_i := \nabla_{\bar h} z_i(0),
 \]
-For a token pair $(i,j)$, the perturbed logit gap becomes
+valid for sufficiently small $\|\bar{h}\|$ (Appendix~\ref{app:rsp_noise}); we use this surrogate throughout the section to identify the direction of perturbation rather than to predict its exact magnitude. For a token pair $(i,j)$, the perturbed logit gap becomes
 \[
 \Delta_{ij}(\bar{h}) \approx \Delta_{ij} + b_{ij}^\top \bar{h},
 \qquad
