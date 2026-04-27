@@ -435,6 +435,40 @@ This theorem is a statement about second moments, not about Gaussianity by itsel
 \clearpage
 \section{Proofs for Attention-Mediated Annealing}\label{app:proofs}
 
+\subsection{Hopfield-Energy Descent and Basin Trapping}\label{app:hopfield_descent}
+
+We restate the Modern Hopfield correspondence in the form used in the main text. For a key matrix $\mathbf{K} = (\mathbf{k}_1, \ldots, \mathbf{k}_n)$ at a fixed query position, the Hopfield energy is
+\[
+E_{\mathbf{K}}(\sigma) := -\beta^{-1} \log \sum_{j=1}^{n} \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2.
+\]
+A direct calculation gives the gradient
+\[
+\nabla E_{\mathbf{K}}(\sigma) = \sigma - \mathbf{K}^\top \mathrm{softmax}(\beta \mathbf{K} \sigma).
+\]
+Under (A1) $\mathbf{K}=\mathbf{V}$, the attention update with this $\mathbf{K}$ is therefore $\sigma^{\text{new}} = \sigma - \nabla E_{\mathbf{K}}(\sigma) = \mathbf{K}^\top \mathrm{softmax}(\beta \mathbf{K} \sigma)$, which is one gradient step on $E_{\mathbf{K}}$ at unit step size \citep{ramsauer2021hopfield}.
+
+\begin{lemma}[Descent inequality]\label{lem:descent}
+If $E_{\mathbf{K}}$ is $L_E$-smooth on a neighborhood of $\sigma$, then the unit-step gradient update $\sigma^{\text{new}} := \sigma - \nabla E_{\mathbf{K}}(\sigma)$ satisfies
+\[
+E_{\mathbf{K}}(\sigma^{\text{new}}) \le E_{\mathbf{K}}(\sigma) - \big(1 - \tfrac{L_E}{2}\big)\|\nabla E_{\mathbf{K}}(\sigma)\|^2.
+\]
+\end{lemma}
+
+\begin{proof}
+Standard quadratic upper bound for smooth functions: $E(\sigma - \nabla E) \le E(\sigma) - \|\nabla E\|^2 + (L_E/2)\|\nabla E\|^2 = E(\sigma) - (1 - L_E/2)\|\nabla E\|^2$.
+\end{proof}
+
+\begin{theorem}[Deterministic descent and basin trapping]\label{thm:basin_trapping}
+Assume (A1) $\mathbf{K}=\mathbf{V}$ and (A2) the attention component is weight-tied across blocks. If $E_{\mathbf{K}}$ is $L_E$-smooth with $L_E \le 2$ on the trajectory, then the unperturbed iterate $\sigma^{(l+1)} = \sigma^{(l)} - \nabla E_{\mathbf{K}}(\sigma^{(l)})$ is monotone-descending in $E_{\mathbf{K}}$. Consequently, the trajectory remains in the connected component of the sublevel set $\{\sigma : E_{\mathbf{K}}(\sigma) \le E_{\mathbf{K}}(\sigma^{(0)})\}$ containing $\sigma^{(0)}$, and cannot reach a strictly deeper minimum located in a different component without an external perturbation.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{lem:descent}, $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)}) - (1 - L_E/2)\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|^2 \le E_{\mathbf{K}}(\sigma^{(l)})$. The sublevel set $\{\sigma : E_{\mathbf{K}}(\sigma) \le E_{\mathbf{K}}(\sigma^{(0)})\}$ is therefore forward-invariant. Since the iterate moves continuously (the gradient is continuous), the trajectory remains within the same connected component of this sublevel set as $\sigma^{(0)}$.
+\end{proof}
+
+\paragraph{Caveats.}
+Theorem~\ref{thm:basin_trapping} depends on (A1) $\mathbf{K}=\mathbf{V}$ and (A2) weight-tying. Real transformers violate both: the V projection is independent of K, and weights vary across blocks. The theorem characterizes a structural tendency of attention-only iteration, not a literal property of every transformer block. Its role in the main text is to identify the source of exploration deficit that an injected stochastic perturbation addresses; the empirical link is the cross-layer attention decay observed in Figure~\ref{fig:attention_mass} and the trajectory diversity gain reported in Section~\ref{sec:diversity}.
+
 \subsection{Exact Attention Decomposition and Magnitude Control}\label{app:rsp_noise}
 
 \begin{proposition}[Attention decomposition]\label{prop:attention_decomposition}
@@ -575,6 +609,73 @@ If the random values are Gaussian, the displayed maximum is almost surely finite
 Corollary~\ref{cor:sequence_annealing} implies $w_{r,i}^{(l)} \to 0$. The bound on $\|\boldsymbol{\eta}_i^{(l)}\|$ is Corollary~\ref{cor:perturbation_magnitude}. Since the multiplier $\max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|$ is finite for any fixed realization of finitely many sampled values, the product converges to zero.
 \end{proof}
 
+\subsection{Feed-Forward Propagation under Local Lipschitz Control}\label{app:ffn_lipschitz}
+
+A transformer block applies an attention sublayer followed by a feed-forward sublayer with residual connections:
+\[
+\mathbf{x}_i^{(l, \text{attn})}
+=
+\mathbf{x}_i^{(l)} + \mathrm{Attn}^{(l)}(\mathbf{x}_i^{(l)}),
+\qquad
+\mathbf{x}_i^{(l+1)}
+=
+\mathbf{x}_i^{(l, \text{attn})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn})}).
+\]
+Let $\mathbf{x}_i^{(l, \text{attn,RSP})}$ and $\mathbf{x}_i^{(l, \text{attn,base})}$ denote the post-attention states under RSP and the unperturbed forward pass at the same input $\mathbf{x}_i^{(l)}$.
+
+\begin{lemma}[Per-block FFN propagation]\label{lem:ffn_lipschitz}
+The post-attention difference satisfies
+\[
+\|\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}\|
+\le
+\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|.
+\]
+If, in addition, $F^{(l)}$ is $L^{(l)}$-Lipschitz on a bounded set containing both $\mathbf{x}_i^{(l, \text{attn,RSP})}$ and $\mathbf{x}_i^{(l, \text{attn,base})}$, then
+\[
+\|\mathbf{x}_i^{(l+1, \text{RSP})} - \mathbf{x}_i^{(l+1, \text{base})}\|
+\le
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+\end{lemma}
+
+\begin{proof}
+The unperturbed attention sublayer produces $\mathbf{x}_i^{(l, \text{attn,base})} = \mathbf{x}_i^{(l)} + \tilde{\mathbf{x}}_i^{(l+1)}$, while the RSP attention sublayer produces $\mathbf{x}_i^{(l, \text{attn,RSP})} = \mathbf{x}_i^{(l)} + (1-w_{r,i}^{(l)})\tilde{\mathbf{x}}_i^{(l+1)} + \boldsymbol{\eta}_i^{(l)}$ by Proposition~\ref{prop:attention_decomposition}. Subtracting,
+\[
+\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}
+=
+\boldsymbol{\eta}_i^{(l)} - w_{r,i}^{(l)} \tilde{\mathbf{x}}_i^{(l+1)},
+\]
+and the triangle inequality gives the first bound. For the second bound, write the post-FFN difference as
+\[
+\big[\mathbf{x}_i^{(l, \text{attn,RSP})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn,RSP})})\big]
+-
+\big[\mathbf{x}_i^{(l, \text{attn,base})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn,base})})\big].
+\]
+By Lipschitz continuity, $\|F^{(l)}(\mathbf{x}^{(l, \text{attn,RSP})}) - F^{(l)}(\mathbf{x}^{(l, \text{attn,base})})\| \le L^{(l)} \|\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}\|$. The triangle inequality combined with the first bound gives the second.
+\end{proof}
+
+\begin{corollary}[Cross-block propagation control]\label{cor:cross_block}
+Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ and let $L^{(l)}_{\text{block}}$ denote the local Lipschitz constant of the entire block (attention + residual + FFN + residual) at layer $l$. Then
+\[
+\|\Delta^{(l+1)}\|
+\le
+(1 + L^{(l)}_{\text{block}})\,\|\Delta^{(l)}\|
++
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+Iterating across $L$ blocks yields
+\[
+\|\Delta^{(L+1)}\|
+\le
+\sum_{l=0}^{L} \prod_{l' = l+1}^{L} (1 + L^{(l')}_{\text{block}})
+\cdot
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+\end{corollary}
+
+\paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
+Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm is locally Lipschitz on every set bounded away from the origin, GELU and SwiGLU are globally Lipschitz with constants of order $1$, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix \citep{xiong2020layer}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
+
 \subsection{Proofs for Output Distribution Shift}
 
 The main text makes two output-level claims. Proposition~\ref{prop:stochastic_ranking} establishes pairwise rank randomness, and Proposition~\ref{prop:support_expansion} upgrades that statement to top-$K$ entry. Both are statements about a local first-order surrogate of the perturbed logits.
@@ -655,6 +756,22 @@ so $\mathcal{G}_{i,K}$ is a finite union of open sets and is itself open. By ass
 \Pr_{\bar{h}}(\bar{h}\in \mathcal{G}_{i,K}) > 0,
 \]
 which is exactly the event that token $i$ enters the top-$K$ set under the perturbed distribution.
+\end{proof}
+
+\subsubsection{Proof of Corollary~\ref{cor:sample_complexity} (Sample Complexity)}
+
+\textit{Let $\mu_i = \Pr_{\bar{h}}(\bar{h} \in \mathcal{G}_{i,K}) > 0$. Within $N$ independent RSP samples $\bar{h}_1, \ldots, \bar{h}_N$, the probability of at least one admission is at least $1 - (1-\mu_i)^N \ge 1 - \exp(-N\mu_i)$.}
+
+\begin{proof}
+The samples $\{\bar{h}_n\}_{n=1}^N$ are independent, so
+\[
+\Pr\big(\text{no admission within $N$ samples}\big)
+=
+\prod_{n=1}^{N} \Pr(\bar{h}_n \notin \mathcal{G}_{i,K})
+=
+(1-\mu_i)^N.
+\]
+The complement gives the first inequality. The second inequality is standard: $1 - \mu_i \le \exp(-\mu_i)$, hence $(1-\mu_i)^N \le \exp(-N\mu_i)$.
 \end{proof}
 
 \subsubsection{Trajectory-Level Implications}
