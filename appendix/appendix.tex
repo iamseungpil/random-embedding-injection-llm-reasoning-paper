@@ -329,14 +329,15 @@ Hence the normalized direction of an isotropic Gaussian prompt is simultaneously
 \end{lemma}
 
 \begin{proof}
-Because $\bar{h}$ is isotropic Gaussian, its normalized direction $\hat{h}$ is uniformly distributed on the sphere $\mathbb{S}^{d-1}$. For a fixed unit vector $u$, standard spherical concentration gives
+Because $\bar{h}$ is isotropic Gaussian, its normalized direction $\hat{h}$ is uniformly distributed on the sphere $\mathbb{S}^{d-1}$. For a fixed unit vector $u\in\mathbb{S}^{d-1}$, the marginal $\hat h^\top u$ satisfies the standard spherical concentration bound \citep[Theorem~3.4.6]{vershynin2018high}\citep[Section~3.2]{boucheron2013concentration},
 \[
 \Pr\big(|\hat{h}^{\top} u| \ge t\big)
 \le
 2\exp\!\left(-\frac{(d-1)t^2}{2}\right)
 \qquad
-\text{for } t \in (0,1).
+\text{for } t \in (0,1),
 \]
+which follows from the spherical-cap area bound $\sigma\{\hat h\in\mathbb{S}^{d-1}:\hat h^\top u\ge t\} \le \tfrac{1}{2}(1-t^2)^{(d-1)/2}$ together with $(1-t^2)^{(d-1)/2}\le\exp(-(d-1)t^2/2)$ derived from $\log(1-x)\le -x$ for $x\in[0,1)$.
 Applying this bound to each $u_r$ and using a union bound,
 \[
 \Pr\!\left[\max_{r \in [M]} |\hat{h}^{\top} u_r| \ge t\right]
