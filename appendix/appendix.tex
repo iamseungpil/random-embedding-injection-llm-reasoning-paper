@@ -329,14 +329,15 @@ Hence the normalized direction of an isotropic Gaussian prompt is simultaneously
 \end{lemma}
 
 \begin{proof}
-Because $\bar{h}$ is isotropic Gaussian, its normalized direction $\hat{h}$ is uniformly distributed on the sphere $\mathbb{S}^{d-1}$. For a fixed unit vector $u$, standard spherical concentration gives
+Because $\bar{h}$ is isotropic Gaussian, its normalized direction $\hat{h}$ is uniformly distributed on the sphere $\mathbb{S}^{d-1}$. For a fixed unit vector $u\in\mathbb{S}^{d-1}$, the marginal $\hat h^\top u$ satisfies the standard spherical concentration bound \citep[Theorem~3.4.6]{vershynin2018high}\citep[Section~3.2]{boucheron2013concentration},
 \[
 \Pr\big(|\hat{h}^{\top} u| \ge t\big)
 \le
 2\exp\!\left(-\frac{(d-1)t^2}{2}\right)
 \qquad
-\text{for } t \in (0,1).
+\text{for } t \in (0,1),
 \]
+which follows from the spherical-cap area bound $\sigma\{\hat h\in\mathbb{S}^{d-1}:\hat h^\top u\ge t\} \le \tfrac{1}{2}(1-t^2)^{(d-1)/2}$ together with $(1-t^2)^{(d-1)/2}\le\exp(-(d-1)t^2/2)$ derived from $\log(1-x)\le -x$ for $x\in[0,1)$.
 Applying this bound to each $u_r$ and using a union bound,
 \[
 \Pr\!\left[\max_{r \in [M]} |\hat{h}^{\top} u_r| \ge t\right]
@@ -455,7 +456,7 @@ E_{\mathbf{K}}(\sigma^{\text{new}}) \le E_{\mathbf{K}}(\sigma) - \big(1 - \tfrac
 \end{lemma}
 
 \begin{proof}
-Standard quadratic upper bound for smooth functions: $E(\sigma - \nabla E) \le E(\sigma) - \|\nabla E\|^2 + (L_E/2)\|\nabla E\|^2 = E(\sigma) - (1 - L_E/2)\|\nabla E\|^2$.
+The standard $L_E$-smooth quadratic upper bound \citep[Lemma~1.2.3]{nesterov2018lectures} states $E(\sigma+v)\le E(\sigma)+\nabla E(\sigma)^\top v+(L_E/2)\|v\|^2$ for any $v$ in the smoothness neighborhood. Applying this to $v=-\nabla E(\sigma)$ gives $E(\sigma-\nabla E)\le E(\sigma)-\|\nabla E\|^2+(L_E/2)\|\nabla E\|^2 = E(\sigma)-(1-L_E/2)\|\nabla E\|^2$.
 \end{proof}
 
 \begin{theorem}[Deterministic descent and basin trapping]\label{thm:basin_trapping}
@@ -674,7 +675,7 @@ Iterating across $L$ blocks yields
 \end{corollary}
 
 \paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
-Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm is locally Lipschitz on every set bounded away from the origin, GELU and SwiGLU are globally Lipschitz with constants of order $1$, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix \citep{xiong2020layer}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
+Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU activations are globally $1$-Lipschitz and locally $O(1)$-Lipschitz, respectively, on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ are therefore products of bounded factors and remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
 
 \subsection{Proofs for Output Distribution Shift}
 
