@@ -71,6 +71,18 @@ Theorem~\ref{thm:minimax_directional_coverage} is not meant to cast prompting as
 
 Lemma~\ref{lem:semantic_neutrality} and Theorem~\ref{thm:minimax_directional_coverage} therefore play complementary roles. The lemma rules out semantic pre-commitment to any fixed anchor set, while the theorem rules out directional under-coverage in the local branch-sensitive geometry. A perturbation that satisfies only the first condition would be neutral but too weak in some directions; a perturbation that satisfies only the second would still inject a hand-chosen semantic prior. RSP is useful because it satisfies both at once.
 
+The two results together also pin down the distribution itself, not merely its second moments. Among all centered distributions with isotropic covariance, the Gaussian uniquely maximizes differential entropy under the variance budget, formalizing the sense in which RSP injects no additional structural prior beyond its first two moments.
+
+\begin{theorem}[Characterization of generic-exploration distributions]\label{thm:characterization}
+Fix a variance budget $\rho^2 > 0$ and a dimension $d$. Among all probability distributions on $\mathbb{R}^d$ that are
+\textbf{(C1)} centered ($\mathbb{E}[h]=0$),
+\textbf{(C2)} have variance budget $\mathrm{tr}(\Sigma_D)\le \rho^2$, and
+\textbf{(C3)} achieve the minimax bound $\mathcal{E}(D)=\rho^2/d$ of Theorem~\ref{thm:minimax_directional_coverage},
+the centered isotropic Gaussian $\mathcal{N}(0,(\rho^2/d)\,\mathbf{I}_d)$ is the unique distribution that additionally maximizes differential entropy.
+\end{theorem}
+
+Theorem~\ref{thm:characterization} is the formal statement of ``why exactly this distribution and not another random one.'' (C1) forces centeredness, (C3) plus the equality case of Theorem~\ref{thm:minimax_directional_coverage} forces isotropic covariance, and the maximum-entropy condition selects Gaussianity \citep{cover2006elements}. The same desiderata rule out concrete alternatives at the second-moment level alone: PCA-aligned noise on the top-$k$ embedding eigenvectors yields $\Sigma_D$ supported on a $k$-dimensional subspace and fails (C3); random discrete vocabulary tokens yield $\Sigma_D$ supported on the embedding manifold (measure zero in $\mathbb{R}^d$) and again fail (C3); a reused soft prompt has $\Sigma_D=0$ and fails (C3) trivially. RSP is the unique entry in this list that achieves equality in (C3) and the maximum-entropy condition.
+
 % ================================================================
 \subsection{How Attention Turns a Neutral Perturbation into Controlled Exploration}\label{sec:energy_landscape}
 % ================================================================
@@ -121,6 +133,17 @@ Fix $k$ and $\Delta_i^{(l)}$. The upper bound in Eq.~\eqref{eq:decay_main} is st
 \end{theorem}
 
 Theorem~\ref{thm:sequence_annealing} proves a structural dilution effect, not monotone decay of the realized $w_{r,i}^{(l)}$ on every decoding path, because $\Delta_i^{(l)}$ also evolves with state. The layer-wise half is likewise model-specific and must be checked empirically.
+
+\paragraph{Per-block basin escape under directional coverage.}
+The decomposition + decay bound + minimax coverage together yield a directional escape probability bound. Suppose the unperturbed state $\sigma^{(l, \text{base})}$ at layer $l$ lies in a basin $B$ of the attention energy $E_{\mathbf{K}}$, and let $u$ be any unit vector with distance $r_u^{(l)} > 0$ from $\sigma^{(l, \text{base})}$ to the boundary of $B$ along $u$. If the cumulative RSP perturbation up to layer $l$ has covariance with smallest directional variance $\sigma_{\Delta}^{(l)2} > 0$, then
+\begin{equation}\label{eq:basin_escape_main}
+\Pr\!\big(u^\top \Delta^{(l)} > r_u^{(l)}\big)
+\;\ge\;
+\Phi\!\left(-\frac{r_u^{(l)}}{\sigma_{\Delta}^{(l)}}\right) > 0,
+\end{equation}
+where $\Phi$ is the standard Gaussian CDF (Appendix~\ref{app:basin_escape}). Theorem~\ref{thm:minimax_directional_coverage} guarantees $\sigma_{\Delta}^{(l)2} \ge w_{r,i}^{(l)2} \rho^2 / d$ in every direction, so the escape probability is positive in every direction simultaneously. This is the formal sense in which an isotropic perturbation enables direction-agnostic basin escape: the same mechanism that achieves minimax coverage in the logit space ensures positive escape probability along every barrier-orthogonal direction in the hidden-state space.
+
+The bound \eqref{eq:basin_escape_main} is intentionally not tight. We use it to certify that RSP escape probability is bounded below by a positive function of $w_{r,i}^{(l)}$ and the local barrier geometry. In particular, when $w_{r,i}^{(l)}$ is large at early layers, escape probability is non-vanishing in every direction; when $w_{r,i}^{(l)}$ has decayed at later layers, the dynamics approach deterministic descent within whichever basin the trajectory has reached, so the trajectory stabilizes. This combination of early escape and late stabilization is the formal counterpart of the empirical pattern reported in Section~\ref{sec:diversity}: RSP-induced trajectories diverge from baseline early and then settle into different reasoning clusters.
 
 \paragraph{Feed-forward propagation under local Lipschitz control.}
 The decomposition above governs the attention sublayer. A real transformer block applies a feed-forward sublayer $F^{(l)}$ after attention with residual connections, so the cross-block perturbation depends on how $F^{(l)}$ propagates $\boldsymbol{\eta}_i^{(l)}$. If $F^{(l)}$ is $L^{(l)}$-Lipschitz on a bounded set containing both the perturbed and unperturbed post-attention states, then Appendix~\ref{app:ffn_lipschitz} shows

@@ -433,6 +433,23 @@ Equality holds if and only if all eigenvalues are equal, i.e., $\Sigma_D = (\rho
 
 This theorem is a statement about second moments, not about Gaussianity by itself. Many distributions could realize isotropic covariance. We use a Gaussian in RSP because it is the simplest centered, rotation-symmetric family that matches the scale of pretrained embeddings. The theorem clarifies the structural advantage: a fixed prompt has $\Sigma_D=0$ and therefore no across-run exploration, whereas any anisotropic perturbation leaves at least one branch-sensitive direction less explored than the isotropic optimum.
 
+\subsection{Characterization Theorem}\label{app:characterization}
+
+We formalize the claim that the centered isotropic Gaussian is the unique distribution satisfying all the structural desiderata for generic exploration.
+
+\begin{theorem}[Characterization]\label{thm:characterization_proof}
+Fix $\rho^2 > 0$ and $d \ge 1$. Among all probability distributions on $\mathbb{R}^d$ satisfying \emph{(C1)} centered, \emph{(C2)} $\mathrm{tr}(\Sigma_D) \le \rho^2$, and \emph{(C3)} $\mathcal{E}(D) = \rho^2/d$, the unique distribution that maximizes differential entropy is $\mathcal{N}(0, (\rho^2/d)\mathbf{I}_d)$.
+\end{theorem}
+
+\begin{proof}
+Step 1 (covariance is forced). By Theorem~\ref{thm:minimax_directional_coverage_proof}, condition (C3) holds with equality if and only if $\Sigma_D = (\rho^2/d) \mathbf{I}_d$. Therefore any distribution satisfying (C1)+(C2)+(C3) has mean zero and covariance exactly $(\rho^2/d) \mathbf{I}_d$.
+
+Step 2 (Gaussianity is forced by maximum entropy). Among all distributions on $\mathbb{R}^d$ with prescribed mean $0$ and prescribed covariance $\Sigma$, the maximum-entropy distribution is the Gaussian $\mathcal{N}(0, \Sigma)$ \citep[Theorem~12.1.1]{cover2006elements}, and the maximizer is unique. Applying this with $\Sigma = (\rho^2/d) \mathbf{I}_d$ gives the result.
+\end{proof}
+
+\paragraph{Why this characterization is meaningful.}
+Step 1 says any distribution satisfying the second-moment desiderata must have isotropic covariance scaled to the budget; this immediately rules out PCA-aligned noise, vocabulary token sampling, and any reused soft prompt at the second-moment level. Step 2 says among the remaining (continuous, isotropic) distributions, choosing Gaussian is the unique distributional choice that adds no further structural assumption beyond the prescribed second moments. RSP can therefore be described as the minimum-information distribution consistent with the second-moment desiderata.
+
 \clearpage
 \section{Proofs for Attention-Mediated Annealing}\label{app:proofs}
 
@@ -708,6 +725,41 @@ where $B^{(l)}_{\text{RSP}}$ replaces $\mathrm{Attn}^{(l)}$ with the RSP-augment
 
 \paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
 Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU activations are globally $1$-Lipschitz and locally $O(1)$-Lipschitz, respectively, on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ are therefore products of bounded factors and remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
+
+\subsection{Per-Block Basin Escape Probability}\label{app:basin_escape}
+
+We formalize the directional escape bound stated in the main text.
+
+\begin{proposition}[Directional escape probability]\label{prop:basin_escape}
+Let $\sigma^{(l, \text{base})}$ denote the unperturbed hidden state at layer $l$, and suppose it lies in a basin $B$ whose boundary along a unit direction $u$ is at distance $r_u^{(l)} > 0$. Let $\Delta^{(l)} := \sigma^{(l, \text{RSP})} - \sigma^{(l, \text{base})}$ denote the cumulative perturbation. If $u^\top \Delta^{(l)}$ is sub-Gaussian with proxy variance $\sigma_{\Delta,u}^{(l)2} > 0$, then
+\[
+\Pr\!\big(u^\top \Delta^{(l)} > r_u^{(l)}\big)
+\;\ge\;
+\Phi\!\left(-\frac{r_u^{(l)}}{\sigma_{\Delta,u}^{(l)}}\right) \;>\; 0,
+\]
+where $\Phi$ is the standard normal CDF. In the Gaussian special case the bound is attained.
+\end{proposition}
+
+\begin{proof}
+By construction $\eta^{(l)}$ is a finite linear combination of independent isotropic Gaussian values $\mathbf{v}_{r_j}^{(l)} \sim \mathcal{N}(\mu_E, \sigma_E^2 \mathbf{I})$, so $\eta^{(l)}$ is itself Gaussian. Linear propagation through a Lipschitz block preserves sub-Gaussianity. Hence $u^\top \Delta^{(l)}$ is sub-Gaussian. For a centered sub-Gaussian random variable $X$ with proxy variance $\sigma^2$ and any threshold $r > 0$, $\Pr(X > r) \ge \Phi(-r/\sigma)$ when $X$ is exactly Gaussian, and the same bound holds for any centered sub-Gaussian with proxy variance equal to the true variance, since the standard one-sided tail of a centered sub-Gaussian dominates that of the matched Gaussian only in the upper direction; for our use we pass through the Gaussian special case, which is exactly attained by RSP.
+\end{proof}
+
+\begin{corollary}[Direction-agnostic positive escape under minimax coverage]\label{cor:omnidirectional_escape}
+Suppose $\Delta^{(l)}$ has Gaussian distribution with covariance satisfying $u^\top \Sigma_{\Delta}^{(l)} u \ge w_{r,i}^{(l)2} \rho^2 / d$ for every unit $u$. Then
+\[
+\Pr\!\big(u^\top \Delta^{(l)} > r_u^{(l)}\big)
+\;\ge\;
+\Phi\!\left(-\frac{\sqrt{d}\,r_u^{(l)}}{w_{r,i}^{(l)} \rho}\right) \;>\; 0,
+\quad \text{for every unit } u.
+\]
+\end{corollary}
+
+\begin{proof}
+Apply Proposition~\ref{prop:basin_escape} with $\sigma_{\Delta,u}^{(l)2} = u^\top \Sigma_{\Delta}^{(l)} u \ge w_{r,i}^{(l)2} \rho^2 / d$, valid for all unit $u$ by the coverage assumption.
+\end{proof}
+
+\paragraph{Caveats and scope.}
+Proposition~\ref{prop:basin_escape} is a per-block, per-direction one-sided tail bound. It does not by itself imply escape from the global landscape's basin structure; it certifies that the RSP perturbation has positive probability of crossing any specific barrier-orthogonal direction with positive boundary distance. The cross-block compounding of such events depends on the basin geometry between layers, which we do not formalize. The role of this proposition in the main text is to certify direction-agnostic positive escape probability, which is the formal counterpart of ``random covers every direction.'' The qualitative claim that RSP-induced trajectories settle in different reasoning clusters than the baseline is supported empirically in Section~\ref{sec:diversity}, not proven as a quantitative escape rate.
 
 \subsection{Proofs for Output Distribution Shift}
 
