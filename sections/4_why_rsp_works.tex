@@ -69,6 +69,18 @@ with equality if and only if $\Sigma_D = (\rho^2/d)\mathbf{I}_d$. Hence isotropi
 
 Theorem~\ref{thm:minimax_directional_coverage} is not meant to cast prompting as an adversarial game; its role is simpler. When the branch-sensitive direction is unknown at sample time, isotropy is the unique second-order description that neither favors nor neglects any direction. A fixed prompt has $\Sigma_D = 0$ and therefore creates no across-trial exploration at all. An anisotropic perturbation leaves at least one direction less explored than the isotropic optimum. The Gaussian choice in RSP is the simplest centered, rotation-symmetric family that realizes this covariance while matching the scale of pretrained embeddings. This is the sense in which RSP is not just ``some noise'': it is a resampled, centered, direction-agnostic perturbation.
 
+A natural alternative one might consider is to draw the perturbation from a distribution that \emph{matches} the empirical geometry of the pretrained embedding table $\mathbf{W}_E$, rather than discarding it. Theorem~\ref{thm:minimax_directional_coverage} dismisses this alternative as soon as the embedding geometry is known to be anisotropic.
+\begin{corollary}[Embedding-matched noise is suboptimal in worst-direction coverage]\label{cor:embedding_matched_suboptimal}
+Let $\Sigma_E$ be the empirical covariance of the rows of $\mathbf{W}_E$, and let $\rho^2 := \mathrm{tr}(\Sigma_E)$. Consider two zero-mean perturbations on $\mathbb{R}^d$ with the same trace budget $\rho^2$: the isotropic RSP law $D_{\mathrm{iso}}$ with covariance $(\rho^2/d)\mathbf{I}_d$, and the embedding-matched law $D_{\mathrm{emb}}$ with covariance $\Sigma_E$. Then
+\[
+\mathcal{E}(D_{\mathrm{iso}}) \;=\; \frac{\rho^2}{d}
+\;\ge\;
+\lambda_{\min}(\Sigma_E) \;=\; \mathcal{E}(D_{\mathrm{emb}}),
+\]
+with strict inequality whenever $\Sigma_E$ is non-isotropic.
+\end{corollary}
+The corollary is one application of Theorem~\ref{thm:minimax_directional_coverage} and requires no separate proof. Its empirical bite comes from the fact that pretrained LLM token-embedding matrices are documented to be highly anisotropic, concentrating in a low-dimensional ``cone'' inside $\mathbb{R}^d$ \citep{mu2018allbutthetop, ethayarajh2019contextual}. In that regime $\lambda_{\min}(\Sigma_E)$ is orders of magnitude smaller than $\rho^2/d$, so the worst-covered direction under embedding-matched noise is nearly unexplored---precisely the directions a generic exploration prompt should not abandon. Discarding the directional geometry of $\mathbf{W}_E$ while keeping its scale is therefore not a simplification of an embedding-matched alternative but a quantitatively better choice for direction-agnostic exploration.
+
 Lemma~\ref{lem:semantic_neutrality} and Theorem~\ref{thm:minimax_directional_coverage} therefore play complementary roles. The lemma rules out semantic pre-commitment to any fixed anchor set, while the theorem rules out directional under-coverage in the local branch-sensitive geometry. A perturbation that satisfies only the first condition would be neutral but too weak in some directions; a perturbation that satisfies only the second would still inject a hand-chosen semantic prior. RSP is useful because it satisfies both at once.
 
 % ================================================================
