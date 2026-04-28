@@ -4,25 +4,126 @@
 
 \section{Theoretical Analysis: Why RSP Works}\label{sec:why_rsp_works}
 
+Our theoretical goal is narrower than a theorem about the full nonlinear transformer. We want a mechanism that explains the three empirical regularities from Section~\ref{sec:experimental_analysis}: random continuous prompts can alter the model's earliest reasoning decisions even though they are not optimized for the task; their influence is strongest at the beginning of decoding and weakens later; and this early perturbation can increase trajectory diversity without permanently destabilizing generation. The common control variable throughout the section is $w_{r,i}^{(l)}$, the attention mass assigned to the random tokens. The argument therefore has three parts. First, we characterize what kind of perturbation can open reasoning branches without inserting a hand-crafted prior, and explain why centered isotropic randomness is the relevant choice. Second, we show that attention injects the perturbation through $w_{r,i}^{(l)}$ and simultaneously places an annealing pressure on it as real-token evidence grows. Third, we show why this pre-softmax perturbation can change token rankings in a way that temperature scaling cannot.
+
 % ================================================================
-\subsection{RSP as Controlled Exploration on the Energy Landscape}\label{sec:energy_landscape}
+\subsection{Why Random Rather Than a Fixed Token?}\label{sec:why_random_prompt}
 % ================================================================
 
-Under the two simplifying assumptions introduced below, this section provides a theoretical account of two properties observed in our experiments: (1)~RSP can change the model's output distribution, and (2)~RSP does not degrade reasoning performance. We show that RSP converts the transformer's deterministic forward pass into a controlled stochastic process on the Hopfield energy landscape, where the noise introduced through attention naturally decays with both layer depth and generation step. We build on the equivalence between softmax attention and gradient descent on the Modern Hopfield energy \citep{ramsauer2021hopfield}. The analysis relies on two simplifying assumptions: (A1)~$\mathbf{K}=\mathbf{V}$ in attention (exact in Hopfield models, approximate in standard transformers) and (A2)~weight-tied layers (exact in deep equilibrium models \citep{bai2019deep}, approximate otherwise). Full proofs are in Appendix~\ref{app:proofs}.
+A generic exploration prompt for reasoning should satisfy three structural requirements. It should not systematically pre-commit the model to one semantic direction before the input-dependent computation begins. It should vary across trials, otherwise repeated decoding would trace the same perturbation every time. And because the branch-sensitive direction is unknown in advance and depends on the prompt, the decoding state, and the token comparison, the perturbation should not privilege some directions while leaving others almost untouched. Optimized soft prompts deliberately encode a task prior \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}; our question is the complementary one: what perturbation should one use when no such prior is assumed?
 
-\paragraph{Transformer layers as energy minimization.}
-The Modern Hopfield Energy for stored patterns $\boldsymbol{\Xi} \in \mathbb{R}^{d \times m}$ and state $\boldsymbol{\sigma} \in \mathbb{R}^d$ is $E(\boldsymbol{\sigma}; \boldsymbol{\Xi}) = -\beta^{-1} \log \sum_{j=1}^{m} \exp(\beta \, \boldsymbol{\xi}_j^\top \boldsymbol{\sigma}) + \frac{1}{2} \|\boldsymbol{\sigma}\|^2$, where $\beta = 1/\sqrt{d}$. A full gradient step on this energy yields $\boldsymbol{\sigma}^{\mathrm{new}} = \boldsymbol{\Xi} \cdot \mathrm{softmax}(\beta \, \boldsymbol{\Xi}^\top \boldsymbol{\sigma})$, which is identical to softmax attention \citep{ramsauer2021hopfield}. Each transformer layer thus performs one gradient descent step on this energy landscape: the hidden state moves toward a lower-energy configuration at every layer.
+A fixed token or a fixed continuous prompt fails this requirement set immediately. It may steer one trajectory, but if the same vector is reused across runs then there is no across-trial exploration at all. Resampling discrete vocabulary tokens restores variability, yet each draw still comes with its own lexical direction and there is no reason for the resulting perturbations to be centered or isotropic. We formalize the choice we make instead.
 
-\paragraph{The trapping problem.}
-This monotone descent implies that, without perturbation, the forward pass converges to the local minimum in the basin of attraction of $\boldsymbol{\sigma}^{(0)}$. If a better minimum $\boldsymbol{\sigma}_g^*$ exists in a different basin, the deterministic forward pass cannot reach it because it cannot cross energy barriers.
+\begin{definition}[Random Soft Prompt]\label{def:rsp}
+Let $\mathbf{W}_E \in \mathbb{R}^{V \times d}$ denote the pretrained input-embedding table, with $\mu_E$ and $\sigma_E$ the entrywise scalar mean and standard deviation defined in Section~\ref{sec:rsp_definition}. An \emph{RSP} of length $L$ is a sequence $\mathbf{H}=(h_1,\dots,h_L)$ with
+\[
+h_l = \mu_E\mathbf{1}_d + \sigma_E\,\xi_l,
+\qquad
+\xi_l \stackrel{\text{iid}}{\sim}\mathcal N(0,\mathbf I_d),
+\]
+matching the implementation in Section~\ref{sec:rsp_definition} ($h_l\sim\mathcal{N}(\mu_E,\sigma_E^2\mathbf{I}_d)$, with $\mu_E$ broadcast as $\mu_E\mathbf{1}_d$). Equivalently, the centered prompt $\bar h_l := h_l-\mu_E\mathbf{1}_d$ satisfies $\bar h_l\sim\mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$. Whenever we later analyze repeated-sampling protocols such as Pass@$N$, we additionally assume that the prompt draws and any decoding randomness used across compared trials are independent.
+\end{definition}
 
-\paragraph{Why temperature scaling and additive noise do not resolve this.}
-Temperature scaling modifies only the final output distribution: $p^{(\tau)}(v) = \mathrm{softmax}(\mathbf{z}^{(L)}/\tau)$, leaving the internal trajectory $\mathbf{x}^{(l+1)}|_{\tau} = \mathbf{x}^{(l+1)}|_{\tau=1}$ for all $l < L$ identical. It cannot help escape a local minimum during inference. Additive Gaussian noise $\mathbf{x}^{(0)} + \boldsymbol{\epsilon}$ perturbs the initial state, but in subsequent layers the perturbation magnitude is bounded by $\prod_{l'} L_{f_{l'}} \cdot \sigma$ where $L_{f_{l'}}$ is the Lipschitz constant of layer $l'$. When $L_{f_{l'}} > 1$, the noise amplifies rather than decays, providing no controlled exploration schedule.
+The proofs in this section use only the centered law of $\bar h_l$, not the particular form of the centering vector $\mu_E\mathbf{1}_d$. The two embedding-derived statistics from Section~\ref{sec:rsp_definition} play distinct roles in this design. The scalar $\sigma_E^2$ borrows the \emph{scale} of the pretrained embedding distribution so that the perturbation operates in the magnitude regime the model expects. The isotropic covariance $\sigma_E^2\mathbf{I}_d$, in contrast, deliberately discards the directional structure of the embedding distribution; Theorem~\ref{thm:minimax_directional_coverage} below shows that this is the unique covariance that maximizes the worst-case directional variance under a fixed trace budget. The downstream attention mechanism then maps this prompt-space distribution to value space via the value projection $\mathbf{W}_V^{(l)}$; the corresponding variance facts are stated explicitly below.
 
-\paragraph{RSP as controlled exploration via attention.}
-RSP resolves both limitations through two mechanisms.
+\begin{lemma}[Semantic neutrality]\label{lem:semantic_neutrality}
+Let $\bar{h} \sim \mathcal{N}(0, \sigma^2 \mathbf{I}_d)$ and $\hat{h} := \bar{h}/\|\bar{h}\|$. For any fixed unit vectors $u_1,\dots,u_M \in \mathbb{S}^{d-1}$ and any $\delta \in (0,1)$,
+\[
+\Pr\!\left[
+\max_{r \in [M]} |\hat{h}^{\top} u_r|
+\le
+\sqrt{\frac{2\log(2M/\delta)}{d-1}}
+\right]
+\ge 1-\delta.
+\]
+In contrast, for any nonzero token embedding $e_s$, choosing the anchor direction $u = \hat{e}_s := e_s/\|e_s\|$ yields $|\hat{e}_s^{\top} u| = 1$.
+\end{lemma}
 
-First, concatenating $k$ random vectors sampled from $\mathcal{N}(\mu_E, \sigma_E^2 \mathbf{I})$ causes each token to attend to both real and random keys, yielding
+Lemma~\ref{lem:semantic_neutrality} gives the precise sense in which the perturbation is neutral. The claim is not that a random vector is literally free of every incidental semantic correlation. The relevant and weaker statement is that it does not systematically align with any pre-selected finite family of semantic alternatives. Centering then removes deterministic first-order drift: under the local surrogate below, the expected perturbation of any logit gap is zero when $\mathbb{E}[\bar{h}] = 0$.
+
+To formalize the exploration part, we specialize to the per-token surrogate that treats the contribution of a single random token at a time. Let $\bar h\in\mathbb{R}^d$ denote one centered prompt vector $\bar h_l$ from Definition~\ref{def:rsp}. The multi-token attention output $\boldsymbol\eta_i^{(l)}=\sum_{j=1}^k \alpha_{i,n+j}^{(l)}\mathbf{v}_{r_j}^{(l)}$ analyzed in §\ref{sec:energy_landscape} aggregates $L$ such independent draws through softmax-weighted attention, where the weights $\alpha_{i,n+j}^{(l)}$ themselves depend on the random tokens; the per-token surrogate identifies how a single $\bar h_j$ influences the logit gap, and the multi-token case is empirically captured by Figure~\ref{fig:attention_mass} and the Pass@$N$ analysis of Section~\ref{sec:diversity}. With this convention, consider the local first-order surrogate
+\[
+z_i(\bar{h}) \approx z_i + a_i^\top \bar{h},
+\qquad a_i := \nabla_{\bar h} z_i(0),
+\]
+valid for sufficiently small $\|\bar{h}\|$ (Appendix~\ref{app:proofs}); we use this surrogate throughout the section to identify the direction of perturbation rather than to predict its exact magnitude. For a token pair $(i,j)$, the perturbed logit gap becomes
+\[
+\Delta_{ij}(\bar{h}) \approx \Delta_{ij} + b_{ij}^\top \bar{h},
+\qquad
+b_{ij} := a_i-a_j.
+\]
+The relevant question is therefore not ``does the perturbation have variance?'' but ``how much variance does it retain along the unknown direction $b_{ij}$ that matters for this branching decision?'' The theorem below answers that question at the level of second moments.
+
+\begin{theorem}[Direction-agnostic coverage]\label{thm:minimax_directional_coverage}
+Let $D$ be any zero-mean perturbation distribution on $\mathbb{R}^d$ with covariance $\Sigma_D$ and variance budget $\mathrm{tr}(\Sigma_D) \le \rho^2$. Define the worst directional variance
+\[
+\mathcal{E}(D)
+:=
+\min_{\|b\|=1}
+\mathrm{Var}_{h \sim D}(b^\top h).
+\]
+Then
+\[
+\mathcal{E}(D)
+=
+\lambda_{\min}(\Sigma_D)
+\le
+\frac{\rho^2}{d},
+\]
+with equality if and only if $\Sigma_D = (\rho^2/d)\mathbf{I}_d$. Hence isotropic covariance is the unique way to equalize first-order perturbation variance across all directions while maximizing the least-covered one.
+\end{theorem}
+
+Theorem~\ref{thm:minimax_directional_coverage} is not meant to cast prompting as an adversarial game; its role is simpler. When the branch-sensitive direction is unknown at sample time, isotropy is the unique second-order description that neither favors nor neglects any direction. A fixed prompt has $\Sigma_D = 0$ and therefore creates no across-trial exploration at all. An anisotropic perturbation leaves at least one direction less explored than the isotropic optimum. The Gaussian choice in RSP is the simplest centered, rotation-symmetric family that realizes this covariance while matching the scale of pretrained embeddings. This is the sense in which RSP is not just ``some noise'': it is a resampled, centered, direction-agnostic perturbation.
+
+A natural alternative one might consider is to draw the perturbation from a distribution that \emph{matches} the empirical row-covariance geometry of the pretrained embedding table $\mathbf{W}_E$, rather than discarding it. Theorem~\ref{thm:minimax_directional_coverage} dismisses this alternative as soon as that row-covariance is non-isotropic.
+\begin{corollary}[Embedding-matched noise is suboptimal in worst-direction coverage]\label{cor:embedding_matched_suboptimal}
+Let $(\mathbf{W}_E)_v\in\mathbb{R}^d$ denote the $v$-th row of $\mathbf{W}_E$ and define the row-covariance of $\mathbf{W}_E$ around the same scalar-broadcast center $\mu_E\mathbf{1}_d$ used in Definition~\ref{def:rsp},
+\[
+\Sigma_E
+:=
+\frac{1}{V}\sum_{v=1}^{V} \big((\mathbf{W}_E)_v-\mu_E\mathbf{1}_d\big)\big((\mathbf{W}_E)_v-\mu_E\mathbf{1}_d\big)^\top,
+\qquad
+\mathrm{tr}(\Sigma_E)
+=
+d\,\sigma_E^2.
+\]
+Consider two zero-mean perturbations on $\mathbb{R}^d$ with the same trace budget $\rho^2 := d\,\sigma_E^2$: the isotropic RSP law $D_{\mathrm{iso}}$ of Definition~\ref{def:rsp} with covariance $\sigma_E^2\mathbf{I}_d = (\rho^2/d)\mathbf{I}_d$, and the embedding-matched law $D_{\mathrm{emb}}$ with covariance $\Sigma_E$. Then
+\[
+\mathcal{E}(D_{\mathrm{iso}}) \;=\; \frac{\rho^2}{d}
+\;\ge\;
+\lambda_{\min}(\Sigma_E) \;=\; \mathcal{E}(D_{\mathrm{emb}}),
+\]
+with strict inequality whenever $\Sigma_E$ is non-isotropic.
+\end{corollary}
+The corollary is one application of Theorem~\ref{thm:minimax_directional_coverage} and requires no separate proof; the trace identity $\mathrm{tr}(\Sigma_E)=d\sigma_E^2$ follows directly from the same scalar centering convention used in Section~\ref{sec:rsp_definition}. The motivation for considering this alternative comes from a line of work documenting that pretrained word- and sentence-embedding representations tend to be anisotropic rather than uniformly distributed in $\mathbb{R}^d$, with a dominant common direction and a few high-variance directions \citep{mu2018allbutthetop} and a more general anisotropy in contextualized representations \citep{ethayarajh2019contextual}. To the extent that the row-covariance $\Sigma_E$ inherits any such anisotropy, $\lambda_{\min}(\Sigma_E)$ is strictly smaller than $\rho^2/d$, so embedding-matched noise leaves at least one direction less explored than the isotropic comparator. Discarding the directional geometry of $\mathbf{W}_E$ while keeping its scale is therefore not a simplification of an embedding-matched alternative but a deliberate choice for direction-agnostic exploration.
+
+Lemma~\ref{lem:semantic_neutrality} and Theorem~\ref{thm:minimax_directional_coverage} therefore play complementary roles. The lemma rules out semantic pre-commitment to any fixed anchor set, while the theorem rules out directional under-coverage in the local branch-sensitive geometry. A perturbation that satisfies only the first condition would be neutral but too weak in some directions; a perturbation that satisfies only the second would still inject a hand-chosen semantic prior. RSP is useful because it satisfies both at once.
+
+% ================================================================
+\subsection{How Attention Turns a Neutral Perturbation into Controlled Exploration}\label{sec:energy_landscape}
+% ================================================================
+
+The previous subsection explains why centered isotropic randomness is the right kind of perturbation. The next question is temporal: why is the perturbation strong enough to matter at the beginning of decoding but weak enough not to derail the rest of the reasoning chain? The formal answer uses three ingredients. First, in an idealized Hopfield-style view of attention, each transformer block acts like one step of an iterative attractor process; in that picture the unperturbed path is strongly constrained by its initialization, which identifies a structural source of exploration deficit. Second, the attention output admits an exact decomposition into a real-token update and a random-token contribution. Third, the same attention mass that injects the random contribution is structurally forced downward as real-token evidence accumulates, and the perturbation propagates through the feed-forward sublayer with controlled amplification.
+
+\paragraph{Iterative attractor view.}
+Following the Modern Hopfield correspondence \citep{ramsauer2021hopfield}, one attention update with key matrix $\mathbf{K}$ and value matrix $\mathbf{V}$ is equivalent to a gradient step on the energy
+\[
+E_{\mathbf{K}}(\sigma) = -\beta^{-1} \log\!\sum_j \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2
+\]
+when $\mathbf{K}=\mathbf{V}$. Under three idealized assumptions \emph{(A1) $\mathbf{K}=\mathbf{V}$, (A2) weight-tied attention, (A3) $L_E$-smoothness of $E_{\mathbf{K}}$ with $L_E<2$}, Appendix~\ref{app:hopfield_descent} shows that the unperturbed iterates produce a strictly monotone descent in $E_{\mathbf{K}}$ and the sublevel set $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant; under the additional separation condition $\mathrm{sep}(C(\sigma^{(0)}))>0$ together with the per-step gradient bound of Corollary~\ref{cor:connected_basin}, the trajectory also remains in the connected component containing $\sigma^{(0)}$.
+
+(A1) and (A2) are not literally satisfied by real transformers, so the Hopfield view here is an idealized structural picture rather than a literal statement about every transformer block. Its role is to identify why a deterministic forward pass can be exploration-poor: under A1--A3 it stays inside a fixed sublevel set, and under the extra separation/small-step condition it also remains in the connected component selected by initialization. We use this picture to motivate why injecting an isotropic stochastic perturbation at every block is the relevant intervention, not to claim formal escape rates for real networks.
+
+Throughout the rest of the section we work with the actual transformer attention. \emph{At the first attention block} ($l=1$), the random tokens have not yet been transformed, so the random values are obtained by applying the value projection directly to the centered prompt vectors:
+\[
+\mathbf{v}_{r_j}^{(1)} = \mathbf{W}_V^{(1)} \bar h_j,
+\qquad
+\mathrm{Cov}(\mathbf{v}_{r_j}^{(1)}) = \sigma_E^2\mathbf{W}_V^{(1)}\mathbf{W}_V^{(1)\top}.
+\]
+Proposition~\ref{prop:value_projection_cov} in Appendix~\ref{app:why_random} states the resulting directional-variance bounds explicitly: if $\mathbf{W}_V^{(1)}$ is full rank the projected perturbation has strictly positive variance in every value-space direction, and if $\mathbf{W}_V^{(1)}$ is well-conditioned the prompt-space direction-agnostic coverage transfers to first-layer value space up to layer-dependent constants. At deeper layers $l>1$, the random tokens evolve through prior attention/FFN updates, so the analogous covariance pushforward applies to the \emph{current random-token state} $\mathbf{x}_{r_j}^{(l)}$ rather than to $\bar h_j$ directly. The remaining quantitative results in this subsection (decomposition, $w_r$ decay, FFN propagation) do not require the deep-layer covariance bound; they use only the algebraic decomposition and Lipschitz control. We therefore use first-layer directional coverage as the entry-point guarantee and rely on the propagation bounds below for cross-block control.
+
+\paragraph{Exact decomposition.}
+When $k$ random vectors are inserted as additional keys and values, the attention update can be written as
 \begin{equation}
 \mathbf{x}_i^{(l+1)}
 =
@@ -30,70 +131,151 @@ First, concatenating $k$ random vectors sampled from $\mathcal{N}(\mu_E, \sigma_
 +
 \boldsymbol{\eta}_i^{(l)},
 \end{equation}
-where $\tilde{\mathbf{x}}_i^{(l+1)}$ is the standard attention update over real tokens, and $\boldsymbol{\eta}_i^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}$ aggregates the contribution of random tokens with total attention mass $w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}$.
+where $\tilde{\mathbf{x}}_i^{(l+1)}$ is the update produced by the real tokens alone, $\boldsymbol{\eta}_i^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}$ is the contribution of the random values, and
+\[
+w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}
+\]
+is the total attention mass assigned to the random tokens. Appendix~\ref{app:rsp_noise} proves the decomposition and the deterministic bound
+\[
+\|\boldsymbol{\eta}_i^{(l)}\|
+\le
+w_{r,i}^{(l)} \max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|.
+\]
+This is the structural core of the mechanism: the same scalar $w_{r,i}^{(l)}$ controls how much of the original update is retained and how large the random contribution can be. If $w_{r,i}^{(l)}$ is large, the perturbation can materially change the update; if $w_{r,i}^{(l)}$ is small, the computation collapses back toward the real-token update.
 
-The perturbation magnitude is controlled by $w_{r,i}^{(l)}$, with variance scaling on the order of $(w_{r,i}^{(l)})^2$. In practice, since the embedding mean is negligible relative to its standard deviation ($|\mu_E|/\sigma_E \ll 1$), the bias term is dominated by the stochastic component, and the dynamics are well-approximated by a gradient descent process with approximately zero-mean structured noise (see Appendix~\ref{app:rsp_noise}).
-
-This yields a Langevin-like stochastic process that enables exploration beyond local minima.
-
-Second, RSP modifies the energy landscape. Adding $k$ random keys changes the Hopfield energy as
-\begin{equation}\label{eq:barrier_main}
-  \tilde{E}_i - E_i = -\beta^{-1} \log\!\left(1 + \frac{B_i}{A_i}\right) \leq 0,
-\end{equation}
-where $A_i = \sum_j \exp(\beta \, \mathbf{k}_j^\top \mathbf{q}_i)$ and $B_i = \sum_j \exp(\beta \, \mathbf{k}_{r_j}^\top \mathbf{q}_i) > 0$.
-The magnitude scales with $w_{r,i}^{(l)}/(1 - w_{r,i}^{(l)})$, so tokens assigning more attention to random keys experience larger energy perturbations.
-
-While this does not directly reduce barrier height, it alters the local energy landscape, and together with stochastic perturbations increases the probability of crossing energy barriers between basins.
-
-Both mechanisms are governed by $w_{r,i}^{(l)}$, which controls the overall strength of exploration.
-
-\paragraph{Why performance is preserved: dual decay of $w_{r,i}^{(l)}$.}
-The attention decay bound is:
+\paragraph{Natural annealing through attention.}
+The second structural fact is that $w_{r,i}^{(l)}$ is not arbitrary. It satisfies
 \begin{equation}\label{eq:decay_main}
   w_{r,i}^{(l)} \leq \frac{k}{k + n \cdot \exp(\Delta_i^{(l)} / \sqrt{d})},
 \end{equation}
-where $\Delta_i^{(l)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [k]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$ is the real-vs-random logit gap and $n$ is the number of real tokens. Since the bias, stochastic scale, and energy modification are all controlled by $w_{r,i}^{(l)}$, this bound governs the overall perturbation strength.
+where $\Delta_i^{(l)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [k]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$ is the real-vs-random logit gap and $n$ is the number of real tokens. This bound yields a clean \emph{sequence-wise dilution effect}: for a fixed gap, every newly generated real token tightens the maximum random-token attention compatible with that state. A similar \emph{layer-wise} decay is expected whenever deeper layers enlarge the real-vs-random gap $\Delta_i^{(l)}$. We intentionally treat that layer-wise statement as a model-side hypothesis rather than as a universal theorem, because it depends on how the model sharpens real-token retrieval with depth. The resulting prediction is simple: the perturbation should be strongest exactly when the model has the least context and many continuations remain open, and it should weaken as evidence accumulates.
 
-\textbf{Layer-wise decay.} If deeper layers increase the real-vs-random logit gap $\Delta_i^{(l)}$, then $w_{r,i}^{(l)}$ correspondingly decays toward zero. Empirically, as deeper layers develop task-specific representations, $\Delta_i^{(l)}$ tends to increase, making RSP's perturbation strongest in early layers and negligible in deeper layers.
+\begin{theorem}[Sequence-wise annealing under a fixed logit gap]\label{thm:sequence_annealing}
+Fix $k$ and $\Delta_i^{(l)}$. The upper bound in Eq.~\eqref{eq:decay_main} is strictly decreasing in the number $n$ of real tokens. Consequently, cache growth alone imposes a monotone decrease on the largest random-token attention compatible with that logit gap.
+\end{theorem}
 
-\textbf{Sequence-wise decay.} In autoregressive generation, each newly generated token adds a real key to the KV cache, so $n$ increases at every generation step while $k$ remains fixed. The growing $n$ in Eq.~\eqref{eq:decay_main} causes $w_{r,i}^{(l)}$ to decrease monotonically, progressively diluting RSP's influence as the sequence grows.
+Theorem~\ref{thm:sequence_annealing} proves a structural dilution effect, not monotone decay of the realized $w_{r,i}^{(l)}$ on every decoding path, because $\Delta_i^{(l)}$ also evolves with state. The layer-wise half is likewise model-specific and must be checked empirically.
 
-This dual decay provides a natural annealing schedule: RSP enables exploration in the early stage of both the internal forward pass and the generation sequence, while the direct influence of the perturbation progressively diminishes as the model accumulates real tokens and converges to task-specific representations.
+\paragraph{Feed-forward propagation under local Lipschitz control.}
+The decomposition above governs the attention sublayer. A real transformer block applies a feed-forward sublayer $F^{(l)}$ after attention with residual connections, so the cross-block perturbation depends on how $F^{(l)}$ propagates $\boldsymbol{\eta}_i^{(l)}$. If $F^{(l)}$ is $L^{(l)}$-Lipschitz on a bounded set containing both the perturbed and unperturbed post-attention states, then Appendix~\ref{app:ffn_lipschitz} shows
+\[
+\|\mathbf{x}_i^{(l+1, \text{RSP})} - \mathbf{x}_i^{(l+1, \text{base})}\|
+\le
+(1 + L^{(l)})\,\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big),
+\]
+which together with $\|\boldsymbol{\eta}_i^{(l)}\| \le w_{r,i}^{(l)} \max_j \|\mathbf{v}_{r_j}^{(l)}\|$ shows that the per-block perturbation amplitude scales linearly with $w_{r,i}^{(l)}$. The bounded-set assumption is plausible in practice because LayerNorm constrains the post-attention norm, so the perturbed and unperturbed states traversed during a single forward pass lie in a common bounded region. Iterating across the fixed finite stack yields the explicit cumulative bound of Corollary~\ref{cor:cross_block}. Under standard architectural assumptions this bound is finite for a fixed model depth, and the later-block injections themselves shrink as $w_{r,i}^{(l)}$ decreases. Stronger uniform-in-depth non-expansion would require additional contraction assumptions, which we do not invoke here.
 
 \paragraph{Empirical verification.}\label{sec:attention_mass}
-We empirically verify this dual decay on Qwen2.5-Math-7B with suffix injection over 500 MATH-500 problems. For each problem, we measure the per-token attention mass directed to the RSP embeddings and to the question tokens within the same sequence, with the question tokens serving as a baseline that factors out sequence-length effects. Figure~\ref{fig:attention_mass} shows the expected contrast: the question tokens, which remain task-relevant throughout reasoning, receive attention whose distribution varies across layers and reasoning positions without a consistent trend, while the RSP embeddings, which carry no task-relevant content and act as noise, receive attention that decreases along both the layer and sequence axes, directly instantiating the layer-wise and sequence-wise dilution predicted by Eq.~\eqref{eq:decay_main}.
+We test exactly these model-dependent steps on Qwen2.5-Math-7B under suffix injection. If $w_{r,i}^{(l)}$ really acts as an annealed exploration coefficient, then the realized attention to RSP tokens should decay across reasoning positions and layers, whereas attention to question tokens should not exhibit the same monotone pattern because they remain task-relevant throughout decoding. Figure~\ref{fig:attention_mass} shows precisely this contrast. The figure therefore serves a specific logical role: it validates the model-side sharpening behavior that Eq.~\eqref{eq:decay_main} by itself does not prove.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). The layer and reasoning-position axes are each partitioned into five quantile bins. Every cell reports the 500-sample mean per-token attention mass directed to \textbf{(a)} the RSP embeddings and \textbf{(b)} the question tokens within that region. The horizontal axis spans reasoning position from early (left) to late (right) generation steps, and the vertical axis spans layer depth from shallow (top) to deep (bottom). Attention to the RSP embeddings in (a) decays along both axes --- concentrating at shallow layers and early reasoning positions --- while attention to the question tokens in (b) remains comparatively uniform, visually confirming the layer-wise and sequence-wise dilution predicted by Eq.~\eqref{eq:decay_main}.}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). The layer and reasoning-position axes are each partitioned into five quantile bins; every cell reports the 500-sample mean per-token attention mass directed to \textbf{(a)} the RSP embeddings and \textbf{(b)} the question tokens within that region. The horizontal axis spans reasoning position from early (left) to late (right) generation steps, and the vertical axis spans layer depth from shallow (top) to deep (bottom). Attention to the RSP embeddings in (a) decays along both axes, while attention to the question tokens in (b) remains comparatively uniform.}
   \label{fig:attention_mass}
 \end{figure}
 
+% ================================================================
 \subsection{Output Distribution Shift and Exploration}
+% ================================================================
 
-We study how Random Soft Prompting (RSP) alters the output distribution of an autoregressive language model and how this leads to improved exploration.
+The practical consequence of the previous mechanism is branch opening. To connect that mechanism to observable decoding behavior, we now return to the output distribution. The relevant question is not whether RSP merely flattens probabilities, but whether it can make the decoder consider tokens that temperature scaling can never promote into contention.
 
-In autoregressive decoding, generation proceeds via prefix-conditioned distributions $p(y_t \mid x, y_{<t})$. RSP does not modify a single global distribution, but perturbs the sequence of conditional distributions across decoding steps. In Section~\ref{sec:energy_landscape}, we analyzed this from an internal, layer-wise and sequence-wise perspective, showing that RSP introduces structured perturbations through attention that naturally decay across layers. We now examine how these perturbations manifest at the output level.
+\paragraph{Why temperature is insufficient.}
+Temperature scaling transforms probabilities as $p_i^{(\tau)} \propto p_i^{1/\tau}$ and preserves token ranking, i.e., $p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$. It can soften or sharpen confidence, but it cannot create a new ordering among candidate tokens at a fixed decoding state.
 
-\paragraph{Limitation of temperature scaling.}
-Temperature scaling transforms probabilities as $p_i^{(\tau)} \propto p_i^{1/\tau}$ and preserves token ranking, i.e., $p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$. Hence it cannot introduce new token orderings at a fixed decoding state.
-
-\paragraph{Effect of RSP.}
-RSP induces stochastic perturbations to the hidden state, which we locally approximate as $z_i(h) \approx z_i + a_i^\top h$, where $h$ is a random soft prompt.
-
-\paragraph{Proposition 1 (Stochastic ranking).}
-If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, then
+\paragraph{Why RSP changes rankings.}
+RSP acts before softmax, through the hidden state. At a fixed decoding state, temperature rescales existing logit gaps, whereas RSP perturbs the gaps themselves. Using the same first-order local surrogate as above, define
 \[
-0 < \Pr_h\big(z_i(h) > z_j(h)\big) < 1.
+z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
 \]
-Thus, unlike temperature scaling, RSP randomizes token rankings at each decoding step.
+The next two propositions are statements about these surrogate logits, not the exact transformer logits; this scope is sufficient for the comparison to temperature because temperature is rank-preserving regardless of approximation.
 
-\paragraph{Proposition 2 (Support expansion).}
-Let $\mathrm{TopK}_{\mathrm{Temp}}(s_t)$ be the top-$K$ tokens under temperature scaling at state $s_t$. Under the same condition, there exists $i \notin \mathrm{TopK}_{\mathrm{Temp}}(s_t)$ such that
+The next two propositions use only one additional support property of the centered prompt law: every nonempty open subset of $\mathbb{R}^d$ receives positive probability. The Gaussian instantiation of Definition~\ref{def:rsp} satisfies this automatically, but the proofs themselves do not require Gaussian tails once this support condition is in place.
+
+\begin{proposition}[Stochastic ranking under the local affine surrogate]\label{prop:stochastic_ranking}
+If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, and if the centered prompt law assigns positive probability to every nonempty open subset of $\mathbb{R}^d$, then
 \[
-\Pr_h\big(i \in \mathrm{TopK}(p^{\mathrm{RSP}}(\cdot \mid s_t, h))\big) > 0.
+0 < \Pr_{\bar{h}}\big(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})\big) < 1.
 \]
+Thus, unlike temperature scaling, the local affine surrogate of RSP randomizes token rankings at each decoding step.
+\end{proposition}
 
-\paragraph{Implication.}
-RSP expands the effective support of the output distribution, enabling tokens that are effectively inaccessible under temperature scaling. Since autoregressive generation composes these distributions over time, such perturbations can lead to distinct trajectories, explaining the empirical gains in exploration.
+Proposition~\ref{prop:stochastic_ranking} is the minimal statement: pairwise order can flip. Exploration requires a stronger conclusion, namely that tokens outside the baseline candidate set can actually enter it.
+
+\begin{proposition}[Top-$K$ entry under a nonempty surrogate entry region]\label{prop:support_expansion}
+Let $J_K(s_t)$ be the baseline top-$K$ set at decoding state $s_t$, and let $i \notin J_K(s_t)$. Define
+\[
+\mathcal{G}_{i,K}
+:=
+\left\{
+\bar{h} \in \mathbb{R}^d :
+\#\left\{j \neq i : z_j^{\mathrm{lin}}(\bar{h}) > z_i^{\mathrm{lin}}(\bar{h})\right\}
+\le K-1
+\right\}.
+\]
+If $\mathcal{G}_{i,K}$ contains a nonempty open set and the centered prompt law assigns positive probability to every nonempty open subset of $\mathbb{R}^d$, then
+\[
+\Pr_{\bar{h}}\big(\bar{h} \in \mathcal{G}_{i,K}\big) > 0.
+\]
+\end{proposition}
+
+Proposition~\ref{prop:support_expansion} is intentionally conditional: it does not claim that every excluded token admits such a top-$K$ entry region. It states that whenever the first-order model contains an open region in prompt space where a previously excluded token moves into the top-$K$, the centered perturbation reaches that region with positive probability. A sufficient condition for the open-region hypothesis is the following \emph{strict-margin admission} condition. For each subset $S\subseteq\{j\neq i\}$ with $|S|\le K-1$, define the strict-inequality polyhedron
+\[
+\mathcal{O}_S
+:=
+\Big\{\bar h\in\mathbb{R}^d :
+z_j+a_j^\top\bar h > z_i+a_i^\top\bar h\ \forall j\in S,\ \ z_i+a_i^\top\bar h > z_{j'}+a_{j'}^\top\bar h\ \forall j'\notin S\cup\{i\}
+\Big\}.
+\]
+Each $\mathcal{O}_S$ is an open subset of $\mathbb{R}^d$ as a finite intersection of open half-spaces, and any $\bar h\in\mathcal{O}_S$ has token $i$ ranked $|S|+1\le K$, hence $\bar h\in\mathcal{G}_{i,K}$. Therefore $\bigcup_{|S|\le K-1}\mathcal{O}_S$ is an open subset of $\mathcal{G}_{i,K}$, and $\mathcal{G}_{i,K}$ contains a nonempty open set whenever some $\mathcal{O}_S$ is nonempty. Equivalently, the existence of any $\bar h_0\in\mathbb{R}^d$ at which token $i$ outranks all but at most $K-1$ other tokens with a strict margin yields $\bar h_0\in\mathcal{O}_S$ for $S=\{j:z_j+a_j^\top\bar h_0>z_i+a_i^\top\bar h_0\}$, and the open polyhedron $\mathcal{O}_S$ contains an open ball around $\bar h_0$. The inclusion $\bigcup_S\mathcal{O}_S\subseteq\mathcal{G}_{i,K}$ is one-way (ties leave a measure-zero subset of $\mathcal{G}_{i,K}$ outside $\bigcup_S\mathcal{O}_S$), but it is sufficient for Proposition~\ref{prop:support_expansion} since only nonempty open subsets of $\mathcal{G}_{i,K}$ are needed. The complementary case---no such $\bar h_0$ exists---is exactly the situation in which token $i$ is dominated by the baseline top-$K$ in the affine logit surrogate, and Proposition~\ref{prop:support_expansion} makes no claim there. Section~\ref{sec:diversity} reports the probability mass that RSP places outside the baseline top-$10$ at the first generation step. This mass-outside-top-$K$ statistic is a coarse aggregate rather than a direct count of top-$K$ admission events; it is consistent with the existence of nonempty entry regions for at least some decoding states without formally estimating the surrogate open-set condition. Gaussianity is one sufficient way to realize the required support condition; temperature cannot reach $\mathcal{G}_{i,K}$ because it never changes token order at all. The mechanism here is branch opening, not mere probability flattening.
+
+\begin{corollary}[Sample complexity of top-$K$ admission]\label{cor:sample_complexity}
+Let $\mu_i := \Pr_{\bar{h}}(\bar{h} \in \mathcal{G}_{i,K}) > 0$ denote the per-sample admission probability for token $i$. Within $N$ independent fresh RSP draws, the probability of at least one admission is at least
+\[
+1 - (1-\mu_i)^N \;\ge\; 1 - \exp(-N \mu_i).
+\]
+\end{corollary}
+
+Corollary~\ref{cor:sample_complexity} closes the loop from per-sample positive probability to multi-trial exploration. Even when $\mu_i$ is small, $N \cdot \mu_i = \Theta(1)$ samples suffice to admit a previously excluded token with constant probability. The independence assumption first enters here: the single-run rank-flip and top-$K$ entry statements above do not require it. This is the formal bridge from the static guarantee of Proposition~\ref{prop:support_expansion} to the trajectory-level Pass@$N$ phenomena reported in Section~\ref{sec:diversity}.
+
+\paragraph{From rank flips to trajectory diversity to accuracy gain.}
+Together, Propositions~\ref{prop:stochastic_ranking} and~\ref{prop:support_expansion} close the logical chain from Section~\ref{sec:entropy} to Section~\ref{sec:diversity}, up to the local-surrogate assumption above. Early RSP perturbations alter logit gaps before softmax, which can admit previously excluded tokens into the candidate set. Because autoregressive decoding compounds early choices, one such early admission is enough to push the trajectory into a different reasoning cluster even if later perturbations are already small. RSP therefore does not need to perturb the entire chain of thought uniformly: it only needs to alter the first few branching decisions before attention-mediated attenuation suppresses further noise, which is why early exploration and late stabilization coexist in the same mechanism.
+
+The connection from trajectory diversity to accuracy gain requires a property of reasoning tasks themselves: the existence of multiple valid trajectories. We formalize this as a separate proposition rather than absorb it into the perturbation analysis.
+
+\begin{proposition}[Exploration-meets-multi-path accuracy gain]\label{prop:multi_path}
+Fix a problem $x$, and consider the protocol that runs the deterministic baseline once and additionally draws $N$ fresh RSPs $\bar h^{(1)},\dots,\bar h^{(N)}$, with the model decoded once per sample. Let $\mathcal{T}^\star(x)$ denote the (nonempty) set of trajectories reaching the correct answer and $p_{\mathrm{base}}(x)\in\{0,1\}$ the deterministic-baseline correctness indicator. Assume \emph{(M1)} for each $n\in\{1,\dots,N\}$, the marginal probability that the $n$-th RSP run produces a trajectory in $\mathcal{T}^\star(x)$ is at least $p_{\min}(x) > 0$ (the same lower bound for every $n$), and \emph{(M2)} the $N$ RSP runs are mutually independent (independent prompt draws and, if decoding is stochastic, independent decoding randomness across runs). Then
+\[
+\Pr\!\big(\text{Pass@}(N{+}1) \text{ correct on } x\big)
+\ge
+\max\!\left\{p_{\mathrm{base}}(x),\;1 - (1-p_{\min}(x))^N\right\}
+\ge
+1 - e^{-N p_{\min}(x)}.
+\]
+The expected accuracy gain over the deterministic baseline is at least
+\[
+\frac{1}{|\mathcal{D}|}\sum_{x\in\mathcal{D}}\big(1 - p_{\mathrm{base}}(x)\big)\,\big(1 - \exp(-N p_{\min}(x))\big).
+\]
+\end{proposition}
+
+\begin{proof}
+Let $p_n(x)\ge p_{\min}(x)$ denote the per-run success probability of the $n$-th RSP run as in (M1). The Pass@$(N{+}1)$ event holds if the baseline run reaches $\mathcal{T}^\star(x)$ (probability $p_{\mathrm{base}}(x)\in\{0,1\}$) or if any of the $N$ RSP runs does. By (M2), the failure probabilities of the $N$ RSP runs multiply, so the probability that at least one RSP run reaches $\mathcal{T}^\star(x)$ equals $1-\prod_{n=1}^N(1-p_n(x))$, which is at least $1-(1-p_{\min}(x))^N$ by (M1). Taking the maximum with $p_{\mathrm{base}}(x)$ gives the first lower bound; $1-x\le e^{-x}$ gives the second. Restricting to $\{x:p_{\mathrm{base}}(x)=0\}$ yields the expected gain.
+\end{proof}
+
+Proposition~\ref{prop:multi_path} converts the local guarantees of Propositions~\ref{prop:stochastic_ranking} and~\ref{prop:support_expansion} into a global accuracy claim, but only via the auxiliary assumption that $p_{\min}(x) > 0$. The next lemma formalizes a sufficient condition under which the perturbation theory of this section actually delivers $p_{\min}(x)>0$, separating what is proved (positive measure of an entry region) from what is assumed (extension of a perturbed prefix to a correct completion).
+
+\begin{lemma}[Bridge from open entry region to one-run success]\label{lem:p_min_bridge}
+Specialize Proposition~\ref{prop:support_expansion} to $K=1$ (greedy decoding) and assume the same support condition on the centered prompt law. Suppose there exists a nonempty open ball $B\subseteq\mathbb{R}^d$ such that for every $\bar h\in B$ both of the following hold under a single RSP draw at the start of decoding:
+\emph{(B1)} the RSP-induced trajectory under prompt $\bar h$ reaches some decoding state $s_{t^\star}(\bar h)$ at which an excluded token $i^\star(\bar h)\notin J_1(s_{t^\star})$ satisfies $\bar h\in\mathcal{G}_{i^\star,1}(s_{t^\star})$, so greedy decoding selects $i^\star(\bar h)$ at step $t^\star$;
+\emph{(B2)} the resulting full trajectory belongs to $\mathcal{T}^\star(x)$.
+Then $p_{\min}(x) \ge \Pr(\bar h\in B) > 0$.
+\end{lemma}
+
+\begin{proof}
+By definition, $p_{\min}(x)$ is the per-sample probability that the RSP-induced full trajectory under one draw of $\bar h$ reaches $\mathcal{T}^\star(x)$. Conditions (B1) and (B2) state exactly that this event holds for every $\bar h\in B$. Since $B$ is a nonempty open subset of $\mathbb{R}^d$ and the centered prompt law assigns positive probability to every nonempty open set, $\Pr(\bar h\in B)>0$, and the lower bound follows.
+\end{proof}
+
+Lemma~\ref{lem:p_min_bridge} converts the abstract assumption $p_{\min}(x)>0$ of Proposition~\ref{prop:multi_path} into the existence of an open ball $B$ satisfying two simultaneous properties: (B1) the perturbation theory of this section---specifically Proposition~\ref{prop:support_expansion} at $K=1$---supplies the open-set structure that triggers top-1 entry once a candidate decoding state $s_{t^\star}$ is fixed; (B2) the resulting full trajectory continues into a correct completion. The prefix-preservation aspect (the trajectory under $\bar h$ actually reaches a state $s_{t^\star}$ with the desired entry-region structure) and the completion property (B2) are both model- and dataset-dependent and treated as empirical hypotheses. Section~\ref{sec:diversity} plays a load-bearing role here: it verifies that RSP-induced trajectories include both improvements and regressions over the baseline with net gain emerging under repeated sampling, which is precisely the empirical signature predicted by such an open ball $B$ existing for some but not all problems. The mechanism we have isolated is exploration meeting multi-path structure, not steering toward correctness.
+
+Taken together, the causal chain is now explicit. Randomness matters because RSP is resampled, centered, and direction-agnostic; attention turns that perturbation into an early exploration coefficient and then anneals it; the resulting early rank flips open trajectories that temperature scaling alone cannot reach; and the multi-path structure of reasoning converts trajectory diversity into accuracy gain under repeated sampling. Section~\ref{sec:experimental_analysis} therefore reports four observable faces of a single mechanism rather than four disconnected phenomena.

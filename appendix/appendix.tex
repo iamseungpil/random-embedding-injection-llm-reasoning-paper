@@ -340,99 +340,303 @@ The symmetrized, bounded version of Kullback--Leibler divergence:
 We use base-2 logarithms so that $\mathrm{JS} \in [0, 1]$. Tokens absent from the stored top-100 are assigned a sentinel logit ($-10^9$) before softmax, which is negligible for our setting since the top-5 covers more than $99.9\%$ of the probability mass.
 
 \clearpage
-\section{Proofs for Energy-Theoretic Analysis}\label{app:proofs}
+\clearpage
+\section{Why Random Prompts Are Semantically Neutral and Direction-Agnostic}\label{app:why_random}
 
-% [본문 문단 2, 3에 대한 증명]
-% Hopfield energy의 smoothness로부터 매 layer에서 energy가 단조 감소함을 보이고,
-% 이를 통해 perturbation 없는 forward pass가 local minimum에 갇힘을 증명
-\subsection{Deterministic Trapping}
+This appendix formalizes the ``why random'' claim used in Section~\ref{sec:why_random_prompt}. The point is not that random prompts contain hidden task information. The point is structural: if the perturbation is meant to act as a generic exploration device rather than as a learned prompt prior, then it should be resampled across runs, centered so that it does not induce a fixed first-order drift, and direction-agnostic so that it does not under-serve whichever local branch direction matters for the current prompt.
 
-\begin{lemma}[Descent lemma]\label{lem:descent}
-If $E$ is $L_E$-smooth and $\eta \leq 1/L_E$, then $E(\boldsymbol{\sigma}^{\mathrm{new}}) \leq E(\boldsymbol{\sigma}) - \frac{\eta}{2}\|\nabla E(\boldsymbol{\sigma})\|^2$.
+\subsection{Semantic Neutrality}
+
+Let $\bar{h} \sim \mathcal{N}(0, \sigma^2 \mathbf{I}_d)$ and $\hat{h} := \bar{h}/\|\bar{h}\|$ whenever $\bar{h}\neq 0$. Let $u_1,\dots,u_M \in \mathbb{S}^{d-1}$ be any fixed unit vectors representing semantic anchor directions.
+
+\begin{lemma}[Semantic neutrality]\label{lem:semantic_neutrality_proof}
+For any $\delta \in (0,1)$,
+\[
+\Pr\!\left[
+\max_{r \in [M]} |\hat{h}^{\top} u_r|
+\le
+\sqrt{\frac{2\log(2M/\delta)}{d-1}}
+\right]
+\ge 1-\delta.
+\]
+Hence the normalized direction of an isotropic Gaussian prompt is simultaneously nearly orthogonal to every fixed finite collection of semantic anchors with high probability.
 \end{lemma}
+
 \begin{proof}
-By $L_E$-smoothness, $E(\boldsymbol{\sigma} - \eta \nabla E) \leq E(\boldsymbol{\sigma}) - \eta \|\nabla E\|^2 + \frac{L_E \eta^2}{2}\|\nabla E\|^2 = E(\boldsymbol{\sigma}) - \eta(1 - \frac{L_E \eta}{2})\|\nabla E\|^2$. Since $\eta \leq 1/L_E$, we have $L_E \eta / 2 \leq 1/2$, giving $E(\boldsymbol{\sigma}^{\mathrm{new}}) \leq E(\boldsymbol{\sigma}) - \frac{\eta}{2}\|\nabla E\|^2$.
+Because $\bar{h}$ is isotropic Gaussian, its normalized direction $\hat{h}$ is uniformly distributed on the sphere $\mathbb{S}^{d-1}$. For a fixed unit vector $u\in\mathbb{S}^{d-1}$, the marginal $\hat h^\top u$ satisfies the standard spherical concentration bound \citep[Theorem~3.4.6]{vershynin2018high}\citep[Section~3.2]{boucheron2013concentration},
+\[
+\Pr\big(|\hat{h}^{\top} u| \ge t\big)
+\le
+2\exp\!\left(-\frac{(d-1)t^2}{2}\right)
+\qquad
+\text{for } t \in (0,1),
+\]
+which follows from the spherical-cap area bound $\sigma\{\hat h\in\mathbb{S}^{d-1}:\hat h^\top u\ge t\} \le \tfrac{1}{2}(1-t^2)^{(d-1)/2}$ together with $(1-t^2)^{(d-1)/2}\le\exp(-(d-1)t^2/2)$ derived from $\log(1-x)\le -x$ for $x\in[0,1)$.
+Applying this bound to each $u_r$ and using a union bound,
+\[
+\Pr\!\left[\max_{r \in [M]} |\hat{h}^{\top} u_r| \ge t\right]
+\le
+2M \exp\!\left(-\frac{(d-1)t^2}{2}\right).
+\]
+Setting
+\[
+t = \sqrt{\frac{2\log(2M/\delta)}{d-1}}
+\]
+gives the claim. If the displayed value of $t$ exceeds $1$, the statement is trivial because $|\hat{h}^{\top} u_r| \le 1$ always.
 \end{proof}
 
-\begin{theorem}[Deterministic trapping]\label{thm:trapping_proof}
-Without perturbation, the forward pass converges to the local minimum $\boldsymbol{\sigma}^*$ in the basin of attraction of $\boldsymbol{\sigma}^{(0)}$, which may satisfy $E(\boldsymbol{\sigma}^*) > E(\boldsymbol{\sigma}_g^*)$.
+The contrast with a token embedding is immediate. If $e_s \neq 0$ is a fixed token embedding and $\hat{e}_s := e_s/\|e_s\|$, then choosing the anchor direction $u = \hat{e}_s$ gives
+\[
+|\hat{e}_s^\top u| = 1.
+\]
+A token prompt is therefore maximally aligned with at least one semantic direction, whereas an isotropic random prompt is nearly orthogonal to every fixed finite set of such directions. This is the sense in which tokens inject semantic commitment while random prompts act as semantically uncommitted perturbations.
+
+\subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
+
+Let $\Delta_{ij}$ be the baseline logit gap between tokens $i$ and $j$, and write the first-order surrogate as
+\[
+\Delta_{ij}(\bar{h}) = \Delta_{ij} + b_{ij}^\top \bar{h}.
+\]
+
+\begin{proposition}[No systematic first-order drift]\label{prop:centered_no_drift}
+If $\mathbb{E}[\bar{h}] = 0$, then
+\[
+\mathbb{E}\big[\Delta_{ij}(\bar{h})\big] = \Delta_{ij}
+\]
+for every token pair $(i,j)$. If a deterministic prompt $h_0$ is reused across runs, then
+\[
+\Delta_{ij}(h_0) - \Delta_{ij} = b_{ij}^\top h_0
+\]
+is a fixed directional bias.
+\end{proposition}
+
+\begin{proof}
+The centered case is immediate from linearity of expectation:
+\[
+\mathbb{E}\big[\Delta_{ij}(\bar{h})\big]
+=
+\Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar{h}]
+=
+\Delta_{ij}.
+\]
+The deterministic case follows by substitution.
+\end{proof}
+
+The proposition does not say that a centered perturbation leaves every \emph{realization} unchanged; it says there is no systematic first-order push toward one branch across runs. This is exactly the behavior desired from a generic exploration device. A fixed token or fixed soft prompt may still be useful, but it acts as a persistent prompt prior rather than as an unbiased exploration mechanism.
+
+\subsection{Direction-Agnostic Coverage}
+
+The second requirement is directional coverage. Let $D$ be any zero-mean perturbation distribution in $\mathbb{R}^d$ with covariance $\Sigma_D$ and variance budget $\mathrm{tr}(\Sigma_D)\le \rho^2$. For a unit vector $b$, the first-order perturbation energy available along $b$ is $\mathrm{Var}_{h \sim D}(b^\top h)=b^\top \Sigma_D b$. This is the quantity that appears in the local linear logit surrogate used in the main text.
+
+\begin{theorem}[Direction-agnostic coverage]\label{thm:minimax_directional_coverage_proof}
+Define
+\[
+\mathcal{E}(D)
+:=
+\min_{\|b\|=1}
+\mathrm{Var}_{h \sim D}(b^\top h).
+\]
+Then
+\[
+\mathcal{E}(D)
+=
+\lambda_{\min}(\Sigma_D)
+\le
+\frac{\rho^2}{d},
+\]
+with equality if and only if $\Sigma_D = (\rho^2/d)\mathbf{I}_d$.
 \end{theorem}
+
 \begin{proof}
-Lemma~\ref{lem:descent} guarantees monotone energy decrease at each layer: $E(\boldsymbol{\sigma}^{(l+1)}) \leq E(\boldsymbol{\sigma}^{(l)})$. Since $E$ is bounded below (the quadratic term dominates), the sequence $\{E(\boldsymbol{\sigma}^{(l)})\}$ converges, implying $\|\nabla E(\boldsymbol{\sigma}^{(l)})\| \to 0$ and convergence to a critical point. Deterministic dynamics follow a unique trajectory from $\boldsymbol{\sigma}^{(0)}$ and cannot cross energy barriers to reach minima in other basins.
+For any symmetric covariance matrix $\Sigma_D$,
+\[
+\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D),
+\]
+so $\mathcal{E}(D)=\lambda_{\min}(\Sigma_D)$. Let the eigenvalues of $\Sigma_D$ be $\lambda_1,\dots,\lambda_d$. Then
+\[
+\lambda_{\min}(\Sigma_D)
+\le
+\frac{1}{d}\sum_{m=1}^{d}\lambda_m
+=
+\frac{\mathrm{tr}(\Sigma_D)}{d}
+\le
+\frac{\rho^2}{d}.
+\]
+Equality holds if and only if all eigenvalues are equal, i.e., $\Sigma_D = (\rho^2/d)\mathbf{I}_d$.
 \end{proof}
 
-% [본문 문단 5 메커니즘 1에 대한 증명]
-% RSP perturbation term의 expectation, covariance, bias-to-variance ratio를 유도
-% bias가 negligible함을 보여 Langevin-like 해석을 정당화
-\subsection{Properties of the RSP-Induced Perturbation}\label{app:rsp_noise}
+This theorem is a statement about second moments, not about Gaussianity by itself. Many distributions could realize isotropic covariance. We use a Gaussian in RSP because it is the simplest centered, rotation-symmetric family that matches the scale of pretrained embeddings. The theorem clarifies the structural advantage: a fixed prompt has $\Sigma_D=0$ and therefore no across-run exploration, whereas any anisotropic perturbation leaves at least one branch-sensitive direction less explored than the isotropic optimum.
 
-\paragraph{Decomposition of attention output.}
-The attention update with $n$ real keys and $k$ random keys can be decomposed as
-\begin{equation}
-\mathbf{x}_i^{(l+1)} = (1 - w_{r,i}^{(l)}) \, \tilde{\mathbf{x}}_i^{(l+1)} + \boldsymbol{\eta}_i^{(l)},
-\end{equation}
+\begin{proposition}[Covariance pushforward under the value projection]\label{prop:value_projection_cov}
+Let $\bar h$ be a centered random vector with covariance $\sigma_E^2 \mathbf I_d$, and let $v = W \bar h$ for a matrix $W \in \mathbb{R}^{d_v \times d}$. Then
+\[
+\mathrm{Cov}(v) = \sigma_E^2 W W^\top.
+\]
+Consequently, for every unit vector $u \in \mathbb{S}^{d_v-1}$,
+\[
+\sigma_E^2 \lambda_{\min}(W W^\top)
+\le
+\mathrm{Var}(u^\top v)
+=
+\sigma_E^2 u^\top W W^\top u
+\le
+\sigma_E^2 \lambda_{\max}(W W^\top).
+\]
+In particular, if $W$ is full rank then the projected perturbation has strictly positive variance in every output-space direction.
+\end{proposition}
+
+\begin{proof}
+Since $v = W \bar h$ and $\mathbb E[\bar h]=0$,
+\[
+\mathrm{Cov}(v)
+=
+\mathbb E[vv^\top]
+=
+W\,\mathbb E[\bar h \bar h^\top]\,W^\top
+=
+\sigma_E^2 W W^\top.
+\]
+For any unit vector $u$,
+\[
+\mathrm{Var}(u^\top v)
+=
+u^\top \mathrm{Cov}(v)\,u
+=
+\sigma_E^2 u^\top W W^\top u,
+\]
+and the Rayleigh quotient bounds give the stated inequalities.
+\end{proof}
+
+\clearpage
+\section{Proofs for Attention-Mediated Annealing}\label{app:proofs}
+
+\subsection{Hopfield-Energy Descent and Basin Trapping}\label{app:hopfield_descent}
+
+We restate the Modern Hopfield correspondence in the form used in the main text. For a key matrix $\mathbf{K} = (\mathbf{k}_1, \ldots, \mathbf{k}_n)$ at a fixed query position, the Hopfield energy is
+\[
+E_{\mathbf{K}}(\sigma) := -\beta^{-1} \log \sum_{j=1}^{n} \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2.
+\]
+A direct calculation gives the gradient
+\[
+\nabla E_{\mathbf{K}}(\sigma) = \sigma - \mathbf{K}^\top \mathrm{softmax}(\beta \mathbf{K} \sigma).
+\]
+Under (A1) $\mathbf{K}=\mathbf{V}$, the attention update with this $\mathbf{K}$ is therefore $\sigma^{\text{new}} = \sigma - \nabla E_{\mathbf{K}}(\sigma) = \mathbf{K}^\top \mathrm{softmax}(\beta \mathbf{K} \sigma)$, which is one gradient step on $E_{\mathbf{K}}$ at unit step size \citep{ramsauer2021hopfield}.
+
+\begin{lemma}[Descent inequality]\label{lem:descent}
+If $E_{\mathbf{K}}$ is $L_E$-smooth on a neighborhood of $\sigma$, then the unit-step gradient update $\sigma^{\text{new}} := \sigma - \nabla E_{\mathbf{K}}(\sigma)$ satisfies
+\[
+E_{\mathbf{K}}(\sigma^{\text{new}}) \le E_{\mathbf{K}}(\sigma) - \big(1 - \tfrac{L_E}{2}\big)\|\nabla E_{\mathbf{K}}(\sigma)\|^2.
+\]
+\end{lemma}
+
+\begin{proof}
+The standard $L_E$-smooth quadratic upper bound \citep[Lemma~1.2.3]{nesterov2018lectures} states $E(\sigma+v)\le E(\sigma)+\nabla E(\sigma)^\top v+(L_E/2)\|v\|^2$ for any $v$ in the smoothness neighborhood. Applying this to $v=-\nabla E(\sigma)$ gives $E(\sigma-\nabla E)\le E(\sigma)-\|\nabla E\|^2+(L_E/2)\|\nabla E\|^2 = E(\sigma)-(1-L_E/2)\|\nabla E\|^2$.
+\end{proof}
+
+\begin{theorem}[Deterministic descent and sublevel-set invariance]\label{thm:basin_trapping}
+Assume \emph{(A1)} $\mathbf{K}=\mathbf{V}$, \emph{(A2)} the attention component is weight-tied across blocks, and \emph{(A3)} $E_{\mathbf{K}}$ is $L_E$-smooth on a neighborhood of the unperturbed trajectory with $L_E < 2$. Then the unit-step iterate $\sigma^{(l+1)} = \sigma^{(l)} - \nabla E_{\mathbf{K}}(\sigma^{(l)})$ is strictly monotone-descending in $E_{\mathbf{K}}$ at every non-stationary point, and the sublevel set $\{\sigma : E_{\mathbf{K}}(\sigma) \le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant.
+\end{theorem}
+
+\begin{proof}
+By Lemma~\ref{lem:descent}, $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)}) - (1 - L_E/2)\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|^2$. Under (A3), the coefficient $1 - L_E/2 > 0$, so $E_{\mathbf{K}}(\sigma^{(l+1)}) \le E_{\mathbf{K}}(\sigma^{(l)})$ with strict inequality unless $\nabla E_{\mathbf{K}}(\sigma^{(l)}) = 0$, which proves forward invariance.
+\end{proof}
+
+\begin{corollary}[Connected-component containment for the unit-step iterate]\label{cor:connected_basin}
+Let $S:=\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ and let $C(\sigma^{(0)})$ denote the connected component of $S$ containing $\sigma^{(0)}$. Define
+\[
+\mathrm{sep}(C(\sigma^{(0)}))
+\;:=\;
+\inf\!\big\{\|x-y\| \,:\, x\in C(\sigma^{(0)}),\ y\in S\setminus C(\sigma^{(0)})\big\},
+\]
+with the convention $\mathrm{sep}=+\infty$ if $S$ is connected. Assume $\mathrm{sep}(C(\sigma^{(0)}))>0$. Then the unit-step iterate $\sigma^{(l+1)}=\sigma^{(l)}-\nabla E_{\mathbf{K}}(\sigma^{(l)})$ remains in $C(\sigma^{(0)})$ for all $l\ge 0$ whenever
+\[
+\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\| \;<\; \mathrm{sep}(C(\sigma^{(0)})) \qquad \text{for every } l.
+\]
+\end{corollary}
+
+\begin{proof}
+By Theorem~\ref{thm:basin_trapping}, every iterate lies in $S$. Suppose by induction $\sigma^{(l)}\in C(\sigma^{(0)})$. The displacement $\sigma^{(l+1)}-\sigma^{(l)}=-\nabla E_{\mathbf{K}}(\sigma^{(l)})$ has Euclidean length $\|\nabla E_{\mathbf{K}}(\sigma^{(l)})\|$. A jump to a distinct component $C'\subseteq S$ would require this length to be at least $\inf\{\|x-y\|:x\in C(\sigma^{(0)}),\,y\in C'\}\ge \mathrm{sep}(C(\sigma^{(0)}))$, which the hypothesis excludes. Hence $\sigma^{(l+1)}\in C(\sigma^{(0)})$.
+\end{proof}
+
+\paragraph{Positivity of $\mathrm{sep}$.}
+$\mathrm{sep}(C)>0$ holds whenever the components of $S$ are spatially separated by a region of strictly higher energy than $E_{\mathbf{K}}(\sigma^{(0)})$, which we treat as a problem-dependent assumption rather than a structural property: it requires that the relevant components of the Hopfield energy do not share closure boundary points at level $E_{\mathbf{K}}(\sigma^{(0)})$. If $\mathrm{sep}=0$ the corollary becomes vacuous; in that case the trajectory is still in $S$ by Theorem~\ref{thm:basin_trapping}, but is not formally trapped in $C(\sigma^{(0)})$.
+
+\paragraph{Caveats and scope.}
+Theorem~\ref{thm:basin_trapping} depends on three assumptions that are individually mild but jointly idealized for real transformers. (A1) $\mathbf{K}=\mathbf{V}$ collapses the key and value projections; this is the standard Modern Hopfield assumption \citep{ramsauer2021hopfield} and isolates the energy-iteration aspect of attention from the additional value-projection degree of freedom. (A2) weight-tying treats the attention component as a single repeated map; without it, each block has its own energy and the trajectory does not minimize a single fixed function across blocks. (A3) is a smoothness condition on $E_{\mathbf{K}}$. For the Hopfield energy used here, $\nabla^2 E_{\mathbf{K}}(\sigma) = \mathbf{I} - \beta \mathbf{K}^\top (\mathrm{diag}(p_\sigma) - p_\sigma p_\sigma^\top) \mathbf{K}$ where $p_\sigma = \mathrm{softmax}(\beta \mathbf{K} \sigma)$, so the operator-norm bound on $\nabla^2 E_{\mathbf{K}}$ depends on the inverse-temperature $\beta$ and on $\|\mathbf{K}\|$. (A3) holds whenever $\beta \|\mathbf{K}\|^2$ is sufficiently small, which is the standard regime in which the Hopfield iterate converges in a small number of steps. The theorem therefore characterizes an idealized tendency of attention-only iteration in this regime; it is not a literal property of every transformer block. In particular, sublevel-set confinement follows from Theorem~\ref{thm:basin_trapping}, whereas connected-component confinement additionally requires the separation and per-step gradient assumptions of Corollary~\ref{cor:connected_basin}. Its role in the main text is to supply an idealized source of exploration deficit that an injected stochastic perturbation addresses; the empirical link is the cross-layer attention decay observed in Figure~\ref{fig:attention_mass} and the trajectory diversity gain reported in Section~\ref{sec:diversity}.
+
+\subsection{Exact Attention Decomposition and Magnitude Control}\label{app:rsp_noise}
+
+\begin{proposition}[Attention decomposition]\label{prop:attention_decomposition}
+Let $\alpha_{ij}^{(l)}$ be the attention weights for query position $i$ at layer $l$, with $n$ real tokens and $k$ random tokens. Define
+\[
+w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}
+\]
+and, for $j \in [n]$,
+\[
+\tilde{\alpha}_{ij}^{(l)} := \frac{\alpha_{ij}^{(l)}}{1-w_{r,i}^{(l)}}.
+\]
+Then
+\[
+\mathbf{x}_i^{(l+1)}
+=
+(1-w_{r,i}^{(l)})\,\tilde{\mathbf{x}}_i^{(l+1)}
++
+\boldsymbol{\eta}_i^{(l)},
+\]
 where
-\begin{equation}
-\tilde{\mathbf{x}}_i^{(l+1)} = \sum_{j=1}^{n} \tilde{\alpha}_{ij}^{(l)} \mathbf{v}_j^{(l)}, \quad \tilde{\alpha}_{ij}^{(l)} = \frac{\alpha_{ij}^{(l)}}{1 - w_{r,i}^{(l)}},
-\end{equation}
-and
-\begin{equation}
-\boldsymbol{\eta}_i^{(l)} = \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}.
-\end{equation}
+\[
+\tilde{\mathbf{x}}_i^{(l+1)} := \sum_{j=1}^{n} \tilde{\alpha}_{ij}^{(l)} \mathbf{v}_j^{(l)}
+\qquad\text{and}\qquad
+\boldsymbol{\eta}_i^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}.
+\]
+\end{proposition}
 
-We now analyze the properties of the perturbation term $\boldsymbol{\eta}_i^{(l)}$.
+\begin{proof}
+The attention output is
+\[
+\mathbf{x}_i^{(l+1)}
+=
+\sum_{j=1}^{n} \alpha_{ij}^{(l)} \mathbf{v}_j^{(l)}
++
+\sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}.
+\]
+By definition, $\sum_{j=1}^{n} \alpha_{ij}^{(l)} = 1-w_{r,i}^{(l)}$, so
+\[
+\sum_{j=1}^{n} \alpha_{ij}^{(l)} \mathbf{v}_j^{(l)}
+=
+(1-w_{r,i}^{(l)}) \sum_{j=1}^{n} \frac{\alpha_{ij}^{(l)}}{1-w_{r,i}^{(l)}} \mathbf{v}_j^{(l)}
+=
+(1-w_{r,i}^{(l)})\,\tilde{\mathbf{x}}_i^{(l+1)}.
+\]
+Substituting this identity gives the decomposition.
+\end{proof}
 
-\paragraph{Conditional expectation.}
-Conditioned on the attention weights, we have
-\begin{equation}
-\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right] = \mu_E \, w_{r,i}^{(l)},
-\end{equation}
-where $w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}$.
+\begin{corollary}[Magnitude scales with random-token attention]\label{cor:perturbation_magnitude}
+For every realization of the random values,
+\[
+\|\boldsymbol{\eta}_i^{(l)}\|
+\le
+w_{r,i}^{(l)} \max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|.
+\]
+\end{corollary}
 
-\paragraph{Conditional covariance.}
-Assuming the random vectors are independent with covariance $\sigma_E^2 \mathbf{I}$,
-\begin{equation}
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right) = \sigma_E^2 \sum_{j=1}^{k} (\alpha_{i,n+j}^{(l)})^2 \, \mathbf{I}.
-\end{equation}
-Using $\sum_j \alpha_j^2 \le (\sum_j \alpha_j)^2$, we obtain
-\begin{equation}
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right) \preceq \sigma_E^2 (w_{r,i}^{(l)})^2 \, \mathbf{I}.
-\end{equation}
+\begin{proof}
+By the triangle inequality,
+\[
+\|\boldsymbol{\eta}_i^{(l)}\|
+=
+\left\|
+\sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}
+\right\|
+\le
+\sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \|\mathbf{v}_{r_j}^{(l)}\|
+\le
+w_{r,i}^{(l)} \max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|.
+\]
+\end{proof}
 
-\paragraph{Bias-to-variance ratio.}
-The ratio between the mean and standard deviation is bounded by
-\begin{equation}
-\frac{\|\mathbb{E}[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}]\|}{\sqrt{\mathrm{Var}(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)})}} \le \frac{|\mu_E|}{\sigma_E}.
-\end{equation}
-Empirically, $|\mu_E|/\sigma_E \ll 1$, implying that the stochastic component dominates the bias.
+Corollary~\ref{cor:perturbation_magnitude} is the only quantitative fact needed in the main text. No independence assumption between attention weights and random keys is required. Once $w_{r,i}^{(l)}$ is small, the random contribution must be small as well.
 
-\paragraph{Empirical verification.}
-Table~\ref{tab:embed_stats} reports the embedding matrix statistics for all models used in our experiments.
-
-\begin{table}[ht]
-\centering
-\caption{Embedding matrix statistics. $|\mu_E|/\sigma_E < 0.02$ across all models.}
-\label{tab:embed_stats}
-\footnotesize
-\renewcommand{\arraystretch}{0.9}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Model} & $\mu_E$ & $\sigma_E$ & $|\mu_E|/\sigma_E$ \\
-\midrule
-LLaMA-3.1-8B-Instruct & 0.00002 & 0.01057 & 0.002 \\
-Qwen2.5-Math-7B-Instruct & $-$0.00002 & 0.01647 & 0.001 \\
-Qwen2.5-Math-1.5B-Instruct & 0.00019 & 0.01585 & 0.012 \\
-Qwen2.5-Math-7B & $-$0.00003 & 0.01842 & 0.001 \\
-Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Implication.}
-Therefore, the perturbation behaves as approximately zero-mean noise whose magnitude is controlled by $w_{r,i}^{(l)}$, justifying the Langevin-like interpretation in the main text.
-
-% [본문 문단 6에 대한 증명]
-% attention decay bound: softmax 정규화에서 real key의 exponential sum을 lower bound하여 유도
 \subsection{Attention Decay Bound}
 
 \begin{theorem}[Attention decay]\label{thm:decay_proof}
@@ -442,20 +646,146 @@ w_{r,i}^{(l)} \leq \frac{k}{k + n \cdot \exp(\Delta_i^{(l)} / \sqrt{d})},
 \end{equation}
 where $\Delta_i^{(l)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [k]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$ is the real-vs-random logit gap.
 \end{theorem}
+
 \begin{proof}
-Let $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ for real keys and $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$ for random keys. By definition of $\Delta_i^{(l)}$, each real key satisfies $s_j \geq \Delta_i^{(l)}/\sqrt{d} + s_{r,\max}$ where $s_{r,\max} = \max_{j'} s_{r_{j'}}$. Therefore $\exp(s_j) \geq \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max})$ for every real key. Summing over $n$ real keys:
-\begin{equation}
-\sum_{j=1}^{n} \exp(s_j) \geq n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max}) \geq n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \frac{1}{k}\sum_{j'=1}^{k} \exp(s_{r_{j'}}).
-\end{equation}
-The total attention on random tokens is $w_{r,i}^{(l)} = \sum_{j'} \exp(s_{r_{j'}}) / (\sum_j \exp(s_j) + \sum_{j'} \exp(s_{r_{j'}}))$. Substituting the lower bound on the real-key sum and letting $R = \sum_{j'} \exp(s_{r_{j'}})$:
-\begin{equation}
-w_{r,i}^{(l)} = \frac{R}{\sum_j \exp(s_j) + R} \leq \frac{R}{n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot R/k + R} = \frac{k}{k + n \cdot \exp(\Delta_i^{(l)}/\sqrt{d})}.
-\end{equation}
+Let $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$ for real keys and $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$ for random keys. By definition of $\Delta_i^{(l)}$, each real key satisfies $s_j \geq \Delta_i^{(l)}/\sqrt{d} + s_{r,\max}$ where $s_{r,\max} = \max_{j'} s_{r_{j'}}$. Therefore $\exp(s_j) \geq \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max})$ for every real key. Summing over $n$ real keys gives
+\[
+\sum_{j=1}^{n} \exp(s_j)
+\ge
+n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max})
+\ge
+n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \frac{1}{k}\sum_{j'=1}^{k} \exp(s_{r_{j'}}).
+\]
+Let $R := \sum_{j'=1}^{k} \exp(s_{r_{j'}})$. Then
+\[
+w_{r,i}^{(l)}
+=
+\frac{R}{\sum_{j=1}^{n} \exp(s_j) + R}
+\le
+\frac{R}{n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot R/k + R}
+=
+\frac{k}{k + n \cdot \exp(\Delta_i^{(l)} / \sqrt{d})}.
+\]
 \end{proof}
 
-% [본문 Section 4.2 (Output Distribution Shift and Exploration) 에 대한 증명]
-% autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
+\begin{corollary}[Sequence-wise annealing under a fixed logit gap]\label{cor:sequence_annealing}
+For fixed $k$ and $\Delta_i^{(l)}$, the upper bound
+\[
+f(n)=\frac{k}{k+n\exp(\Delta_i^{(l)}/\sqrt{d})}
+\]
+is strictly decreasing in $n$. Consequently, cache growth alone decreases the maximum perturbation mass compatible with that gap.
+\end{corollary}
+
+\begin{proof}
+Differentiate $f(n)$ with respect to $n$:
+\[
+f'(n)
+=
+-\frac{k\exp(\Delta_i^{(l)}/\sqrt{d})}{\left(k+n\exp(\Delta_i^{(l)}/\sqrt{d})\right)^2}
+<
+0.
+\]
+Thus $f(n)$ is strictly decreasing.
+\end{proof}
+
+\begin{corollary}[Vanishing random contribution under annealing]\label{cor:vanishing_perturbation}
+If $n \to \infty$ along decoding while $k$ and $\Delta_i^{(l)}$ remain fixed, then $w_{r,i}^{(l)} \to 0$. Moreover, for any fixed realization of the $k$ random values,
+\[
+\|\boldsymbol{\eta}_i^{(l)}\|
+\le
+w_{r,i}^{(l)} \max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|
+\to
+0.
+\]
+Since the implementation samples finite-dimensional vectors and $k$ is finite, the displayed maximum is almost surely finite.
+\end{corollary}
+
+\begin{proof}
+Corollary~\ref{cor:sequence_annealing} implies $w_{r,i}^{(l)} \to 0$. The bound on $\|\boldsymbol{\eta}_i^{(l)}\|$ is Corollary~\ref{cor:perturbation_magnitude}. Since the multiplier $\max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|$ is finite for any fixed realization of finitely many sampled values, the product converges to zero.
+\end{proof}
+
+\subsection{Feed-Forward Propagation under Local Lipschitz Control}\label{app:ffn_lipschitz}
+
+A transformer block applies an attention sublayer followed by a feed-forward sublayer with residual connections:
+\[
+\mathbf{x}_i^{(l, \text{attn})}
+=
+\mathbf{x}_i^{(l)} + \mathrm{Attn}^{(l)}(\mathbf{x}_i^{(l)}),
+\qquad
+\mathbf{x}_i^{(l+1)}
+=
+\mathbf{x}_i^{(l, \text{attn})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn})}).
+\]
+Let $\mathbf{x}_i^{(l, \text{attn,RSP})}$ and $\mathbf{x}_i^{(l, \text{attn,base})}$ denote the post-attention states under RSP and the unperturbed forward pass at the same input $\mathbf{x}_i^{(l)}$.
+
+\begin{lemma}[Per-block FFN propagation]\label{lem:ffn_lipschitz}
+The post-attention difference satisfies
+\[
+\|\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}\|
+\le
+\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|.
+\]
+If, in addition, $F^{(l)}$ is $L^{(l)}$-Lipschitz on a bounded set containing both $\mathbf{x}_i^{(l, \text{attn,RSP})}$ and $\mathbf{x}_i^{(l, \text{attn,base})}$, then
+\[
+\|\mathbf{x}_i^{(l+1, \text{RSP})} - \mathbf{x}_i^{(l+1, \text{base})}\|
+\le
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+\end{lemma}
+
+\begin{proof}
+The unperturbed attention sublayer produces $\mathbf{x}_i^{(l, \text{attn,base})} = \mathbf{x}_i^{(l)} + \tilde{\mathbf{x}}_i^{(l+1)}$, while the RSP attention sublayer produces $\mathbf{x}_i^{(l, \text{attn,RSP})} = \mathbf{x}_i^{(l)} + (1-w_{r,i}^{(l)})\tilde{\mathbf{x}}_i^{(l+1)} + \boldsymbol{\eta}_i^{(l)}$ by Proposition~\ref{prop:attention_decomposition}. Subtracting,
+\[
+\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}
+=
+\boldsymbol{\eta}_i^{(l)} - w_{r,i}^{(l)} \tilde{\mathbf{x}}_i^{(l+1)},
+\]
+and the triangle inequality gives the first bound. For the second bound, write the post-FFN difference as
+\[
+\big[\mathbf{x}_i^{(l, \text{attn,RSP})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn,RSP})})\big]
+-
+\big[\mathbf{x}_i^{(l, \text{attn,base})} + F^{(l)}(\mathbf{x}_i^{(l, \text{attn,base})})\big].
+\]
+By Lipschitz continuity, $\|F^{(l)}(\mathbf{x}^{(l, \text{attn,RSP})}) - F^{(l)}(\mathbf{x}^{(l, \text{attn,base})})\| \le L^{(l)} \|\mathbf{x}_i^{(l, \text{attn,RSP})} - \mathbf{x}_i^{(l, \text{attn,base})}\|$. The triangle inequality combined with the first bound gives the second.
+\end{proof}
+
+\begin{corollary}[Cross-block propagation control]\label{cor:cross_block}
+Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ with $\Delta^{(0)} = \mathbf{0}$ (matched inputs at layer $0$), and let $L^{(l)}_{\text{block}}$ denote the local Lipschitz constant of the block map $B^{(l)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x})+F^{(l)}(\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x}))$ at layer $l$. Then
+\[
+\|\Delta^{(l+1)}\|
+\le
+(1 + L^{(l)}_{\text{block}})\,\|\Delta^{(l)}\|
++
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+Iterating across $L$ blocks with $\Delta^{(0)}=\mathbf{0}$ yields
+\[
+\|\Delta^{(L+1)}\|
+\le
+\sum_{l=0}^{L} \prod_{l' = l+1}^{L} (1 + L^{(l')}_{\text{block}})
+\cdot
+(1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
+\]
+\end{corollary}
+
+\begin{proof}
+Decompose the cross-block discrepancy at layer $l+1$ into two contributions:
+\[
+\Delta^{(l+1)}
+=
+\underbrace{B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{RSP})}) - B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{base})})}_{\text{(I) propagation of prior } \Delta^{(l)}}
++
+\underbrace{B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{base})}) - B^{(l)}_{\text{base}}(\mathbf{x}^{(l,\text{base})})}_{\text{(II) RSP-induced perturbation injected at block } l},
+\]
+where $B^{(l)}_{\text{RSP}}$ replaces $\mathrm{Attn}^{(l)}$ with the RSP-augmented attention. Term (I) is bounded via the block Lipschitz constant: $\|(I)\|\le L^{(l)}_{\text{block}}\|\Delta^{(l)}\|$. With residuals included one gets the factor $(1+L^{(l)}_{\text{block}})$ when also propagating the residual term $\Delta^{(l)}$ itself. Term (II) is exactly the per-block injection from Lemma~\ref{lem:ffn_lipschitz}, bounded by $(1+L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\|+w_{r,i}^{(l)}\|\tilde{\mathbf{x}}_i^{(l+1)}\|\big)$. Combining via the triangle inequality gives the recursion. The summed bound follows by unrolling the recursion: with $\Delta^{(0)}=\mathbf{0}$, induction on $L$ shows that $\|\Delta^{(L+1)}\|$ is at most the displayed sum.
+\end{proof}
+
+\paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
+Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU are smooth and therefore locally Lipschitz on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants in Corollary~\ref{cor:cross_block} are therefore finite. For a fixed model depth this yields a finite cumulative bound on $\|\Delta^{(L+1)}\|$; stronger depth-uniform non-expansion would require additional contraction assumptions not imposed here. This is the formal sense in which the injected perturbation stays controlled across a finite forward pass, while the size of each new injection is set by $w_{r,i}^{(l)}$.
+
 \subsection{Proofs for Output Distribution Shift}
+
+The main text makes two output-level claims. Proposition~\ref{prop:stochastic_ranking} establishes pairwise rank randomness, and Proposition~\ref{prop:support_expansion} upgrades that statement to top-$K$ entry. Both are statements about a local first-order surrogate of the perturbed logits.
 
 \subsubsection{Autoregressive Formulation}
 
@@ -467,29 +797,114 @@ where each step is governed by a prefix-conditioned distribution. Any perturbati
 
 \subsubsection{Local Linearization of Logits under RSP}
 
-Let $h$ denote the random soft prompt. We model the perturbed logits as a function $z_i(h)$, assuming local smoothness in a neighborhood of $h=0$:
+Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector $\bar h_l$ from Definition~\ref{def:rsp}, treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the propositions below identify how each individual $\bar h_l$ shifts the logits, and the multi-token compounding through softmax-weighted attention is reported empirically in Figure~\ref{fig:attention_mass} and Section~\ref{sec:diversity}. We model the perturbed logits as a function $z_i(\bar{h})$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
 \[
-z_i(h) = z_i(0) + \nabla_h z_i(0)^\top h + r_i(h),
+z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
 \]
-where $r_i(h) = O(\|h\|^2)$. Defining $a_i := \nabla_h z_i(0)$, we obtain the local linear approximation $z_i(h) \approx z_i + a_i^\top h$. This approximation is valid for sufficiently small $\|h\|$ and is used to characterize the direction of perturbation rather than exact logit values.
+where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_h z_i(0)$, we obtain the local affine surrogate
+\[
+z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
+\]
+This approximation is valid for sufficiently small $\|\bar{h}\|$ and is used as a first-order surrogate for the direction of perturbation rather than as an exact global model of the transformer logits.
+
+For the two propositions below we isolate the only support property that is actually used. Let $D$ denote the centered prompt law. We assume
+\[
+\textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
+\]
+The Gaussian instantiation in Section~\ref{sec:why_random_prompt} satisfies (S1), but the proofs below require only this support condition.
 
 \subsubsection{Proof of Proposition 1 (Stochastic Ranking)}
 
-\textit{If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, then $0 < \Pr_h(z_i(h) > z_j(h)) < 1$.}
+\textit{If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, and if the centered prompt law satisfies (S1), then $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$.}
 
 \begin{proof}
-Under the local linear approximation, $z_i(h) - z_j(h) = (z_i - z_j) + (a_i - a_j)^\top h$. Let $b_{ij} := a_i - a_j \neq 0$. If $h \sim \mathcal{N}(0, \sigma^2 I)$, then $b_{ij}^\top h \sim \mathcal{N}(0, \sigma^2 \|b_{ij}\|^2)$, a non-degenerate Gaussian. The perturbed logit difference $\Delta_{ij}(h) := (z_i - z_j) + b_{ij}^\top h$ therefore has non-zero probability mass on both sides of zero: $0 < \Pr_h(\Delta_{ij}(h) > 0) < 1$.
+Under the local affine surrogate,
+\[
+z_i^{\mathrm{lin}}(\bar{h}) - z_j^{\mathrm{lin}}(\bar{h})
+=
+(z_i-z_j) + (a_i-a_j)^\top \bar{h}.
+\]
+Let $b_{ij}:=a_i-a_j \neq 0$. The perturbed logit difference
+\[
+\Delta_{ij}(\bar{h}) := (z_i-z_j) + b_{ij}^\top \bar{h}
+\]
+vanishes on the affine hyperplane
+\[
+H_0 := \{\bar h \in \mathbb{R}^d : (z_i-z_j) + b_{ij}^\top \bar h = 0\}.
+\]
+Because $b_{ij}\neq 0$, $H_0$ has codimension one and partitions $\mathbb{R}^d$ into the two nonempty open half-spaces
+\[
+H_+ := \{\bar h : (z_i-z_j) + b_{ij}^\top \bar h > 0\},
+\qquad
+H_- := \{\bar h : (z_i-z_j) + b_{ij}^\top \bar h < 0\}.
+\]
+By (S1), both $H_+$ and $H_-$ have positive probability, which yields
+\[
+0 < \Pr_{\bar{h}}(\Delta_{ij}(\bar{h})>0) < 1.
+\]
 \end{proof}
 
-\subsubsection{On Proposition 2 (Support Expansion)}
+\subsubsection{Proof of Proposition 2 (Top-K Entry)}
 
-Proposition 2 states that tokens outside the baseline top-$K$ set can enter the top-$K$ set under RSP with positive probability. Proposition 1 establishes that pairwise ranking between tokens becomes stochastic. Entering the top-$K$ set requires surpassing multiple tokens simultaneously, i.e., conditions of the form $z_i(h) > z_j(h)$ for all $j \in J$ where $J$ is a subset of higher-ranked tokens. Under the local linear model, these inequalities define a region in $h$-space. If this region has non-zero measure under the distribution of $h$, then top-$K$ entry occurs with positive probability. We interpret Proposition 2 as a support-expansion statement: RSP enables tokens that are effectively inaccessible under deterministic ranking to become reachable under stochastic perturbations.
+\textit{Let $J_K(s_t)$ be the baseline top-$K$ set at state $s_t$, and let $i \notin J_K(s_t)$. Define}
+\[
+\mathcal{G}_{i,K}
+:=
+\left\{
+\bar{h} \in \mathbb{R}^d :
+\#\left\{j \neq i : z_j^{\mathrm{lin}}(\bar{h}) > z_i^{\mathrm{lin}}(\bar{h})\right\}
+\le K-1
+\right\}.
+\]
+\textit{If $\mathcal{G}_{i,K}$ contains a nonempty open set and the centered prompt law satisfies (S1), then}
+\[
+\Pr_{\bar{h}}\big(\bar{h} \in \mathcal{G}_{i,K}\big) > 0.
+\]
+
+\begin{proof}
+Under the local affine surrogate, token $i$ belongs to the surrogate top-$K$ set if and only if at most $K-1$ tokens outrank it, i.e., if and only if $\bar{h} \in \mathcal{G}_{i,K}$. For each subset $S$ of token indices with $i \notin S$ and $|S|\le K-1$, define
+\[
+\mathcal{O}_S
+:=
+\left\{
+\bar{h} :
+z_j^{\mathrm{lin}}(\bar{h}) > z_i^{\mathrm{lin}}(\bar{h})\ \text{for all } j \in S,\;
+z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})\ \text{for all } j \notin S \cup \{i\}
+\right\}.
+\]
+Each $\mathcal{O}_S$ is an intersection of open half-spaces and is therefore an open subset of $\mathbb{R}^d$. By construction, every $\bar h\in\mathcal{O}_S$ has token $i$ ranked $|S|+1\le K$ in the affine surrogate, so $\mathcal{O}_S\subseteq\mathcal{G}_{i,K}$. Hence
+\[
+\bigcup_{S:\, i \notin S,\ |S|\le K-1} \mathcal{O}_S \;\subseteq\; \mathcal{G}_{i,K}.
+\]
+The reverse inclusion fails only on the measure-zero set of $\bar h$ that produce ties, which we do not need: the assumption that $\mathcal{G}_{i,K}$ contains a nonempty open set is sufficient. Condition (S1) therefore implies
+\[
+\Pr_{\bar{h}}(\bar{h}\in \mathcal{G}_{i,K}) > 0,
+\]
+which is exactly the event that token $i$ enters the surrogate top-$K$ set.
+\end{proof}
+
+\subsubsection{Proof of Corollary~\ref{cor:sample_complexity} (Sample Complexity)}
+
+\textit{Let $\mu_i = \Pr_{\bar{h}}(\bar{h} \in \mathcal{G}_{i,K}) > 0$. Within $N$ independent RSP samples $\bar{h}_1, \ldots, \bar{h}_N$, the probability of at least one admission is at least $1 - (1-\mu_i)^N \ge 1 - \exp(-N\mu_i)$.}
+
+\begin{proof}
+The samples $\{\bar{h}_n\}_{n=1}^N$ are independent, so
+\[
+\Pr\big(\text{no admission within $N$ samples}\big)
+=
+\prod_{n=1}^{N} \Pr(\bar{h}_n \notin \mathcal{G}_{i,K})
+=
+(1-\mu_i)^N.
+\]
+The complement gives the first inequality. The second inequality is standard: $1 - \mu_i \le \exp(-\mu_i)$, hence $(1-\mu_i)^N \le \exp(-N\mu_i)$.
+\end{proof}
 
 \subsubsection{Trajectory-Level Implications}
 
-Since autoregressive generation composes conditional distributions across steps, perturbations at early steps can lead to distinct trajectories. Let $\mathcal{R}_{k,K}(x)$ denote the set of trajectories containing at least one token outside the baseline top-$K$ set. If RSP increases the accessibility of such tokens at early steps, then the probability of sampling trajectories in $\mathcal{R}_{k,K}(x)$ increases under repeated sampling. This links local ranking perturbations to global trajectory diversity.
+Since autoregressive generation composes conditional distributions across steps, perturbations at early steps can lead to distinct trajectories. Let $\mathcal{R}_{k,K}(x)$ denote the set of trajectories containing at least one token outside the baseline top-$K$ set. If RSP increases the accessibility of such tokens at early steps, then the probability of sampling trajectories in $\mathcal{R}_{k,K}(x)$ increases under repeated sampling. The key point is temporal compounding: one early top-$K$ entry changes the next decoding state, which changes the next candidate set, and so on. This is the formal bridge from local rank perturbations to global trajectory diversity.
 
 \clearpage
+% ================================================================
 % ================================================================
 \section{Attention Mass Analysis}\label{app:attention_mass}
 % ================================================================
