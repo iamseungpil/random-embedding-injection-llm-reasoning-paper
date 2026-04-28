@@ -82,7 +82,11 @@ Following the Modern Hopfield correspondence \citep{ramsauer2021hopfield}, one a
 \[
 E_{\mathbf{K}}(\sigma) = -\beta^{-1} \log\!\sum_j \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2
 \]
-when $\mathbf{K}=\mathbf{V}$. Appendix~\ref{app:hopfield_descent} states three idealized assumptions \emph{(A1)~$\mathbf{K}=\mathbf{V}$, (A2)~weight-tied attention, (A3)~$L_E$-smoothness with $L_E<2$} under which the unperturbed iterates produce a strictly monotone descent in $E_{\mathbf{K}}$ and the sublevel set $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant; in the Hopfield regime where the iterate converges in a small number of steps, the trajectory additionally remains in the connected component containing $\sigma^{(0)}$ (Corollary~\ref{cor:connected_basin}). (A1) and (A2) are not literally satisfied by real transformers; the Hopfield view here is a structural picture of attention-only iteration, not a literal statement about every transformer block. Its role in the argument is to identify why a deterministic forward pass is exploration-poor: it cannot leave the connected component selected by initialization, and temperature scaling only acts after the trajectory has already terminated. We do not use this view to claim formal escape rates for real transformers; we use it to motivate why injecting an isotropic stochastic perturbation at every block is the relevant intervention. Throughout the rest of the section we work with the actual transformer attention; the random values $\mathbf{v}_{r_j}^{(l)}$ inherit a Gaussian distribution induced by the prompt construction in Section~\ref{sec:why_random_prompt} and the value projection $\mathbf{W}_V^{(l)}$. Centered isotropic prompts yield value-space distributions with covariance $\sigma_E^2\mathbf{W}_V^{(l)}\mathbf{W}_V^{(l)\top}$, which is full-rank whenever $\mathbf{W}_V^{(l)}$ is, and remains positive-definite in every direction with $\lambda_{\min}(\mathbf{W}_V^{(l)}\mathbf{W}_V^{(l)\top}) > 0$. We adopt the convention that $\sigma_E^2$ in subsequent bounds refers to a per-coordinate variance scale that already absorbs this projection so that the value-space directional variance is bounded below by $\sigma_E^2$ in every direction; under this convention the directional-coverage property of Theorem~\ref{thm:minimax_directional_coverage} carries to value space, and Appendix~\ref{app:rsp_noise} verifies the embedding-scale statistics empirically.
+when $\mathbf{K}=\mathbf{V}$. Under three idealized assumptions \emph{(A1) $\mathbf{K}=\mathbf{V}$, (A2) weight-tied attention, (A3) $L_E$-smoothness of $E_{\mathbf{K}}$ with $L_E<2$}, Appendix~\ref{app:hopfield_descent} shows that the unperturbed iterates produce a strictly monotone descent in $E_{\mathbf{K}}$ and the sublevel set $\{\sigma:E_{\mathbf{K}}(\sigma)\le E_{\mathbf{K}}(\sigma^{(0)})\}$ is forward-invariant; whenever the iterate converges in a small number of steps with bounded gradient, the trajectory additionally remains in the connected component containing $\sigma^{(0)}$ (Corollary~\ref{cor:connected_basin}).
+
+(A1) and (A2) are not literally satisfied by real transformers, so the Hopfield view here is a structural picture of attention-only iteration rather than a literal statement about every transformer block. Its role is to identify why a deterministic forward pass is exploration-poor: it cannot leave the connected component selected by initialization, and temperature scaling only acts after the trajectory has already terminated. We use the view to motivate why injecting an isotropic stochastic perturbation at every block is the relevant intervention, not to claim formal escape rates.
+
+Throughout the rest of the section we work with the actual transformer attention. The random values $\mathbf{v}_{r_j}^{(l)}$ inherit a Gaussian distribution induced by the centered isotropic prompt of Section~\ref{sec:why_random_prompt} and the value projection $\mathbf{W}_V^{(l)}$, with covariance $\sigma_E^2\mathbf{W}_V^{(l)}\mathbf{W}_V^{(l)\top}$ that is full-rank whenever $\mathbf{W}_V^{(l)}$ is. We adopt the convention that $\sigma_E^2$ in subsequent bounds refers to a per-coordinate variance scale already absorbing this projection, so that value-space directional variance is bounded below by $\sigma_E^2$ in every direction; the directional-coverage property of Theorem~\ref{thm:minimax_directional_coverage} then carries to value space, and Appendix~\ref{app:rsp_noise} verifies the embedding-scale statistics empirically.
 
 \paragraph{Exact decomposition.}
 When $k$ random vectors are inserted as additional keys and values, the attention update can be written as
@@ -196,12 +200,15 @@ The connection from trajectory diversity to accuracy gain requires a property of
 Fix a problem $x$, and consider the protocol that runs the deterministic baseline once and additionally draws $N$ independent RSPs $\bar h^{(1)},\dots,\bar h^{(N)}$, with the model decoded once per sample. Let $\mathcal{T}^\star(x)$ denote the (nonempty) set of trajectories reaching the correct answer and $p_{\mathrm{base}}(x)\in\{0,1\}$ the deterministic-baseline correctness indicator. Assume \emph{(M1)} for each $n\in\{1,\dots,N\}$, the marginal probability that the $n$-th RSP run produces a trajectory in $\mathcal{T}^\star(x)$ is at least $p_{\min}(x) > 0$ (the same lower bound for every $n$), and \emph{(M2)} the $N$ RSP runs are mutually independent (independent prompt draws and, if decoding is stochastic, independent decoding randomness across runs). Then
 \[
 \Pr\!\big(\text{Pass@}(N{+}1) \text{ correct on } x\big)
-\;\ge\;
+\ge
 \max\!\left\{p_{\mathrm{base}}(x),\;1 - (1-p_{\min}(x))^N\right\}
-\;\ge\;
-1 - \exp(-N\,p_{\min}(x)).
+\ge
+1 - e^{-N p_{\min}(x)}.
 \]
-The expected accuracy gain over the deterministic baseline is at least $\frac{1}{|\mathcal{D}|}\sum_{x\in\mathcal{D}}(1 - p_{\mathrm{base}}(x))\big(1 - \exp(-N p_{\min}(x))\big)$.
+The expected accuracy gain over the deterministic baseline is at least
+\[
+\frac{1}{|\mathcal{D}|}\sum_{x\in\mathcal{D}}\big(1 - p_{\mathrm{base}}(x)\big)\,\big(1 - \exp(-N p_{\min}(x))\big).
+\]
 \end{proposition}
 
 \begin{proof}
