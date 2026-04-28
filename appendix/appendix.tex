@@ -202,7 +202,7 @@ Please reason step by step, and put your final answer within \textbackslash boxe
 \end{tcolorbox}
 
 % ================================================================
-\subsection{Answer Extraction and Grading}
+\subsection{Answer Extraction and Grading}\label{app:extraction}
 % ================================================================
 
 The final answer is extracted from the model output through a fallback chain. Each step is attempted in order; if extraction fails, the next step is tried.
@@ -254,10 +254,35 @@ lr & 1e-2 & 5e-3 & 5e-2 \\
 \paragraph{SoftCoT.} Projection module trained for 10 epochs. Thought tokens: 32 during training, 4 during evaluation. Batch size 4 for GSM8K, 1 for MATH with gradient accumulation 4. The small (assistant) model is Qwen2.5-Math-1.5B-Instruct in both configurations, while the large model is Qwen2.5-Math-1.5B-Instruct (learning rate 2e-5) or Qwen2.5-Math-7B-Instruct (learning rate 5e-6). For MATH-500 and AIME24 evaluation, we use the projection module trained on GSM8K, as it yields higher accuracy than the one trained on MATH.
 
 % ================================================================
-\subsection{Full Entropy Curves}
+\subsection{Full Entropy Curves}\label{app:entropy_full}
 % ================================================================
 
-Figure~\ref{fig:app_full_entropy} shows the full normalized (0--100\%) generation trajectories for entropy, top-1 probability, and varentropy. All methods converge to similar levels after the initial generation stage, confirming that the distributional changes induced by RSP are localized to the early reasoning phase.
+Figure~\ref{fig:app_full_entropy} shows the full normalized (0--100\%) generation trajectories for entropy, top-1 probability, and varentropy, and Table~\ref{tab:entropy_full} reports the corresponding scalar statistics including overall means, first-5\% means, and the average number of generated tokens per problem. All methods converge to similar levels after the initial generation stage, confirming that the distributional changes induced by RSP are localized to the early reasoning phase.
+
+\begin{table}[ht]
+\centering
+\caption{Per-step statistics for Qwen2.5-Math-1.5B-Instruct on MATH-500 across the full generation and the first 5\% of generation steps, together with the average number of generated tokens per problem. Top-1 Prob (overall) is reported as a weighted average over the first-10\%/middle/last-10\% segment means with weights $0.1/0.8/0.1$. Extension of Figure~\ref{fig:entropy_first5} (main text) and Figure~\ref{fig:app_full_entropy}.}
+\label{tab:entropy_full}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{Prefix} & \cellcolor{blue!10}\textbf{Infix} & \cellcolor{blue!10}\textbf{Suffix} & \textbf{LTPO} & \textbf{SoftCoT} & \textbf{TTSV} \\
+\midrule
+Tokens (mean)            & 575.7  & \cellcolor{blue!10}558.4  & \cellcolor{blue!10}549.9  & \cellcolor{blue!10}573.3  & 592.3  & 594.4  & 577.4  \\
+\midrule
+Entropy (first 5\%)      & 0.1332 & \cellcolor{blue!10}0.1366 & \cellcolor{blue!10}0.1402 & \cellcolor{blue!10}0.1941 & 0.1662 & 0.4218 & 0.1359 \\
+Entropy (overall)        & 0.0871 & \cellcolor{blue!10}0.0881 & \cellcolor{blue!10}0.0899 & \cellcolor{blue!10}0.1049 & 0.0909 & 0.1059 & 0.0864 \\
+\midrule
+Top-1 Prob (first 5\%)   & 0.9535 & \cellcolor{blue!10}0.9523 & \cellcolor{blue!10}0.9525 & \cellcolor{blue!10}0.9373 & 0.9437 & 0.9156 & 0.9534 \\
+Top-1 Prob (overall)     & 0.9684 & \cellcolor{blue!10}0.9681 & \cellcolor{blue!10}0.9678 & \cellcolor{blue!10}0.9647 & 0.9683 & 0.9651 & 0.9685 \\
+\midrule
+Varentropy (first 5\%)   & 0.2181 & \cellcolor{blue!10}0.2207 & \cellcolor{blue!10}0.2463 & \cellcolor{blue!10}0.4010 & 0.2953 & 2.2234 & 0.2174 \\
+Varentropy (overall)     & 0.1353 & \cellcolor{blue!10}0.1375 & \cellcolor{blue!10}0.1422 & \cellcolor{blue!10}0.2038 & 0.1452 & 0.2404 & 0.1361 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{figure}[ht]
   \centering
@@ -268,6 +293,13 @@ Figure~\ref{fig:app_full_entropy} shows the full normalized (0--100\%) generatio
   \label{fig:app_full_entropy}
 \end{figure}
 
+\iffalse
+% =====================================================================
+% Additional Semantic Diversity Analysis: hidden for current draft.
+% Figure 2 in the main text was removed because the cluster analysis
+% sometimes surfaces language artifacts that may be confused with
+% reasoning-trajectory diversity. Restore when this confound is resolved.
+% =====================================================================
 \clearpage
 \section{Additional Semantic Diversity Analysis}\label{app:semantic}
 
@@ -279,6 +311,7 @@ This appendix complements the semantic diversity results reported in Section~\re
   \caption{t-SNE projections of BGE-M3 embeddings for 48 out of the 64 evaluated MATH-500 problems (6$\times$8 grid). Each subplot shows 300 baseline (red) and 300 RSP suffix (blue) samples under $\tau=1.0$ with Qwen2.5-Math-1.5B-Instruct; filled markers denote correct answers and open markers denote incorrect. Subplot titles indicate \texttt{subject/problem\_id}. Across most problems, RSP trajectories spread across multiple distinct regions while baseline samples concentrate in a single dominant cluster.}
   \label{fig:app_tsne_grid}
 \end{figure}
+\fi
 
 \clearpage
 \section{Token-Level Distribution Metrics}\label{app:token_metrics}

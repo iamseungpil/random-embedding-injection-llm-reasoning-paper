@@ -5,24 +5,24 @@
 \section{Experimental Analysis}\label{sec:experimental_analysis}
 
 % ================================================================
-\subsection{Random Soft Prompt: Definition and Setup}\label{sec:rsp_definition}
+\subsection{Random Soft Prompts: Definition and Experimental Setup}\label{sec:rsp_definition}
 % ================================================================
 
-Let $\mathbf{W}_E \in \mathbb{R}^{V \times d}$ denote the token embedding matrix of a pretrained LLM, where $V$ is the vocabulary size and $d$ is the hidden dimension. We define an RSP $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L \times d}$ as a sequence of $L$ continuous vectors, where each vector is independently sampled from:
+Let $\mathbf{W}_E \in \mathbb{R}^{V \times d}$ denote the token embedding matrix of a pretrained LLM, where $V$ is the vocabulary size and $d$ is the hidden dimension. We define an RSP $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L \times d}$ as a sequence of $L$ continuous vectors, where each vector is independently sampled from an isotropic Gaussian distribution whose mean and variance are matched to those of the pretrained token embedding matrix:
 \begin{equation}
   h_j \sim \mathcal{N}(\mu_E,\; \sigma_E^2 \mathbf{I}), \quad j = 1, \dots, L,
 \end{equation}
 with $\mu_E = \frac{1}{Vd}\sum_{i,k} [\mathbf{W}_E]_{i,k}$ and $\sigma_E = \mathrm{std}(\mathbf{W}_E)$. Let $\mathbf{X} = [x_1, \dots, x_T] \in \mathbb{R}^{T \times d}$ denote the embedding sequence of the original input. The RSP-augmented input $\tilde{\mathbf{X}}$ is constructed by concatenating $\mathbf{H}$ with $\mathbf{X}$ at one of three positions without modifying the original prompt text: \textit{prefix} ($[\mathbf{H}; \mathbf{X}]$), \textit{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), or \textit{suffix} ($[\mathbf{X}; \mathbf{H}]$), following the injection strategies adopted in prior work \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. Sampling a new $\mathbf{H}$ for each batch ensures that the results are not dependent on any realization of the random embeddings.
 
-We evaluate on three mathematical reasoning benchmarks: MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, and AIME24, using LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama} and the Qwen2.5-Math model family \citep{yang2024qwen25math} across seven configurations including instruct models, base models, and base models with mismatched chat templates. All experiments use greedy decoding to isolate the effect of RSPs from sampling stochasticity. Only the final answer is evaluated through a fallback-based extraction pipeline. Full experimental details are provided in Appendix~\ref{app:setup}.
+We evaluate on mathematical reasoning benchmarks: MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, and AIME24, using LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama} and the Qwen2.5-Math model family \citep{yang2024qwen25math} across instruct models, base models, and base models with mismatched chat templates. All experiments use greedy decoding to isolate the effect of RSPs from sampling stochasticity. Full experimental details are provided in Appendix~\ref{app:setup}.
 
 % ================================================================
-\subsection{Does RSP Degrade Reasoning Performance?}\label{sec:performance}
+\subsection{How Does Untrained RSP Compare to Baselines \& Optimized Soft Prompts?}\label{sec:performance}
 % ================================================================
 
 \begin{table}[!t]
 \centering
-\caption{Accuracy (\%) across model configurations and benchmarks. RSP reports the best result across injection positions (Prefix, Infix, Suffix); full per-position breakdown is in Appendix~\ref{app:ablation}. Values in parentheses indicate the difference from the baseline.}
+\caption{Accuracy (\%) across model configurations and benchmarks. RSP reports the best result across injection positions (Prefix, Infix, Suffix). Full per-position breakdown is in Appendix~\ref{app:ablation}. Values in parentheses indicate the difference from the baseline.}
 \label{tab:performance}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
@@ -54,7 +54,7 @@ Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}  
 
 We first examine how injecting random embeddings affects the model's reasoning performance. Table~\ref{tab:performance} reports the accuracy for each model configuration, using the best RSP result across injection positions (Prefix, Infix, Suffix) and $L \in \{10, 15, 20\}$ for each benchmark.
 
-For instruct models and base models with their native prompt formats, RSP injection maintains or slightly shifts baseline performance within a few percentage points. Most strikingly, under prompt-format mismatch --- where base models receive ChatML templates they were not trained on --- RSP yields pronounced improvements of up to $+29$\%p. These gains are difficult to attribute to simple perturbation effects, as noise that merely raises model uncertainty would further degrade performance.
+For instruct models and base models with their native prompt formats, RSP injection maintains or slightly shifts baseline performance within a few percentage points. Most strikingly, under prompt-format mismatch --- where base models receive ChatML templates they were not trained on --- RSP yields pronounced improvements of up to $+29$ pp. These gains are difficult to attribute to simple perturbation effects, as noise that merely raises model uncertainty would further degrade performance.
 
 \begin{table}[!t]
 \centering
@@ -77,38 +77,22 @@ For instruct models and base models with their native prompt formats, RSP inject
 \end{tabular}
 \end{table}
 
-We compare RSPs with prior soft prompt methods (TTSV, SoftCoT, LTPO) that optimize their embeddings for distinct objectives, under a unified evaluation protocol reported in Table~\ref{tab:prior_comparison}. All methods are re-evaluated with a shared answer extraction pipeline that applies fallback strategies, enabling a format-agnostic comparison despite each method's distinct prompt format and grading scheme. The results place RSPs on par with the optimized methods without requiring any training.
+We compare RSPs with prior soft prompt methods (TTSV, SoftCoT, LTPO) that optimize their embeddings for distinct objectives, under a unified evaluation protocol reported in Table~\ref{tab:prior_comparison}. All methods are re-evaluated with the same unified extraction pipeline (Appendix~\ref{app:extraction}), enabling a format-agnostic comparison despite each method's distinct prompt format and grading scheme. The results place RSPs on par with the optimized methods without requiring any training.
 
 % ================================================================
 \subsection{How Does RSP Affect the Output Distribution?}\label{sec:entropy}
 % ================================================================
 
-We analyze how RSP injection changes the model's output distribution during generation on Qwen2.5-Math-1.5B-Instruct with MATH-500, measuring per-token entropy, top-1 probability, and varentropy across the generation process. Figure~\ref{fig:entropy_first5} and Table~\ref{tab:entropy_first5} compare these metrics for the first 5\% of generation steps across RSP variants and prior soft prompt methods.
+We analyze how RSP injection changes the model's output distribution on Qwen2.5-Math-1.5B-Instruct with MATH-500, measuring per-token entropy, top-1 probability, and varentropy across the generation process. Figure~\ref{fig:entropy_first5} compares these metrics for the first 5\% of generation steps across RSP variants and prior soft prompt methods (LTPO, SoftCoT, TTSV). Full statistics are in Appendix~\ref{app:entropy_full}.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/entropy/entropy_first5pct_zoom.pdf}
-  \caption{Mean entropy, top-1 probability, and varentropy during the first 5\% of generation steps (Qwen2.5-Math-1.5B-Instruct, MATH-500). Shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: existing soft prompt methods (LTPO, SoftCoT, TTSV).}
+  \caption{Mean entropy, top-1 probability, and varentropy during the first 5\% of generation steps (Qwen2.5-Math-1.5B-Instruct, MATH-500). Shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: prior soft prompt methods (LTPO, SoftCoT, TTSV).}
   \label{fig:entropy_first5}
 \end{figure}
 
-\begin{table}[ht]
-\centering
-\caption{Mean entropy, top-1 probability, and varentropy for the first 5\% of generation steps (Qwen2.5-Math-1.5B-Instruct, MATH-500).}
-\label{tab:entropy_first5}
-\small
-\begin{tabular}{lccccccc}
-\toprule
-\textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{Prefix} & \cellcolor{blue!10}\textbf{Infix} & \cellcolor{blue!10}\textbf{Suffix} & \textbf{LTPO} & \textbf{SoftCoT} & \textbf{TTSV} \\
-\midrule
-Entropy & 0.1332 & \cellcolor{blue!10}0.1366 & \cellcolor{blue!10}0.1402 & \cellcolor{blue!10}0.1941 & 0.1662 & 0.4218 & 0.1359 \\
-Top-1 Prob & 0.9535 & \cellcolor{blue!10}0.9523 & \cellcolor{blue!10}0.9525 & \cellcolor{blue!10}0.9373 & 0.9437 & 0.9156 & 0.9534 \\
-Varentropy & 0.2181 & \cellcolor{blue!10}0.2207 & \cellcolor{blue!10}0.2463 & \cellcolor{blue!10}0.4010 & 0.2953 & 2.2234 & 0.2174 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-These results show that RSP modifies the early-stage output distribution across all injection positions: entropy increases (the token distribution flattens), top-1 probability decreases (commitment to a dominant token weakens), and varentropy increases (indicating multimodal distributions \citep{ahmed2026logitscope}). High-entropy positions are known to act as critical forking points that determine reasoning trajectories \citep{wang2025beyond}, so this shift moves the model toward a state where multiple reasoning paths can coexist. The change is localized to the initial reasoning stage; in the middle and final portions of generation, all three metrics converge to baseline levels.
+These results show that RSP modifies the early-stage output distribution across all injection positions: entropy increases (the token distribution flattens), top-1 probability decreases (commitment to a dominant token weakens), and varentropy increases (indicating multimodal distributions \citep{ahmed2026logitscope}). High-entropy positions are known to act as critical forking points that determine reasoning trajectories \citep{wang2025beyond}, so this shift moves the model toward a state where multiple reasoning paths can coexist. The change is localized to the initial reasoning stage. In the middle and final portions of generation, all three metrics converge to baseline levels.
 
 Although existing soft prompt methods are optimized for different objectives, they share a common pattern of increasing early-stage entropy. Notably, TTSV, which optimizes soft prompts using a reward that reduces the mean entropy of reasoning trajectories, still exhibits early entropy comparable to the baseline. This suggests that elevating early-stage entropy is an inherent effect of injecting non-pretrained continuous embeddings, independent of the optimization objective.
 
@@ -116,7 +100,7 @@ Although existing soft prompt methods are optimized for different objectives, th
 \subsection{Does RSP Induce Trajectory Diversity?}\label{sec:diversity}
 % ================================================================
 
-Section~\ref{sec:entropy} empirically established that RSP reshapes the early-stage output distribution. We now examine whether this shift translates into reasoning diversity at three complementary levels of analysis: token rankings, semantic content of trajectories, and task-level outcomes. All three analyses share the setting: Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix injection, and $L=10$.
+Section~\ref{sec:entropy} empirically established that RSP reshapes the early-stage output distribution. We now examine whether this shift translates into reasoning diversity at three complementary levels of analysis: token rankings, semantic content of trajectories, and task-level outcomes. The three analyses converge on a directional picture: RSP's first-token perturbation propagates into semantically more diverse reasoning trajectories, which in turn yields greater output diversity at the task level. All three analyses share the setting: Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix injection, and $L=10$.
 
 \paragraph{Token-level: distribution beyond temperature.}
 \begin{wraptable}{r}{0.42\textwidth}
@@ -137,9 +121,9 @@ Section~\ref{sec:entropy} empirically established that RSP reshapes the early-st
     \bottomrule
   \end{tabular}
 \end{wraptable}
-Under autoregressive decoding, any trajectory-level divergence between RSP and the baseline must originate from the first generation step, a critical forking point for reasoning trajectories \citep{wang2025beyond}. Using the baseline at $\tau{=}1.0$ as reference, we compare RSP at $\tau{=}1.0$ against the baseline at $\tau{=}2.0$ (the high-temperature ceiling of what flattening alone can achieve) on three complementary metrics: Spearman rank correlation $\rho$ to detect rank reorganization, the probability mass placed outside the baseline's top-10 to measure support expansion, and Jensen--Shannon divergence to quantify the overall magnitude of distributional change (formal definitions in Appendix~\ref{app:token_metrics}).
+We test whether RSP modifies the first-token distribution in a qualitatively different way from temperature scaling, which preserves token rankings while only flattening probabilities. Under autoregressive decoding, any trajectory-level divergence between RSP and the baseline must originate from the first generation step, a critical forking point for reasoning trajectories \citep{wang2025beyond}. Using the baseline at $\tau{=}1.0$ as reference, we compare RSP at $\tau{=}1.0$ against the baseline at $\tau{=}2.0$ (the high-temperature ceiling of what flattening alone can achieve) on three complementary metrics: Spearman rank correlation $\rho$ to detect rank reorganization, the probability mass placed outside the baseline's top-10 to measure support expansion, and Jensen--Shannon divergence to quantify the overall magnitude of distributional change (formal definitions in Appendix~\ref{app:token_metrics}).
 
-Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.15\% of probability mass falls outside the baseline's top-10; RSP at $\tau{=}1.0$ reaches 27.64\%. The Spearman rank correlation tells the story more starkly: because temperature scaling $p_i^{(\tau)} \propto p_i^{1/\tau}$ is a monotone transform that preserves token ranking ($p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$) for any $\tau > 0$, $\rho$ relative to the baseline is exactly $1$ as a mathematical identity. RSP, by contrast, reranks the token distribution itself, reducing $\rho$ to $0.651$---an effect temperature cannot produce at any $\tau$. The Jensen--Shannon divergence ($0.231$) quantifies the overall magnitude of this distributional change. Since $\rho < 1$ rules out rank-preserving flattening as the sole cause, the high divergence reflects a structural reshape of the distribution rather than a uniform flattening of the same ranking.
+Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.15\% of probability mass falls outside the baseline's top-10. RSP at $\tau{=}1.0$ reaches 27.64\%. The Spearman rank correlation tells the story: because temperature scaling $p_i^{(\tau)} \propto p_i^{1/\tau}$ is a monotone transform that preserves token ranking ($p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$) for any $\tau > 0$, $\rho$ relative to the baseline is exactly $1$. RSP, by contrast, reranks the token distribution itself, reducing $\rho$ to $0.651$---an effect temperature cannot produce at any $\tau$. The Jensen--Shannon divergence ($0.231$) quantifies the overall magnitude of this distributional change. Since $\rho < 1$ rules out rank-preserving flattening as the sole cause, the high divergence reflects a structural reshape of the distribution rather than a uniform flattening of the same ranking.
 
 % =====================================================================
 % Reranking-by-position analysis (commented out for now; may be added back).
@@ -173,7 +157,7 @@ Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.1
 \begin{wraptable}{r}{0.34\textwidth}
   \vspace{-1.2em}
   \centering
-  \caption{Semantic diversity metrics averaged across the 64 problems.}
+  \caption{Semantic diversity metrics (64 problems, 300 trajectories per condition).}
   \label{tab:semantic_metrics}
   \footnotesize
   \setlength{\tabcolsep}{4pt}
@@ -188,28 +172,19 @@ Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.1
     \bottomrule
   \end{tabular}
 \end{wraptable}
-Token-level reranking raises a second question: do first-token perturbations produce semantically distinct reasoning paths, or do independently perturbed trajectories converge to the same solution strategy? We randomly sample 64 problems from MATH-500 and generate 300 independent trajectories per problem under two conditions, Baseline and RSP, with temperature $\tau = 1.0$. The trajectories are embedded via BGE-M3 \citep{chen2024bge} and compared on three metrics: mean pairwise cosine distance within each problem, inter-cluster distance between DBSCAN \citep{ester1996density} centroids, and intra-cluster distance. Table~\ref{tab:semantic_metrics} shows that RSP substantially increases the inter-cluster distance while leaving the intra-cluster distance unchanged: clusters become more separated while reasoning within each cluster remains consistent. RSP also wins on pairwise distance in 56 of 64 problems (87.5\%).
+Token-level reranking raises a second question: do first-token perturbations produce semantically diverse reasoning trajectories, or do independently perturbed trajectories converge to semantically similar ones? We randomly sample 64 problems from MATH-500 and generate 300 independent trajectories per problem under Baseline and RSP at temperature $\tau = 1.0$. Each trajectory is encoded into a dense semantic vector by BGE-M3 \citep{chen2024bge}, a sentence-level multilingual embedding model, and we compute three complementary metrics over these embeddings: \textit{pairwise cosine distance} between trajectories captures the overall semantic spread of the trajectory set; \textit{inter-cluster distance} between centroids identified by DBSCAN \citep{ester1996density}, a density-based clustering algorithm that groups nearby trajectories without prespecifying the number of clusters, captures the separation between distinct trajectory groups; and \textit{intra-cluster distance} captures semantic coherence within each group.
 
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=\textwidth]{img/diversity/semantic_3panel.pdf}
-  \caption{Semantic diversity analysis on 64 randomly sampled MATH-500 problems with 300 trajectories per condition (Qwen2.5-Math-1.5B-Instruct, $\tau=1.0$, BGE-M3 embeddings). (a) t-SNE projection for one representative problem (\texttt{test/prealgebra/951}): baseline (red) concentrates around one region while RSP suffix (blue) spreads across distinct clusters; filled markers denote correct answers and open markers denote incorrect. (b) Per-problem mean pairwise cosine distance; points above the diagonal indicate RSP produces more diverse trajectories than baseline. (c) Per-problem DBSCAN cluster count; RSP yields more distinct clusters than baseline on most problems.}
-  \label{fig:semantic_diversity}
-\end{figure}
-
-Figure~\ref{fig:semantic_diversity}(a) illustrates the qualitative difference for the representative problem: the RSP samples (blue) cover the region occupied by baseline samples (red) while extending into clusters that the baseline does not reach; the expanded regions also contain correct solutions (filled markers), showing that RSP's exploration is not limited to incorrect alternatives but reaches new reasoning paths that still yield the correct answer. Figures~\ref{fig:semantic_diversity}(b) and~\ref{fig:semantic_diversity}(c) show that this pattern holds across the 64 problems: on most problems RSP produces more clusters and larger pairwise cosine distance than baseline. The combination of large inter-cluster increase and unchanged intra-cluster distance mirrors the token-level finding: RSP alters which cluster a trajectory enters while preserving the local continuation within each cluster. Additional per-problem t-SNE plots are provided in Figure~\ref{fig:app_tsne_grid} (Appendix~\ref{app:semantic}).
+Table~\ref{tab:semantic_metrics} reveals three concurrent patterns. Pairwise cosine distance rises by about $1.4\times$, indicating that the trajectory set as a whole becomes more semantically diverse. Inter-cluster distance jumps by about $5.4\times$, showing that the trajectories split into substantially more separated groups. Intra-cluster distance is essentially unchanged, indicating that semantic coherence within each group remains comparable to the baseline. RSP also yields larger pairwise distance than baseline on 56 of 64 problems (87.5\%).
 
 \paragraph{Outcome-level: Pass@$n$ scaling.}
-Finally, we evaluate whether the token- and trajectory-level diversity translates into task-level outcome diversity through Pass@$n$, the probability that at least one of $n$ sampled solutions is correct. We compare four conditions with $n=16$ samples per problem on MATH-500 and AIME24: \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling only; \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: a single RSP shared across all samples; \textit{(iii)~RSP (indep.\ seed), greedy}: a different RSP per sample without temperature; and \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: a different RSP per sample combined with temperature sampling.
+Finally, we evaluate whether the token- and trajectory-level diversity translates into task-level outcome diversity through Pass@$n$ \citep{chen2021codex}, the probability that at least one of $n$ sampled solutions is correct. We compare four conditions with $n=16$ samples per problem on MATH-500 and AIME24: \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling only; \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: a single RSP shared across all samples; \textit{(iii)~RSP (indep.\ seed), greedy}: a different RSP per sample without temperature; and \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: a different RSP per sample combined with temperature sampling.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/diversity/pass_at_n_combined.pdf}
-  \caption{Pass@$n$ scaling on MATH-500 (left) and AIME24 (right) with Qwen2.5-Math-1.5B-Instruct, $n=16$ samples per problem. Baseline: temperature sampling only. Fixed seed: single RSP shared across samples combined with temperature. Indep.\ seed: a different RSP per sample, with or without temperature.}
+  \caption{Pass@$n$ scaling on (a) MATH-500 and (b) AIME24 with Qwen2.5-Math-1.5B-Instruct, $n=16$ samples per problem. Baseline: temperature sampling only. Fixed seed: single RSP shared across samples combined with temperature. Indep.\ seed: a different RSP per sample, with or without temperature.}
   \label{fig:pass_at_n}
 \end{figure}
 
-Condition \textit{(iv)} achieves the highest Pass@$n$ on both benchmarks, reaching 92.80\% on MATH-500 and 36.67\% on AIME24 at $n=16$. Condition \textit{(ii)} shows no improvement over the baseline, confirming that the diversity gain originates from varying the random embeddings across samples, not from a single fixed perturbation. Pass@1 remains comparable to the baseline on MATH-500, and on the more challenging AIME24, \textit{(iv)} achieves higher Pass@1 than the baseline. Independent RSPs combined with temperature sampling produce the most diverse reasoning trajectories while maintaining or improving single-sample accuracy.
+Condition \textit{(iv)} achieves the highest Pass@$n$ on both benchmarks, reaching 92.80\% on MATH-500 and 36.67\% on AIME24 at $n=16$. Condition \textit{(ii)} shows no improvement over the baseline, suggesting that the diversity gain likely depends on varying the random embeddings across samples rather than a single fixed perturbation. Pass@1 remains comparable to the baseline on MATH-500, and on the more challenging AIME24, \textit{(iv)} achieves higher Pass@1 than the baseline. Together these observations suggest that combining independent RSPs with temperature sampling may yield greater trajectory diversity while preserving single-sample accuracy.
 
-\paragraph{Synthesis across the three levels.}
-The three analyses converge on a consistent picture. At the token level, RSP induces support expansion concentrated at the first token and decaying monotonically across steps. At the trajectory level, this localized perturbation translates into distinct reasoning strategies (large inter-cluster separation) while preserving local coherence within each strategy (unchanged intra-cluster distance). At the outcome level, the resulting trajectories cover more correct solutions without sacrificing single-sample accuracy.
