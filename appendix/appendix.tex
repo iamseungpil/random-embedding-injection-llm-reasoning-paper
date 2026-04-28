@@ -508,11 +508,11 @@ and the Rayleigh quotient bounds give the stated inequalities.
 \end{proof}
 
 \clearpage
-\section{Proofs for Attention-Mediated Annealing}\label{app:proofs}
+\section{Interpretive Connection to Hopfield Retrieval (Optional)}\label{app:hopfield_descent}
 
-\subsection{Hopfield-Energy Descent and Basin Trapping}\label{app:hopfield_descent}
+\emph{This appendix is included for completeness and is not load-bearing for any quantitative result in the main text.} Section~\ref{sec:energy_landscape} of the main paper deliberately uses only standard self-attention identities (the exact decomposition of Eq.~\eqref{eq:decomp} and the decay bound of Eq.~\eqref{eq:decay_main}); the formal claims there do not assume $\mathbf{K}=\mathbf{V}$, weight-tied layers, or the existence of a global energy. The present appendix records the alternative reading---originating from the Modern Hopfield correspondence \citep{ramsauer2021hopfield}---under which a single attention update with $\mathbf{K}=\mathbf{V}$ becomes one gradient step on a Hopfield energy. This reading provides additional intuition for why a deterministic forward pass can be exploration-poor and has been a useful lens in the related literature, but it is not used in any proof of Section~\ref{sec:why_rsp_works}.
 
-We restate the Modern Hopfield correspondence in the form used in the main text. For a key matrix $\mathbf{K} = (\mathbf{k}_1, \ldots, \mathbf{k}_n)$ at a fixed query position, the Hopfield energy is
+We restate the Modern Hopfield correspondence in the form used in this interpretive lens. For a key matrix $\mathbf{K} = (\mathbf{k}_1, \ldots, \mathbf{k}_n)$ at a fixed query position, the Hopfield energy is
 \[
 E_{\mathbf{K}}(\sigma) := -\beta^{-1} \log \sum_{j=1}^{n} \exp(\beta\,\mathbf{k}_j^\top \sigma) + \tfrac{1}{2}\|\sigma\|^2.
 \]
@@ -563,6 +563,11 @@ $\mathrm{sep}(C)>0$ holds whenever the components of $S$ are spatially separated
 
 \paragraph{Caveats and scope.}
 Theorem~\ref{thm:basin_trapping} depends on three assumptions that are individually mild but jointly idealized for real transformers. (A1) $\mathbf{K}=\mathbf{V}$ collapses the key and value projections; this is the standard Modern Hopfield assumption \citep{ramsauer2021hopfield} and isolates the energy-iteration aspect of attention from the additional value-projection degree of freedom. (A2) weight-tying treats the attention component as a single repeated map; without it, each block has its own energy and the trajectory does not minimize a single fixed function across blocks. (A3) is a smoothness condition on $E_{\mathbf{K}}$. For the Hopfield energy used here, $\nabla^2 E_{\mathbf{K}}(\sigma) = \mathbf{I} - \beta \mathbf{K}^\top (\mathrm{diag}(p_\sigma) - p_\sigma p_\sigma^\top) \mathbf{K}$ where $p_\sigma = \mathrm{softmax}(\beta \mathbf{K} \sigma)$, so the operator-norm bound on $\nabla^2 E_{\mathbf{K}}$ depends on the inverse-temperature $\beta$ and on $\|\mathbf{K}\|$. (A3) holds whenever $\beta \|\mathbf{K}\|^2$ is sufficiently small, which is the standard regime in which the Hopfield iterate converges in a small number of steps. The theorem therefore characterizes an idealized tendency of attention-only iteration in this regime; it is not a literal property of every transformer block. In particular, sublevel-set confinement follows from Theorem~\ref{thm:basin_trapping}, whereas connected-component confinement additionally requires the separation and per-step gradient assumptions of Corollary~\ref{cor:connected_basin}. Its role in the main text is to supply an idealized source of exploration deficit that an injected stochastic perturbation addresses; the empirical link is the cross-layer attention decay observed in Figure~\ref{fig:attention_mass} and the trajectory diversity gain reported in Section~\ref{sec:diversity}.
+
+\clearpage
+\section{Proofs for the Transformer-Level Mechanism}\label{app:proofs}
+
+This appendix collects the formal proofs underlying Sections~\ref{sec:energy_landscape}--\ref{sec:multipath} of the main text.
 
 \subsection{Exact Attention Decomposition and Magnitude Control}\label{app:rsp_noise}
 
@@ -750,7 +755,7 @@ By Lipschitz continuity, $\|F^{(l)}(\mathbf{x}^{(l, \text{attn,RSP})}) - F^{(l)}
 \end{proof}
 
 \begin{corollary}[Cross-block propagation control]\label{cor:cross_block}
-Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ with $\Delta^{(0)} = \mathbf{0}$ (matched inputs at layer $0$), and let $L^{(l)}_{\text{block}}$ denote the local Lipschitz constant of the block map $B^{(l)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x})+F^{(l)}(\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x}))$ at layer $l$. Then
+Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ with $\Delta^{(0)} = \mathbf{0}$ (matched inputs at layer $0$), and let $L^{(l)}_{\text{block}}$ denote a common local Lipschitz constant valid for both the baseline block map $B^{(l)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x})+F^{(l)}(\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x}))$ and the RSP-augmented block map $B^{(l)}_{\text{RSP}}$ (which replaces $\mathrm{Attn}^{(l)}$ with the attention computation that includes the random tokens) on a ball containing both trajectories. Such a constant exists for standard transformer blocks because Attn, LayerNorm, and the FFN sublayer are each locally Lipschitz on any bounded set \citep{xiong2020layer, kim2021lipschitz}, and the random-key augmentation only adds a finite number of additional softmax inputs at every layer. Then
 \[
 \|\Delta^{(l+1)}\|
 \le
@@ -899,9 +904,38 @@ The samples $\{\bar{h}_n\}_{n=1}^N$ are independent, so
 The complement gives the first inequality. The second inequality is standard: $1 - \mu_i \le \exp(-\mu_i)$, hence $(1-\mu_i)^N \le \exp(-N\mu_i)$.
 \end{proof}
 
-\subsubsection{Trajectory-Level Implications}
+\subsubsection{Proof of Proposition~\ref{prop:multi_path} (Exploration-meets-multi-path Pass@$N$ gain)}
 
-Since autoregressive generation composes conditional distributions across steps, perturbations at early steps can lead to distinct trajectories. Let $\mathcal{R}_{k,K}(x)$ denote the set of trajectories containing at least one token outside the baseline top-$K$ set. If RSP increases the accessibility of such tokens at early steps, then the probability of sampling trajectories in $\mathcal{R}_{k,K}(x)$ increases under repeated sampling. The key point is temporal compounding: one early top-$K$ entry changes the next decoding state, which changes the next candidate set, and so on. This is the formal bridge from local rank perturbations to global trajectory diversity.
+\textit{Fix a problem $x$ and let $p_n(x)\ge p_{\min}(x)>0$ be the per-run success probability of the $n$-th RSP run as in (M1). Under (M1)+(M2),}
+\[
+\Pr\!\big(\mathrm{Pass}@(N{+}1)\text{ correct on }x\big)
+\;\ge\;
+\max\!\big\{p_{\mathrm{base}}(x),\; 1-(1-p_{\min}(x))^N\big\}
+\;\ge\;
+1-e^{-N p_{\min}(x)}.
+\]
+
+\begin{proof}
+Let $A_0$ be the event that the deterministic baseline run reaches a trajectory in $\mathcal T^\star(x)$, and let $A_n$ ($n=1,\dots,N$) be the event that the $n$-th RSP run reaches such a trajectory. Pass@$(N+1)$ succeeds on $x$ iff at least one of $A_0,A_1,\dots,A_N$ occurs.
+
+By assumption $p_{\mathrm{base}}(x) := \Pr(A_0)\in\{0,1\}$ and $\Pr(A_n)=p_n(x)\ge p_{\min}(x)$ for each $n\ge 1$. Independence of the $N$ RSP runs (M2) gives
+\[
+\Pr\!\Big(\bigcap_{n=1}^N A_n^c\Big) = \prod_{n=1}^N (1-p_n(x)) \le \prod_{n=1}^N (1-p_{\min}(x)) = (1-p_{\min}(x))^N,
+\]
+using $p_n(x)\ge p_{\min}(x)$ in the inequality. Therefore
+\[
+\Pr\!\Big(\bigcup_{n=1}^N A_n\Big) = 1 - \Pr\!\Big(\bigcap_{n=1}^N A_n^c\Big) \ge 1-(1-p_{\min}(x))^N.
+\]
+The Pass@$(N+1)$ event $A_0\cup A_1\cup\cdots\cup A_N$ has probability at least $\max\!\big\{\Pr(A_0),\,\Pr(\bigcup_{n\ge 1}A_n)\big\}$, giving the first claimed inequality. The second inequality follows from the standard bound $1-x\le e^{-x}$ for $x\in[0,1]$ applied with $x=p_{\min}(x)$:
+\[
+(1-p_{\min}(x))^N \le e^{-N p_{\min}(x)},
+\]
+hence $1-(1-p_{\min}(x))^N \ge 1-e^{-N p_{\min}(x)}$.
+\end{proof}
+
+\subsubsection{Trajectory-Level Compounding}
+
+Since autoregressive generation composes conditional distributions across steps, perturbations at early steps can lead to distinct trajectories. Let $\mathcal{R}_{k,K}(x)$ denote the set of trajectories containing at least one token outside the baseline top-$K$ set. If RSP increases the accessibility of such tokens at early steps, then the probability of sampling trajectories in $\mathcal{R}_{k,K}(x)$ increases under repeated sampling. The key point is temporal compounding: one early top-$K$ entry changes the next decoding state, which changes the next candidate set, and so on. This is the heuristic bridge from local rank perturbations to global trajectory diversity that motivates assumption (M1) of Proposition~\ref{prop:multi_path}.
 
 \clearpage
 % ================================================================
