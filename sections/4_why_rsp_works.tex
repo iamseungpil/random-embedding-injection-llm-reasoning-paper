@@ -115,25 +115,16 @@ Proposition~\ref{prop:support_expansion} is intentionally conditional: it does n
 \subsection{From Independent Perturbations to Pass@$N$}\label{sec:multipath}
 % ================================================================
 
-Let $\mu_i := \Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K}) > 0$ be the per-sample top-$K$ admission probability for token $i$. Independent draws compound geometrically.
+Let $\mu_i := \Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K}) > 0$.
 
 \begin{corollary}[Sample complexity of admission]\label{cor:sample_complexity}
-With $N$ independent fresh RSP draws, the probability that $i$ is admitted into the top-$K$ at least once is $1-(1-\mu_i)^N \ge 1-\exp(-N\mu_i)$.
+Within $N$ independent fresh RSP draws, $\Pr(\text{at least one admits } i \text{ into top-}K) = 1-(1-\mu_i)^N \ge 1-\exp(-N\mu_i)$.
 \end{corollary}
 
-For task accuracy, the connection to multi-trial sampling needs an additional task-dependent ingredient.
+Lifting this to task accuracy requires an additional task-dependent assumption.
 
 \begin{proposition}[Exploration-meets-multi-path accuracy gain]\label{prop:multi_path}
-Fix a problem $x$. Run the deterministic baseline once and draw $N$ fresh independent RSPs $\bar h^{(1)},\dots,\bar h^{(N)}$, decoding once per sample. Let $\mathcal{T}^\star(x)$ be the (nonempty) set of correct trajectories and $p_{\mathrm{base}}(x)\in\{0,1\}$ the baseline correctness indicator. Assume \emph{(M1)} for each $n$, the marginal probability that the $n$-th RSP run produces a trajectory in $\mathcal{T}^\star(x)$ is at least $p_{\min}(x)>0$, and \emph{(M2)} the $N$ RSP runs are mutually independent. Then
-\[
-\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ correct on }x\big)
-\;\ge\;
-\max\!\big\{p_{\mathrm{base}}(x),\; 1-(1-p_{\min}(x))^N\big\}
-\;\ge\;
-1-e^{-N p_{\min}(x)}.
-\]
+Fix a problem $x$. Run the deterministic baseline once and draw $N$ fresh independent RSPs, decoding once per sample. Let $\mathcal{T}^\star(x)$ be the nonempty set of correct trajectories and $p_{\mathrm{base}}(x)\in\{0,1\}$ the baseline correctness indicator. Assume \emph{(M1)} for each $n$, the marginal probability that the $n$-th RSP run produces a trajectory in $\mathcal{T}^\star(x)$ is at least $p_{\min}(x)>0$, and \emph{(M2)} the $N$ RSP runs are mutually independent. Then $\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ correct on }x\big) \ge \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \ge 1-e^{-Np_{\min}(x)}$.
 \end{proposition}
 
-Assumption (M1) is task-side: it asserts that the per-run probability of reaching a correct trajectory is bounded below by some $p_{\min}(x)>0$ (a sufficient way to obtain such a bound is the existence of a positive-measure prompt region leading to a correct completion, but Proposition~\ref{prop:multi_path} only requires the marginal lower bound). Section~\ref{sec:diversity} verifies the empirical signature predicted by this assumption: RSP-induced trajectories include both improvements and regressions, with net gain emerging under repeated sampling. Proposition~\ref{prop:multi_path} does not claim RSP improves single-sample accuracy; it states that when a problem admits multiple valid trajectories and at least one alternative branch has positive probability, repeated independent RSP draws turn that positive probability into Pass@$N$ improvement.
-
-RSP is resampled, centered, and direction-agnostic; attention injects it through a scalar mass that cache growth structurally dilutes; the early pre-softmax perturbation changes token rankings beyond what temperature can; and multi-path reasoning converts trajectory diversity into Pass@$N$ gain. Section~\ref{sec:experimental_analysis} reports four faces of this single mechanism.
+(M1) is task-side; Section~\ref{sec:diversity} reports the empirical signature, with RSP-induced trajectories including both improvements and regressions and net gain under repeated sampling.
