@@ -79,12 +79,12 @@ For fixed $k$ and $\Delta_i^{(\ell)}$ the right-hand side is strictly decreasing
 A full transformer block adds residual connections, normalization, and a feed-forward sublayer. Under a common local Lipschitz constant for the full block map (covering the attention sublayer, LayerNorm, and the FFN) on a ball containing both the perturbed and unperturbed trajectories---which holds in practice because each component is locally Lipschitz on bounded sets \citep{xiong2020layer, kim2021lipschitz}---Appendix~\ref{app:ffn_lipschitz} shows that the per-block perturbation amplitude scales linearly with $w_{r,i}^{(\ell)}$, so iterating across a finite depth gives a finite cumulative bound. Combined with Eq.~\eqref{eq:decay_main}, this explains why the perturbation enters strongly at early blocks and shrinks as evidence accumulates, without requiring a persistent perturbation throughout the reasoning chain.
 
 \paragraph{Empirical verification.}\label{sec:attention_mass}
-We test these model-dependent steps on Qwen2.5-Math-7B under suffix injection. If $w_{r,i}^{(\ell)}$ acts as an annealed exploration coefficient, then the realized attention to RSP tokens should decay across reasoning positions and layers, while attention to question tokens should not exhibit the same monotone pattern because they remain task-relevant. Figure~\ref{fig:attention_mass} shows this contrast.
+Figure~\ref{fig:attention_mass} verifies the predicted layer-wise and sequence-wise decay of $w_{r,i}^{(\ell)}$ on Qwen2.5-Math-7B with suffix injection: attention to RSP tokens decays across both axes, while attention to question tokens remains comparatively uniform.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). Layer and reasoning-position axes are partitioned into five quantile bins; every cell reports the 500-sample mean per-token attention mass directed to \textbf{(a)} the RSP embeddings and \textbf{(b)} the question tokens within that region. Attention to the RSP embeddings in (a) decays along both axes, while attention to the question tokens in (b) remains comparatively uniform.}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). Layer and reasoning-position axes are partitioned into five quantile bins. Attention to RSP tokens in (a) decays along both axes; attention to question tokens in (b) remains comparatively uniform.}
   \label{fig:attention_mass}
 \end{figure}
 
@@ -109,7 +109,7 @@ A sufficient condition for $\mathcal{G}_{i,K}$ to contain a nonempty open set is
 \end{proposition}
 
 
-Proposition~\ref{prop:support_expansion} is intentionally conditional: it does not claim every excluded token admits an entry region. The complementary case in which token $i$ is dominated by the baseline top-$K$ in the affine surrogate is exactly the case in which the proposition makes no claim. Temperature scaling reaches no $\mathcal{G}_{i,K}$ at all because it never changes token order; the mechanism here is branch opening, not probability flattening.
+Proposition~\ref{prop:support_expansion} is intentionally conditional: it does not claim every excluded token admits an entry region. The complementary case in which token $i$ is dominated by the baseline top-$K$ in the affine surrogate is exactly the case in which the proposition makes no claim. Temperature scaling reaches no $\mathcal{G}_{i,K}$ at all because it never changes token order; the surrogate-level mechanism here is branch opening, not probability flattening.
 
 % ================================================================
 \subsection{From Independent Perturbations to Pass@$N$}\label{sec:multipath}
