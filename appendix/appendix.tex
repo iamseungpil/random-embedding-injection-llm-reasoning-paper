@@ -676,7 +676,7 @@ By Lipschitz continuity, $\|F^{(l)}(\mathbf{x}^{(l, \text{attn,RSP})}) - F^{(l)}
 \end{proof}
 
 \begin{corollary}[Cross-block propagation control]\label{cor:cross_block}
-Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ and let $L^{(l)}_{\text{block}}$ denote the local Lipschitz constant of the entire block (attention + residual + FFN + residual) at layer $l$. Then
+Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text{base})}$ with $\Delta^{(0)} = \mathbf{0}$ (matched inputs at layer $0$), and let $L^{(l)}_{\text{block}}$ denote the local Lipschitz constant of the block map $B^{(l)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x})+F^{(l)}(\mathbf{x}+\mathrm{Attn}^{(l)}(\mathbf{x}))$ at layer $l$. Then
 \[
 \|\Delta^{(l+1)}\|
 \le
@@ -684,7 +684,7 @@ Define $\Delta^{(l)} := \mathbf{x}_i^{(l, \text{RSP})} - \mathbf{x}_i^{(l, \text
 +
 (1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
 \]
-Iterating across $L$ blocks yields
+Iterating across $L$ blocks with $\Delta^{(0)}=\mathbf{0}$ yields
 \[
 \|\Delta^{(L+1)}\|
 \le
@@ -693,6 +693,18 @@ Iterating across $L$ blocks yields
 (1 + L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\| + w_{r,i}^{(l)} \|\tilde{\mathbf{x}}_i^{(l+1)}\|\big).
 \]
 \end{corollary}
+
+\begin{proof}
+Decompose the cross-block discrepancy at layer $l+1$ into two contributions:
+\[
+\Delta^{(l+1)}
+=
+\underbrace{B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{RSP})}) - B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{base})})}_{\text{(I) propagation of prior } \Delta^{(l)}}
++
+\underbrace{B^{(l)}_{\text{RSP}}(\mathbf{x}^{(l,\text{base})}) - B^{(l)}_{\text{base}}(\mathbf{x}^{(l,\text{base})})}_{\text{(II) RSP-induced perturbation injected at block } l},
+\]
+where $B^{(l)}_{\text{RSP}}$ replaces $\mathrm{Attn}^{(l)}$ with the RSP-augmented attention. Term (I) is bounded via the block Lipschitz constant: $\|(I)\|\le L^{(l)}_{\text{block}}\|\Delta^{(l)}\|$. With residuals included one gets the factor $(1+L^{(l)}_{\text{block}})$ when also propagating the residual term $\Delta^{(l)}$ itself. Term (II) is exactly the per-block injection from Lemma~\ref{lem:ffn_lipschitz}, bounded by $(1+L^{(l)})\big(\|\boldsymbol{\eta}_i^{(l)}\|+w_{r,i}^{(l)}\|\tilde{\mathbf{x}}_i^{(l+1)}\|\big)$. Combining via the triangle inequality gives the recursion. The summed bound follows by unrolling the recursion: with $\Delta^{(0)}=\mathbf{0}$, induction on $L$ shows that $\|\Delta^{(L+1)}\|$ is at most the displayed sum.
+\end{proof}
 
 \paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
 Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU activations are globally $1$-Lipschitz and locally $O(1)$-Lipschitz, respectively, on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ are therefore products of bounded factors and remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
