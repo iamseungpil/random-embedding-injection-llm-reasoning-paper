@@ -433,6 +433,46 @@ Equality holds if and only if all eigenvalues are equal, i.e., $\Sigma_D = (\rho
 
 This theorem is a statement about second moments, not about Gaussianity by itself. Many distributions could realize isotropic covariance. We use a Gaussian in RSP because it is the simplest centered, rotation-symmetric family that matches the scale of pretrained embeddings. The theorem clarifies the structural advantage: a fixed prompt has $\Sigma_D=0$ and therefore no across-run exploration, whereas any anisotropic perturbation leaves at least one branch-sensitive direction less explored than the isotropic optimum.
 
+\begin{proposition}[Covariance pushforward under the value projection]\label{prop:value_projection_cov}
+Let $\bar h$ be a centered random vector with covariance $\sigma_E^2 \mathbf I_d$, and let $v = W \bar h$ for a matrix $W \in \mathbb{R}^{d_v \times d}$. Then
+\[
+\mathrm{Cov}(v) = \sigma_E^2 W W^\top.
+\]
+Consequently, for every unit vector $u \in \mathbb{S}^{d_v-1}$,
+\[
+\sigma_E^2 \lambda_{\min}(W W^\top)
+\le
+\mathrm{Var}(u^\top v)
+=
+\sigma_E^2 u^\top W W^\top u
+\le
+\sigma_E^2 \lambda_{\max}(W W^\top).
+\]
+In particular, if $W$ is full rank then the projected perturbation has strictly positive variance in every output-space direction.
+\end{proposition}
+
+\begin{proof}
+Since $v = W \bar h$ and $\mathbb E[\bar h]=0$,
+\[
+\mathrm{Cov}(v)
+=
+\mathbb E[vv^\top]
+=
+W\,\mathbb E[\bar h \bar h^\top]\,W^\top
+=
+\sigma_E^2 W W^\top.
+\]
+For any unit vector $u$,
+\[
+\mathrm{Var}(u^\top v)
+=
+u^\top \mathrm{Cov}(v)\,u
+=
+\sigma_E^2 u^\top W W^\top u,
+\]
+and the Rayleigh quotient bounds give the stated inequalities.
+\end{proof}
+
 \clearpage
 \section{Proofs for Attention-Mediated Annealing}\label{app:proofs}
 
@@ -488,7 +528,7 @@ By Theorem~\ref{thm:basin_trapping}, every iterate lies in $S$. Suppose by induc
 $\mathrm{sep}(C)>0$ holds whenever the components of $S$ are spatially separated by a region of strictly higher energy than $E_{\mathbf{K}}(\sigma^{(0)})$, which we treat as a problem-dependent assumption rather than a structural property: it requires that the relevant components of the Hopfield energy do not share closure boundary points at level $E_{\mathbf{K}}(\sigma^{(0)})$. If $\mathrm{sep}=0$ the corollary becomes vacuous; in that case the trajectory is still in $S$ by Theorem~\ref{thm:basin_trapping}, but is not formally trapped in $C(\sigma^{(0)})$.
 
 \paragraph{Caveats and scope.}
-Theorem~\ref{thm:basin_trapping} depends on three assumptions that are individually mild but jointly idealized for real transformers. (A1) $\mathbf{K}=\mathbf{V}$ collapses the key and value projections; this is the standard Modern Hopfield assumption \citep{ramsauer2021hopfield} and isolates the energy-iteration aspect of attention from the additional value-projection degree of freedom. (A2) weight-tying treats the attention component as a single repeated map; without it, each block has its own energy and the trajectory does not minimize a single fixed function across blocks. (A3) is a smoothness condition on $E_{\mathbf{K}}$. For the Hopfield energy used here, $\nabla^2 E_{\mathbf{K}}(\sigma) = \mathbf{I} - \beta \mathbf{K}^\top (\mathrm{diag}(p_\sigma) - p_\sigma p_\sigma^\top) \mathbf{K}$ where $p_\sigma = \mathrm{softmax}(\beta \mathbf{K} \sigma)$, so the operator-norm bound on $\nabla^2 E_{\mathbf{K}}$ depends on the inverse-temperature $\beta$ and on $\|\mathbf{K}\|$. (A3) holds whenever $\beta \|\mathbf{K}\|^2$ is sufficiently small, which is the standard regime in which the Hopfield iterate converges in a small number of steps. The theorem therefore characterizes a structural tendency of attention-only iteration in this regime; it is not a literal property of every transformer block. Its role in the main text is to identify the source of exploration deficit that an injected stochastic perturbation addresses; the empirical link is the cross-layer attention decay observed in Figure~\ref{fig:attention_mass} and the trajectory diversity gain reported in Section~\ref{sec:diversity}.
+Theorem~\ref{thm:basin_trapping} depends on three assumptions that are individually mild but jointly idealized for real transformers. (A1) $\mathbf{K}=\mathbf{V}$ collapses the key and value projections; this is the standard Modern Hopfield assumption \citep{ramsauer2021hopfield} and isolates the energy-iteration aspect of attention from the additional value-projection degree of freedom. (A2) weight-tying treats the attention component as a single repeated map; without it, each block has its own energy and the trajectory does not minimize a single fixed function across blocks. (A3) is a smoothness condition on $E_{\mathbf{K}}$. For the Hopfield energy used here, $\nabla^2 E_{\mathbf{K}}(\sigma) = \mathbf{I} - \beta \mathbf{K}^\top (\mathrm{diag}(p_\sigma) - p_\sigma p_\sigma^\top) \mathbf{K}$ where $p_\sigma = \mathrm{softmax}(\beta \mathbf{K} \sigma)$, so the operator-norm bound on $\nabla^2 E_{\mathbf{K}}$ depends on the inverse-temperature $\beta$ and on $\|\mathbf{K}\|$. (A3) holds whenever $\beta \|\mathbf{K}\|^2$ is sufficiently small, which is the standard regime in which the Hopfield iterate converges in a small number of steps. The theorem therefore characterizes an idealized tendency of attention-only iteration in this regime; it is not a literal property of every transformer block. In particular, sublevel-set confinement follows from Theorem~\ref{thm:basin_trapping}, whereas connected-component confinement additionally requires the separation and per-step gradient assumptions of Corollary~\ref{cor:connected_basin}. Its role in the main text is to supply an idealized source of exploration deficit that an injected stochastic perturbation addresses; the empirical link is the cross-layer attention decay observed in Figure~\ref{fig:attention_mass} and the trajectory diversity gain reported in Section~\ref{sec:diversity}.
 
 \subsection{Exact Attention Decomposition and Magnitude Control}\label{app:rsp_noise}
 
@@ -623,7 +663,7 @@ w_{r,i}^{(l)} \max_{j \in [k]} \|\mathbf{v}_{r_j}^{(l)}\|
 \to
 0.
 \]
-If the random values are Gaussian, the displayed maximum is almost surely finite because $k$ is finite.
+Since the implementation samples finite-dimensional vectors and $k$ is finite, the displayed maximum is almost surely finite.
 \end{corollary}
 
 \begin{proof}
@@ -707,7 +747,7 @@ where $B^{(l)}_{\text{RSP}}$ replaces $\mathrm{Attn}^{(l)}$ with the RSP-augment
 \end{proof}
 
 \paragraph{Boundedness of $L^{(l)}$ for standard architectures.}
-Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU activations are globally $1$-Lipschitz and locally $O(1)$-Lipschitz, respectively, on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants $L^{(l)}_{\text{block}}$ are therefore products of bounded factors and remain $O(1)$ in practice. Combined with the decay bound on $w_{r,i}^{(l)}$, the cumulative perturbation $\|\Delta^{(L+1)}\|$ remains finite and is dominated by the early blocks where $w_{r,i}^{(l)}$ has not yet decayed. This is the formal sense in which RSP perturbation enters strongly at early blocks and propagates through later blocks without exponential blow-up.
+Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU are smooth and therefore locally Lipschitz on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant that depends on the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants in Corollary~\ref{cor:cross_block} are therefore finite. For a fixed model depth this yields a finite cumulative bound on $\|\Delta^{(L+1)}\|$; stronger depth-uniform non-expansion would require additional contraction assumptions not imposed here. This is the formal sense in which the injected perturbation stays controlled across a finite forward pass, while the size of each new injection is set by $w_{r,i}^{(l)}$.
 
 \subsection{Proofs for Output Distribution Shift}
 
@@ -727,24 +767,44 @@ Let $\bar{h}$ denote the centered random soft prompt. We model the perturbed log
 \[
 z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
 \]
-where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_h z_i(0)$, we obtain the local linear approximation $z_i(\bar{h}) \approx z_i + a_i^\top \bar{h}$. This approximation is valid for sufficiently small $\|\bar{h}\|$ and is used as a first-order surrogate for the direction of perturbation rather than as an exact global model of the transformer logits.
+where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_h z_i(0)$, we obtain the local affine surrogate
+\[
+z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
+\]
+This approximation is valid for sufficiently small $\|\bar{h}\|$ and is used as a first-order surrogate for the direction of perturbation rather than as an exact global model of the transformer logits.
+
+For the two propositions below we isolate the only support property that is actually used. Let $D$ denote the centered prompt law. We assume
+\[
+\textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
+\]
+The Gaussian instantiation in Section~\ref{sec:why_random_prompt} satisfies (S1), but the proofs below require only this support condition.
 
 \subsubsection{Proof of Proposition 1 (Stochastic Ranking)}
 
-\textit{If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, then $0 < \Pr_{\bar{h}}(z_i(\bar{h}) > z_j(\bar{h})) < 1$.}
+\textit{If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, and if the centered prompt law satisfies (S1), then $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$.}
 
 \begin{proof}
-Under the local linear approximation,
+Under the local affine surrogate,
 \[
-z_i(\bar{h}) - z_j(\bar{h})
+z_i^{\mathrm{lin}}(\bar{h}) - z_j^{\mathrm{lin}}(\bar{h})
 =
 (z_i-z_j) + (a_i-a_j)^\top \bar{h}.
 \]
-Let $b_{ij}:=a_i-a_j \neq 0$. If $\bar{h} \sim \mathcal{N}(0,\sigma^2 I)$, then $b_{ij}^\top \bar{h} \sim \mathcal{N}(0,\sigma^2 \|b_{ij}\|^2)$, a non-degenerate Gaussian. The perturbed logit difference
+Let $b_{ij}:=a_i-a_j \neq 0$. The perturbed logit difference
 \[
 \Delta_{ij}(\bar{h}) := (z_i-z_j) + b_{ij}^\top \bar{h}
 \]
-therefore has positive probability mass on both sides of zero, which yields
+vanishes on the affine hyperplane
+\[
+H_0 := \{\bar h \in \mathbb{R}^d : (z_i-z_j) + b_{ij}^\top \bar h = 0\}.
+\]
+Because $b_{ij}\neq 0$, $H_0$ has codimension one and partitions $\mathbb{R}^d$ into the two nonempty open half-spaces
+\[
+H_+ := \{\bar h : (z_i-z_j) + b_{ij}^\top \bar h > 0\},
+\qquad
+H_- := \{\bar h : (z_i-z_j) + b_{ij}^\top \bar h < 0\}.
+\]
+By (S1), both $H_+$ and $H_-$ have positive probability, which yields
 \[
 0 < \Pr_{\bar{h}}(\Delta_{ij}(\bar{h})>0) < 1.
 \]
@@ -758,24 +818,24 @@ therefore has positive probability mass on both sides of zero, which yields
 :=
 \left\{
 \bar{h} \in \mathbb{R}^d :
-\#\left\{j \neq i : z_j + a_j^\top \bar{h} > z_i + a_i^\top \bar{h}\right\}
+\#\left\{j \neq i : z_j^{\mathrm{lin}}(\bar{h}) > z_i^{\mathrm{lin}}(\bar{h})\right\}
 \le K-1
 \right\}.
 \]
-\textit{If $\mathcal{G}_{i,K}$ contains a nonempty open set and $\bar{h}$ is sampled from an isotropic Gaussian, then}
+\textit{If $\mathcal{G}_{i,K}$ contains a nonempty open set and the centered prompt law satisfies (S1), then}
 \[
-\Pr_{\bar{h}}\big(i \in \mathrm{TopK}(p^{\mathrm{RSP}}(\cdot \mid s_t, \bar{h}))\big) > 0.
+\Pr_{\bar{h}}\big(\bar{h} \in \mathcal{G}_{i,K}\big) > 0.
 \]
 
 \begin{proof}
-Under the local linear model, token $i$ belongs to the perturbed top-$K$ set if and only if at most $K-1$ tokens outrank it, i.e., if and only if $\bar{h} \in \mathcal{G}_{i,K}$. For each subset $S$ of token indices with $i \notin S$ and $|S|\le K-1$, define
+Under the local affine surrogate, token $i$ belongs to the surrogate top-$K$ set if and only if at most $K-1$ tokens outrank it, i.e., if and only if $\bar{h} \in \mathcal{G}_{i,K}$. For each subset $S$ of token indices with $i \notin S$ and $|S|\le K-1$, define
 \[
 \mathcal{O}_S
 :=
 \left\{
 \bar{h} :
-z_j + a_j^\top \bar{h} > z_i + a_i^\top \bar{h}\ \text{for all } j \in S,\;
-z_i + a_i^\top \bar{h} > z_j + a_j^\top \bar{h}\ \text{for all } j \notin S \cup \{i\}
+z_j^{\mathrm{lin}}(\bar{h}) > z_i^{\mathrm{lin}}(\bar{h})\ \text{for all } j \in S,\;
+z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})\ \text{for all } j \notin S \cup \{i\}
 \right\}.
 \]
 Each $\mathcal{O}_S$ is an intersection of open half-spaces and is therefore open. Moreover,
@@ -784,11 +844,11 @@ Each $\mathcal{O}_S$ is an intersection of open half-spaces and is therefore ope
 =
 \bigcup_{S:\, i \notin S,\ |S|\le K-1} \mathcal{O}_S,
 \]
-so $\mathcal{G}_{i,K}$ is a finite union of open sets and is itself open. By assumption it contains a nonempty open set. The isotropic Gaussian has a density that is strictly positive everywhere on $\mathbb{R}^d$, so every nonempty open set has positive probability measure. Therefore
+so $\mathcal{G}_{i,K}$ is a finite union of open sets and is itself open. By assumption it contains a nonempty open set. Condition (S1) therefore implies
 \[
 \Pr_{\bar{h}}(\bar{h}\in \mathcal{G}_{i,K}) > 0,
 \]
-which is exactly the event that token $i$ enters the top-$K$ set under the perturbed distribution.
+which is exactly the event that token $i$ enters the surrogate top-$K$ set.
 \end{proof}
 
 \subsubsection{Proof of Corollary~\ref{cor:sample_complexity} (Sample Complexity)}
