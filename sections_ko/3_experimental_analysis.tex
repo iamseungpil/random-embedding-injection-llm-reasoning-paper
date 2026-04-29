@@ -1,0 +1,187 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter 3. Experimental Analysis
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{실험 분석}\label{sec:experimental_analysis}
+
+% ================================================================
+\subsection{Random Soft Prompt의 정의와 설정}\label{sec:rsp_definition}
+% ================================================================
+
+사전학습된 LLM의 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V \times d}$라 하자. 여기서 $V$는 어휘 크기이고 $d$는 은닉 차원이다. 우리는 RSP를 $L$개의 연속 벡터 시퀀스 $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L \times d}$로 정의하며, 각 벡터는 다음 분포에서 독립적으로 샘플링된다.
+\begin{equation}
+  h_j \sim \mathcal{N}(\mu_E,\; \sigma_E^2 \mathbf{I}), \quad j = 1, \dots, L,
+\end{equation}
+여기서 $\mu_E = \frac{1}{Vd}\sum_{i,k} [\mathbf{W}_E]_{i,k}$, $\sigma_E = \mathrm{std}(\mathbf{W}_E)$이다. 원래 입력의 임베딩 시퀀스를 $\mathbf{X} = [x_1, \dots, x_T] \in \mathbb{R}^{T \times d}$라 하면, RSP가 주입된 입력 $\tilde{\mathbf{X}}$는 원래 프롬프트 텍스트는 바꾸지 않은 채 세 위치 중 하나에서 $\mathbf{H}$를 연결해 만든다: \textit{prefix} ($[\mathbf{H}; \mathbf{X}]$), \textit{infix} ($\mathbf{H}$가 $\mathbf{X}$ 내부에 삽입됨), \textit{suffix} ($[\mathbf{X}; \mathbf{H}]$). 이는 선행 연구의 주입 전략을 따른다 \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. 각 배치마다 새로운 $\mathbf{H}$를 샘플링함으로써, 결과가 특정 무작위 임베딩 실현값 하나에 의존하지 않도록 했다.
+
+평가는 세 가지 수학 추론 벤치마크, MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 사용하며, instruct model, base model, 그리고 chat template이 맞지 않는 base model까지 포함해 총 일곱 설정을 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용한다. 평가는 fallback 기반의 answer extraction pipeline으로 최종 답만 채점한다. 전체 실험 설정은 Appendix~\ref{app:setup}에 정리했다.
+
+% ================================================================
+\subsection{RSP는 추론 성능을 떨어뜨리는가?}\label{sec:performance}
+% ================================================================
+
+\begin{table}[!t]
+\centering
+\caption{모델 설정과 벤치마크별 정확도(\%). RSP는 주입 위치(Prefix, Infix, Suffix) 중 최고 성능만 보고한다. 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다. 괄호 안 값은 baseline 대비 변화량이다.}
+\label{tab:performance}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{l cc cc cc}
+\toprule
+ & \multicolumn{2}{c}{\textbf{MATH-500}} & \multicolumn{2}{c}{\textbf{GSM8K}} & \multicolumn{2}{c}{\textbf{AIME24}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Model} & Baseline & \cellcolor{blue!10}RSP & Baseline & \cellcolor{blue!10}RSP & Baseline & \cellcolor{blue!10}RSP \\
+\midrule
+\multicolumn{7}{l}{\textit{Instruct Models}} \\
+\midrule
+LLaMA-3.1-8B-Inst      & 52.20 & \cellcolor{blue!10}49.40 {\scriptsize($-$2.8)}  & 85.75 & \cellcolor{blue!10}86.73 {\scriptsize(+1.0)}  & 6.67  & \cellcolor{blue!10}10.00 {\scriptsize(+3.3)}  \\
+Qwen2.5-Math-7B-Inst   & 83.20 & \cellcolor{blue!10}84.20 {\scriptsize(+1.0)}   & 95.45 & \cellcolor{blue!10}95.68 {\scriptsize(+0.2)}  & 13.33 & \cellcolor{blue!10}16.67 {\scriptsize(+3.3)}  \\
+Qwen2.5-Math-1.5B-Inst & 73.00 & \cellcolor{blue!10}75.20 {\scriptsize(+2.2)}   & 85.29 & \cellcolor{blue!10}85.75 {\scriptsize(+0.5)}  & 10.00 & \cellcolor{blue!10}20.00 {\scriptsize(+10.0)} \\
+\midrule
+\multicolumn{7}{l}{\textit{Base Models (Raw Text)}} \\
+\midrule
+Qwen2.5-Math-7B        & 72.20 & \cellcolor{blue!10}71.60 {\scriptsize($-$0.6)}  & 84.15 & \cellcolor{blue!10}84.31 {\scriptsize(+0.2)}  & 6.67  & \cellcolor{blue!10}16.67 {\scriptsize(+10.0)} \\
+Qwen2.5-Math-1.5B      & 61.40 & \cellcolor{blue!10}64.40 {\scriptsize(+3.0)}   & 77.86 & \cellcolor{blue!10}74.30 {\scriptsize($-$3.6)} & 16.67 & \cellcolor{blue!10}10.00 {\scriptsize($-$6.7)} \\
+\midrule
+\multicolumn{7}{l}{\textit{Base Models + ChatML (Format Mismatch)}} \\
+\midrule
+Qwen2.5-Math-7B        & 52.20 & \cellcolor{blue!10}70.40 {\scriptsize(+18.2)}  & 58.30 & \cellcolor{blue!10}75.97 {\scriptsize(+17.7)} & 23.33 & \cellcolor{blue!10}23.33 {\scriptsize(+0.0)}  \\
+Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}  & 37.45 & \cellcolor{blue!10}67.02 {\scriptsize(+29.6)} & 13.33 & \cellcolor{blue!10}20.00 {\scriptsize(+6.7)}  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+먼저 무작위 임베딩 주입이 모델의 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 각 벤치마크에서 주입 위치(Prefix, Infix, Suffix)와 $L \in \{10, 15, 20\}$ 가운데 가장 좋은 RSP 결과를 보고한다.
+
+instruct model과 원래 프롬프트 형식을 쓰는 base model에서는 RSP가 baseline 성능을 대체로 몇 퍼센트포인트 이내에서 유지하거나 소폭만 이동시킨다. 더 눈에 띄는 것은 프롬프트 형식 불일치 상황이다. 즉, 채팅 형식으로 학습되지 않은 base model에 ChatML template을 주입했을 때, RSP는 최대 $+29$\%p까지의 큰 성능 향상을 보인다. 단순히 불확실성을 높이는 노이즈였다면 오히려 성능 저하가 커졌어야 하므로, 이 결과는 RSP 효과가 단순한 교란을 넘는다는 점을 시사한다.
+
+\begin{table}[!t]
+\centering
+\caption{기존 soft prompt 방법(TTSV, SoftCoT, LTPO)과의 통합 평가 비교. Baseline과 RSP 값은 Table~\ref{tab:performance}에서 가져왔다. \textbf{Bold}는 최고 성능, \underline{underline}은 두 번째 성능이다.}
+\label{tab:prior_comparison}
+\footnotesize
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{llccccc}
+\toprule
+\textbf{Model} & \textbf{Benchmark} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{RSP} & \textbf{TTSV} & \textbf{SoftCoT} & \textbf{LTPO} \\
+\midrule
+\multirow{3}{*}{Qwen2.5-Math-7B-Instruct} & MATH-500 & 83.20 & \cellcolor{blue!10}\textbf{84.20} & \underline{83.80} & 82.80 & 83.00 \\
+ & GSM8K   & \underline{95.45} & \cellcolor{blue!10}\textbf{95.68} & 95.30 & 95.00 & 94.84 \\
+ & AIME24  & 13.33 & \cellcolor{blue!10}\underline{16.67} & \textbf{23.30} & \underline{16.67} & 13.33 \\
+\midrule
+\multirow{3}{*}{Qwen2.5-Math-1.5B-Instruct} & MATH-500 & 73.00 & \cellcolor{blue!10}\underline{75.20} & \underline{75.20} & \textbf{76.00} & 72.40 \\
+ & GSM8K   & 85.29 & \cellcolor{blue!10}\textbf{85.75} & \underline{85.70} & 84.46 & 84.53 \\
+ & AIME24  & \underline{10.00} & \cellcolor{blue!10}\textbf{20.00} &  6.70 &  6.67 & \underline{10.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+또한 RSP를 TTSV, SoftCoT, LTPO처럼 서로 다른 목적 함수로 임베딩을 최적화하는 기존 soft prompt 방법과 비교했다. Table~\ref{tab:prior_comparison}은 공통 answer extraction pipeline 아래에서 다시 평가한 결과를 보여준다. 각 방법은 프롬프트 형식과 채점 규칙이 다르지만, fallback 기반 추출을 사용해 형식에 덜 민감한 비교를 수행했다. 결과적으로 RSP는 추가 학습 없이도 최적화 기반 방법과 맞먹는 수준의 성능을 보인다.
+
+% ================================================================
+\subsection{RSP는 출력 분포를 어떻게 바꾸는가?}\label{sec:entropy}
+% ================================================================
+
+다음으로 RSP 주입이 생성 과정의 출력 분포를 어떻게 바꾸는지 살펴본다. 설정은 Qwen2.5-Math-1.5B-Instruct와 MATH-500이며, 토큰별 entropy, top-1 probability, varentropy를 생성 단계에 따라 측정한다. Figure~\ref{fig:entropy_first5}와 Table~\ref{tab:entropy_first5}는 생성 초반 5\% 구간에서 RSP 변형과 기존 soft prompt 방법을 비교한 결과다.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{img/entropy/entropy_first5pct_zoom.pdf}
+  \caption{생성 초반 5\% 구간의 평균 entropy, top-1 probability, varentropy (Qwen2.5-Math-1.5B-Instruct, MATH-500). 음영은 $\pm$1 SEM이다. 실선은 RSP 변형과 baseline, 점선은 기존 soft prompt 방법(LTPO, SoftCoT, TTSV)이다.}
+  \label{fig:entropy_first5}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption{생성 초반 5\% 구간의 평균 entropy, top-1 probability, varentropy (Qwen2.5-Math-1.5B-Instruct, MATH-500).}
+\label{tab:entropy_first5}
+\small
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{Prefix} & \cellcolor{blue!10}\textbf{Infix} & \cellcolor{blue!10}\textbf{Suffix} & \textbf{LTPO} & \textbf{SoftCoT} & \textbf{TTSV} \\
+\midrule
+Entropy & 0.1332 & \cellcolor{blue!10}0.1366 & \cellcolor{blue!10}0.1402 & \cellcolor{blue!10}0.1941 & 0.1662 & 0.4218 & 0.1359 \\
+Top-1 Prob & 0.9535 & \cellcolor{blue!10}0.9523 & \cellcolor{blue!10}0.9525 & \cellcolor{blue!10}0.9373 & 0.9437 & 0.9156 & 0.9534 \\
+Varentropy & 0.2181 & \cellcolor{blue!10}0.2207 & \cellcolor{blue!10}0.2463 & \cellcolor{blue!10}0.4010 & 0.2953 & 2.2234 & 0.2174 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+결과는 RSP가 생성 초반 출력 분포를 분명히 바꾼다는 점을 보여준다. 세 주입 위치 모두에서 entropy는 증가하고, top-1 probability는 감소하며, varentropy는 증가한다. 이는 분포가 평평해지고, 단일 우세 토큰에 대한 확신은 약해지며, 다봉형 분포가 더 자주 나타남을 뜻한다 \citep{ahmed2026logitscope}. 높은 entropy 구간은 추론 궤적이 갈라지는 핵심 분기점으로 알려져 있으므로 \citep{wang2025beyond}, 이 변화는 여러 추론 경로가 공존할 수 있는 상태로 모델을 밀어 넣는다. 중요한 점은 변화가 생성 초반에 국한된다는 것이다. 생성 중반과 후반에서는 세 지표 모두 baseline 수준으로 다시 수렴한다.
+
+기존 soft prompt 방법들은 서로 다른 목적 함수로 학습되었음에도, 생성 초반 entropy를 높인다는 공통 패턴을 보인다. 특히 reasoning trajectory의 평균 entropy를 줄이는 보상으로 soft prompt를 최적화하는 TTSV조차 초반 entropy는 baseline과 비슷하거나 더 높은 수준을 보인다. 이는 생성 초반 entropy 상승이 특정 최적화 목적 때문이 아니라, 사전학습되지 않은 연속 임베딩을 주입하는 행위 자체에 가까운 효과일 수 있음을 시사한다.
+
+% ================================================================
+\subsection{RSP는 실제로 추론 궤적의 다양성을 만드는가?}\label{sec:diversity}
+% ================================================================
+
+Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 사실을 보였다. 이제 이 변화가 실제 추론 다양성으로 이어지는지를 세 수준에서 살펴본다. 분석 수준은 토큰 순위, 궤적의 의미적 내용, 과제 수준 결과다. 세 분석 모두 Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix 주입, $L=10$ 설정을 공유한다.
+
+\paragraph{토큰 수준: temperature만으로는 얻을 수 없는 분포 이동.}
+\begin{wraptable}{r}{0.42\textwidth}
+  \vspace{-1.2em}
+  \centering
+  \caption{Baseline $\tau{=}1.0$을 기준으로 본 첫 토큰 분포 지표. Baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다.}
+  \label{tab:rsp_vs_temp}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{0.9}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Metric} & \textbf{$\tau{=}2.0$} & \cellcolor{blue!10}\textbf{RSP} \\
+    \midrule
+    Spearman $\rho$ & 1.0 & \cellcolor{blue!10}\textbf{0.651} \\
+    Mass outside top-10 & 5.15\% & \cellcolor{blue!10}\textbf{27.64\%} \\
+    JS divergence & 0.086 & \cellcolor{blue!10}\textbf{0.231} \\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+자기회귀 생성에서 baseline과 RSP의 궤적 차이는 결국 첫 토큰에서 시작될 수밖에 없다. 따라서 baseline $\tau{=}1.0$을 기준으로, 단순한 flattening이 만들 수 있는 상한선인 baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다. 비교 지표는 세 가지다. Spearman rank correlation $\rho$는 순위 재배치를, baseline의 top-10 밖에 놓이는 확률 질량은 지지 집합 확장을, Jensen--Shannon divergence는 분포 변화의 전체 크기를 측정한다(정의는 Appendix~\ref{app:token_metrics}).
+
+Table~\ref{tab:rsp_vs_temp}는 RSP가 temperature scaling과는 질적으로 다른 변화를 만든다는 점을 보여준다. $\tau{=}2.0$까지 올려도 baseline top-10 밖으로 이동하는 확률 질량은 5.15\%에 그치지만, RSP $\tau{=}1.0$은 27.64\%에 도달한다. Spearman 상관은 더 직접적이다. Temperature scaling은 $p_i^{(\tau)} \propto p_i^{1/\tau}$라는 단조 변환이므로 어떤 $\tau > 0$에서도 토큰 순위를 보존하며, baseline 대비 $\rho$는 정확히 1이다. 반면 RSP는 토큰 분포의 순위 자체를 뒤섞어 $\rho$를 0.651까지 낮춘다. 이 변화는 temperature만으로는 만들 수 없다. JS divergence 0.231은 이 분포 변화의 전체 크기를 요약한다. 즉, RSP는 같은 순위를 단순히 평평하게 만드는 것이 아니라 분포 구조 자체를 다시 짠다.
+
+\paragraph{궤적 수준: 의미적 다양성.}
+\begin{wraptable}{r}{0.34\textwidth}
+  \vspace{-1.2em}
+  \centering
+  \caption{64개 문제에 대해 평균한 의미적 다양성 지표.}
+  \label{tab:semantic_metrics}
+  \footnotesize
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{0.9}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{RSP} \\
+    \midrule
+    Pairwise cos.\ dist. & 0.0612 & \cellcolor{blue!10}\textbf{0.0879} \\
+    Inter-cluster dist. & 0.0183 & \cellcolor{blue!10}\textbf{0.0982} \\
+    Intra-cluster dist. & 0.0526 & \cellcolor{blue!10}0.0528 \\
+    \bottomrule
+  \end{tabular}
+\end{wraptable}
+첫 토큰 수준의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지도 중요하다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau = 1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 RSP가 intra-cluster distance는 거의 바꾸지 않으면서 inter-cluster distance를 크게 키운다는 점을 보여준다. 즉, 각 전략 내부의 일관성은 유지하면서 전략 간 거리를 벌린다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{img/diversity/semantic_3panel.pdf}
+  \caption{64개 MATH-500 문제에서의 의미적 다양성 분석(문제당 300개 궤적, Qwen2.5-Math-1.5B-Instruct, $\tau=1.0$, BGE-M3 임베딩). (a) 대표 문제 \texttt{test/prealgebra/951}의 t-SNE 투영: baseline(빨강)은 한 영역에 비교적 집중되지만, RSP suffix(파랑)는 더 넓고 분리된 군집까지 확장된다. 채워진 표식은 정답, 빈 표식은 오답이다. (b) 문제별 평균 pairwise cosine distance. 대각선 위 점은 RSP가 baseline보다 더 다양한 궤적을 만든다는 뜻이다. (c) 문제별 DBSCAN 클러스터 수. 대부분의 문제에서 RSP가 더 많은 클러스터를 만든다.}
+  \label{fig:semantic_diversity}
+\end{figure}
+
+Figure~\ref{fig:semantic_diversity}(a)는 이 차이를 시각적으로 보여준다. RSP 샘플(파랑)은 baseline 샘플(빨강)이 차지하는 영역을 포함하면서, baseline이 도달하지 못한 별도 클러스터까지 확장된다. 그리고 새로 열린 영역에도 정답 궤적이 포함되어 있어, RSP의 탐색이 단지 오답 변형으로만 흩어지는 것은 아님을 알 수 있다. Figure~\ref{fig:semantic_diversity}(b), (c)는 이러한 패턴이 64개 문제 전반에 걸쳐 반복됨을 보여준다. 대부분의 문제에서 RSP는 더 많은 클러스터와 더 큰 pairwise cosine distance를 만든다. 큰 inter-cluster 증가와 거의 변하지 않는 intra-cluster 거리는 토큰 수준의 결과와도 맞닿아 있다. RSP는 각 클러스터 내부의 진행은 흐트러뜨리지 않으면서, 궤적이 진입하는 전략 클러스터 자체를 바꾼다. 문제별 추가 t-SNE 그림은 Appendix~\ref{app:semantic}의 Figure~\ref{fig:app_tsne_grid}에 제시한다.
+
+\paragraph{결과 수준: Pass@$n$ 스케일링.}
+마지막으로 토큰 수준과 궤적 수준의 다양성이 실제 과제 성과의 다양성으로 이어지는지 본다. 지표는 Pass@$n$이며, 이는 $n$개의 샘플 중 적어도 하나가 정답일 확률이다. MATH-500과 AIME24에서 문제당 $n=16$개의 샘플을 생성하고, 다음 네 조건을 비교한다. \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling만 사용. \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: 하나의 RSP를 모든 샘플이 공유. \textit{(iii)~RSP (indep.\ seed), greedy}: 샘플마다 다른 RSP를 쓰되 temperature는 사용하지 않음. \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: 샘플마다 다른 RSP와 temperature sampling을 함께 사용.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{img/diversity/pass_at_n_combined.pdf}
+  \caption{Qwen2.5-Math-1.5B-Instruct에서의 Pass@$n$ 스케일링. 좌측은 MATH-500, 우측은 AIME24이며, 문제당 $n=16$개의 샘플을 사용했다. Baseline은 temperature sampling만, fixed seed는 고정된 하나의 RSP와 temperature를 함께 쓴 경우, indep.\ seed는 샘플마다 다른 RSP를 쓰는 경우다.}
+  \label{fig:pass_at_n}
+\end{figure}
+
+조건 \textit{(iv)}가 두 벤치마크 모두에서 가장 높은 Pass@$n$를 달성한다. $n=16$에서 MATH-500은 92.80\%, AIME24는 36.67\%까지 올라간다. 반면 \textit{(ii)}는 baseline 대비 개선이 거의 없어, 다양성 이득의 핵심이 하나의 고정 섭동이 아니라 샘플마다 다른 무작위 임베딩이라는 점을 보여준다. Pass@1은 MATH-500에서 baseline과 비슷한 수준을 유지하고, 더 어려운 AIME24에서는 \textit{(iv)}가 baseline보다 더 높다. 즉, 독립적인 RSP와 temperature sampling의 결합은 단일 샘플 정확도를 해치지 않으면서 더 다양한 추론 궤적을 생성한다.
+
+\paragraph{세 수준의 종합.}
+세 분석은 하나의 일관된 그림으로 수렴한다. 토큰 수준에서는 RSP가 첫 토큰에 집중된 지지 집합 확장을 만들고, 그 효과는 뒤 토큰으로 갈수록 단조롭게 약해진다. 궤적 수준에서는 이 국소적 섭동이 서로 다른 추론 전략을 열어 큰 inter-cluster 분리를 만들지만, 각 전략 내부의 국소적 일관성은 유지된다. 결과 수준에서는 그렇게 생성된 궤적들이 더 많은 정답 해를 덮으면서도 단일 샘플 정확도를 잃지 않는다.

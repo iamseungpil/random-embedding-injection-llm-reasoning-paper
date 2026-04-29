@@ -1,0 +1,108 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter 4. Why RSP Works
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{이론적 분석: 어텐션 매개 탐색으로서의 RSP}\label{sec:why_rsp_works}
+
+Section~\ref{sec:experimental_analysis}에서 관찰된 세 가지 실험적 규칙성---생성 초반의 엔트로피 상승, 후반의 안정화, 반복 디코딩 아래의 Pass@$N$ 향상---은 트랜스포머 수준에서 하나의 메커니즘으로 설명된다. RSP는 출력 softmax 이전에 은닉 상태를 단 하나의 스칼라양, 즉 무작위 토큰 어텐션 질량(random-token attention mass)을 통해 섭동하며, 이 양은 자기회귀적 캐시 성장에 의해 구조적으로 희석된다. RSP에서 무작위성은 임베딩 분포를 모사하기 위한 것이 아니다. \emph{같은 프롬프트가 rollout마다 독립적인 섭동을 만들도록 해 주는 성질}이며, 탐색은 바로 이 독립성을 요구한다. 이하의 논의는 표준 self-attention 항등식만 사용하며, 특히 $\mathbf{K}=\mathbf{V}$, 가중치 공유, 전역 에너지 함수의 존재 중 어느 것도 가정하지 않는다.
+
+% ================================================================
+\subsection{스케일 정합 등방 섭동}\label{sec:rsp_design}
+% ================================================================
+
+\begin{definition}[Random Soft Prompt]\label{def:rsp}
+$\mathbf{W}_E\in\mathbb{R}^{V\times d}$를 사전학습된 입력 임베딩 행렬, $\mu_E$와 $\sigma_E$를 그 항별 스칼라 평균과 표준편차라 하자. 길이 $k$의 RSP란 $h_j = \mu_E\mathbf{1}_d + \sigma_E\,\xi_j$, $\xi_j\stackrel{\text{iid}}{\sim}\mathcal{N}(0,\mathbf{I}_d)$로 주어지는 수열 $(h_1,\dots,h_k)$를 말한다. 중심화된 프롬프트 $\bar h_j := h_j-\mu_E\mathbf{1}_d$는 $\bar h_j\sim\mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$를 만족한다. Pass@$N$과 같은 반복 샘플링 프로토콜에서, 비교되는 시도들에 사용되는 프롬프트 추첨과 디코딩 무작위성은 모두 독립이라 가정한다.
+\end{definition}
+
+실제 임베딩 분포는 일반적으로 비등방(anisotropic)이며 \citep{mu2018allbutthetop, ethayarajh2019contextual}, RSP는 \emph{의도적으로} 그것에서 벗어난다. $\sigma_E$를 빌려오는 것은 섭동을 모델이 기대하는 크기 영역에 두기 위함이고, 단위 공분산을 쓰는 것은 방향 구조를 일부러 버리기 위함이다. 분기를 가르는 결정적 방향은 프롬프트, 레이어, 위치, 비교되는 토큰 쌍에 따라 매번 달라지므로, 일반적인 탐색 섭동은 사전에 소수의 임베딩 방향에 자신을 묶어 두어서는 안 된다.
+
+% ================================================================
+\subsection{왜 무작위성이 필수인가}\label{sec:why_random_prompt}
+% ================================================================
+
+탐색은 시도 간 변동을 요구하며, 그 변동은 고정된 섭동으로는 결코 공급될 수 없다. 학습된 연속 프롬프트는 모델을 한 방향으로 이끌 수 있지만, 같은 벡터를 rollout마다 재사용하면 매번 같은 섭동 방향이 들어가므로 \emph{독립적 대안}을 만들지 못한다. 이산 무작위 토큰은 다른 방식으로 실패한다. 어휘의 각 토큰은 사전학습에서 물려받은 어휘적·의미적 방향을 갖고 있어, 토큰 수준의 추첨은 통제되지 않은 의미 prior를 주입한다. RSP는 \emph{연속이고, 중심화되어 있고, 등방적}이라는 세 성질로 두 실패 모드를 모두 피하며, 다음 두 결과는 그 세 성질이 각각 무엇을 보장하는지를 명시한다.
+
+\begin{lemma}[의미적 중립성]\label{lem:semantic_neutrality}
+$\bar h\sim\mathcal{N}(0,\sigma^2\mathbf{I}_d)$, $\hat h := \bar h/\|\bar h\|$라 하자. 임의의 고정된 단위벡터 $u_1,\dots,u_M\in\mathbb{S}^{d-1}$와 $\delta\in(0,1)$에 대해
+\[
+\Pr\!\left[\max_{r\in[M]}|\hat h^\top u_r| \;\le\; \sqrt{\tfrac{2\log(2M/\delta)}{d-1}}\right]\;\ge\;1-\delta.
+\]
+\end{lemma}
+
+토큰 임베딩은 이 성질을 만족하지 못한다. 어떤 고정 방향 $u=e_s/\|e_s\|$에 대해 $|\hat e_s^\top u|=1$이기 때문이다. Lemma~\ref{lem:semantic_neutrality}는 그보다 더 약하지만 충분한 주장만 형식화한다. 즉, 등방 무작위 방향은 임의의 유한한 의미 anchor 집합과 높은 확률로 거의 직교한다는 것이며, 단일 무작위 벡터가 모든 우연한 상관에서 자유롭다는 의미가 아니다.
+
+\begin{theorem}[방향 무관 커버리지]\label{thm:minimax_directional_coverage}
+$\mathbb{R}^d$ 위의 평균 0 섭동 분포 $D$의 공분산을 $\Sigma_D$, 분산 예산을 $\mathrm{tr}(\Sigma_D)\le \rho^2$라 하자. 이때 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이며, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때 그리고 그때에만 성립한다.
+\end{theorem}
+
+Theorem~\ref{thm:minimax_directional_coverage}은 미니맥스 명제다. 같은 총분산 예산을 갖는 평균 0 섭동들 중에서, 등방 공분산은 \emph{최소 탐색 방향}을 유일하게 최대화한다. Lemma~\ref{lem:semantic_neutrality}와 합치면 자연스러운 대안들이 한꺼번에 배제된다. 고정된 프롬프트는 $\Sigma_D=0$이라 탐색을 제공하지 못하고, PCA 정렬 노이즈는 비등방이라 직교 보완 공간을 덜 탐색하며, 어휘 토큰 추첨은 비등방인 \emph{동시에} 의미적으로도 약속을 한다. 같은 정리는 ``경험적 임베딩 공분산을 그대로 맞추기''라는 일견 자연스러운 대안도 함께 배제한다. $\mathbf{W}_E$의 행 공분산을 같은 스칼라 중심 $\mu_E\mathbf{1}_d$ 주위에서 $\Sigma_E$($\mathrm{tr}(\Sigma_E)=d\sigma_E^2$)라 하면, $\Sigma_E$가 비등방인 한 $\lambda_{\min}(\Sigma_E)<\sigma_E^2$이므로 임베딩 정합 분포는 등방 비교군보다 적어도 한 방향이 \emph{덜} 탐색된다. 따라서 방향 기하를 버리고 스케일만 빌려 오는 선택은 단순화가 아니라 의도된 최적화다.
+
+% ================================================================
+\subsection{정확한 트랜스포머 수준 메커니즘}\label{sec:energy_landscape}
+% ================================================================
+
+표준 트랜스포머에서 RSP의 효과는 무작위 토큰에 배정된 어텐션 질량으로 통제된다. self-attention 레이어 $\ell$에 실제 토큰 $n$개와 RSP 토큰 $k$개가 있고, 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, 실제·RSP 토큰의 value 벡터를 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$라 하자. 무작위 토큰 어텐션 질량을
+\[
+w_{r,i}^{(\ell)} \;=\; \sum_{j=1}^{k} \alpha_{i,n+j}^{(\ell)}
+\]
+로 정의하면, 어텐션 출력은 \emph{정확히}
+\begin{equation}\label{eq:decomp_ko}
+\mathbf{x}_i^{(\ell+1)}
+\;=\;
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}
+\;+\;
+\boldsymbol{\eta}_i^{(\ell)},
+\qquad
+\tilde{\mathbf{x}}_i^{(\ell+1)} \;=\; \sum_{j=1}^n \tfrac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}}\,\mathbf{v}_j^{(\ell)},
+\end{equation}
+로 분해되며, 무작위 기여항 $\boldsymbol{\eta}_i^{(\ell)} = \sum_{j=1}^k \alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$는 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_{j}\|\mathbf{v}_{r_j}^{(\ell)}\|$를 만족한다. 따라서 \emph{동일한 스칼라} $w_{r,i}^{(\ell)}$가 실제 토큰 신호가 얼마나 밀려나는지와 무작위 기여가 얼마나 커질 수 있는지를 동시에 제어한다. Eq.~\eqref{eq:decomp_ko}는 근사가 아니라 대수적 항등식이며, 결정적 norm 상계는 Appendix~\ref{app:rsp_noise}에 기록되어 있다. (Hopfield 형 에너지 지형 위 반복 retrieval로 보는 보조적 해석은 Appendix~\ref{app:proofs}의 관련 절에서 다루지만, 본 절의 형식적 결과들은 그에 의존하지 않는다.)
+
+희석 구조는 즉각적으로 따라온다. 실제 토큰과 무작위 토큰 사이의 사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[k]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$라 하면, scaled dot-product 어텐션은
+\begin{equation}\label{eq:decay_main}
+w_{r,i}^{(\ell)} \;\le\; \frac{k}{k + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
+\end{equation}
+를 준다. 이 우변은 $k$와 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다. 따라서 자기회귀적 캐시 성장 그 자체가 해당 gap과 양립 가능한 \emph{최대} 무작위 토큰 어텐션을 단조롭게 줄인다. 이는 상계의 구조적 희석이며, $\Delta_i^{(\ell)}$ 자체가 상태에 따라 함께 변하기 때문에 모든 실현된 $w_{r,i}^{(\ell)}$가 단조 감소한다는 뜻은 아니다. 레이어 깊이에 따라 $\Delta_i^{(\ell)}$가 날카로워진다는 모델 측 가설은 Figure~\ref{fig:attention_mass}에서 실험적으로 확인된다. 완전한 트랜스포머 블록은 잔차 연결, 정규화, FFN을 추가하지만, 섭동 궤적과 비섭동 궤적을 동시에 포함하는 공 위에서 공통의 국소 Lipschitz 상수가 성립한다는 가정 \citep{xiong2020layer, kim2021lipschitz} 하에 Appendix~\ref{app:proofs}는 블록당 섭동 진폭이 $w_{r,i}^{(\ell)}$에 선형이며, 유한 깊이 누적 상계가 따라옴을 보인다. Eq.~\eqref{eq:decay_main}와 결합하면, 섭동은 초반 블록에서 강하게 들어왔다가 증거가 쌓일수록 줄어드며, 추론 사슬 전체에 걸친 지속이 필요하지 않다.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.92\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \caption{Qwen2.5-Math-7B의 토큰별 어텐션 질량(suffix, MATH-500 500문제, 각 문제마다 독립적으로 샘플링한 RSP 사용). 레이어 축과 추론 위치 축은 다섯 개의 분위 구간으로 나누었다. (a)에서 RSP 토큰으로 향한 어텐션은 두 축 모두를 따라 감소하는 반면, (b)의 질문 토큰 어텐션은 비교적 균일하게 유지된다.}
+  \label{fig:attention_mass}
+\end{figure}
+
+% ================================================================
+\subsection{온도 너머의 출력 지지 집합 확장}\label{sec:output_shift}
+% ================================================================
+
+Temperature sampling은 순위 보존이다. $p_i^{(\tau)}\propto p_i^{1/\tau}$는 $p_i>p_j\iff p_i^{(\tau)}>p_j^{(\tau)}$를 임의의 $\tau>0$에 대해 함의하므로, 고정된 디코딩 상태에서 토큰 순위를 결코 바꾸지 못한다. RSP는 출력 softmax 이전에 작동하므로 순위를 바꿀 수 \emph{있다}. 이 조건이 언제 성립하는지를 분리해 보기 위해 국소 affine surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h} z_i(0)$를 사용한다. 이 surrogate는 $\bar h=0$의 근방에서 유효하다(Appendix~\ref{app:proofs}). 본 절 전체에서 $\bar h$는 토큰별 surrogate로 다루며, 여러 토큰이 softmax 가중 어텐션을 통해 합쳐지는 비선형 누적은 Section~\ref{sec:diversity}에서 실험적으로 보고한다.
+
+\begin{proposition}[확률적 순위화]\label{prop:stochastic_ranking}
+어떤 토큰 쌍 $(i,j)$에 대해 $a_i\neq a_j$이고 중심화된 프롬프트 분포가 $\mathbb{R}^d$의 모든 비공집합 열린집합에 양의 확률을 부여한다면, $0<\Pr_{\bar h}(z_i^{\mathrm{lin}}(\bar h)>z_j^{\mathrm{lin}}(\bar h))<1$이다.
+\end{proposition}
+
+\begin{proposition}[Top-$K$ 진입]\label{prop:support_expansion}
+디코딩 상태 $s_t$에서의 baseline top-$K$ 토큰 집합을 $J_K(s_t)$, $i\notin J_K(s_t)$인 토큰을 고정하자. 진입 영역
+\[
+\mathcal{G}_{i,K}
+\;:=\;
+\big\{\bar h\in\mathbb{R}^d:\ \#\{j\neq i: z_j^{\mathrm{lin}}(\bar h)>z_i^{\mathrm{lin}}(\bar h)\}\le K-1\big\}
+\]
+이 비공집합 열린집합을 포함하기 위한 충분조건은, 토큰 $i$가 다른 모든 토큰을 \emph{엄격한 마진}으로 적어도 $K-1$개를 제외한 채 앞서는 어떤 $\bar h_0$가 존재하는 것이다. affine surrogate는 연속이므로 $\bar h_0$ 주위의 열린 공이 $\mathcal{G}_{i,K}$ 안에 들어간다(Appendix~\ref{app:proofs}). 이 조건과 함께 중심화된 프롬프트 분포가 모든 비공집합 열린집합에 양의 확률을 부여한다면 $\Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K})>0$이다.
+\end{proposition}
+
+Proposition~\ref{prop:support_expansion}은 의도적으로 조건부다. surrogate에서 baseline top-$K$에 의해 지배되는 토큰에 대해서는 어떤 주장도 하지 않는다. Temperature 스케일링은 $\mathcal{G}_{i,K}$에 도달조차 하지 못한다. 순위를 바꾸지 않기 때문이다. 따라서 surrogate 수준의 메커니즘은 확률 평탄화가 아니라 \emph{분기 열기}다.
+
+% ================================================================
+\subsection{독립 섭동에서 Pass@$N$으로}\label{sec:multipath}
+% ================================================================
+
+$\mu_i := \Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K}) > 0$이라 두자. $N$번의 독립적이고 새로운 RSP 추첨에서 적어도 한 번이 $i$를 top-$K$에 입장시킬 확률은 $1-(1-\mu_i)^N \ge 1-\exp(-N\mu_i)$이다. 즉 독립 재추첨은 작은 단발 분기 확률을 지수적으로 포화하는 커버리지로 전환한다. 이를 과제 정확도로 들어 올리려면 ``열린 분기가 생산적인가''에 대한 과제 측 가정 하나가 필요하다.
+
+\begin{proposition}[탐색이 다중 경로를 만나다]\label{prop:multi_path}
+문제 $x$를 고정하자. 결정적 baseline을 한 번 실행하고, $N$개의 독립적이고 새로운 RSP를 추첨하여 표본당 한 번씩 디코딩한다. 정답 궤적 집합 $\mathcal{T}^\star(x)$가 비어 있지 않다고 하고, baseline 정답 지시자를 $p_{\mathrm{base}}(x)\in\{0,1\}$이라 하자. \emph{(M1)} 각 $n$에 대해, $n$번째 RSP 실행이 $\mathcal{T}^\star(x)$의 궤적을 만들 주변 확률이 적어도 $p_{\min}(x)>0$이고, \emph{(M2)} $N$번의 RSP 실행이 상호 독립이라 가정하자. 그러면
+\[
+\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-e^{-Np_{\min}(x)}.
+\]
+\end{proposition}
+
+가정 (M1)은 과제 측이며 메커니즘만으로는 유도되지 않는다. Section~\ref{sec:diversity}는 그 경험적 흔적을 보고한다. RSP가 만든 궤적은 향상과 후퇴를 모두 포함하며, 반복 샘플링 아래에서 명제가 예측하는 그대로 순이득이 누적된다.

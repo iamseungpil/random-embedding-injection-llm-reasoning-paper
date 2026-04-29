@@ -15,6 +15,7 @@
 *.vrb
 *.dvi
 *.ps
+*.xdv
 
 # Editor / OS
 .vscode/

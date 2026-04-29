@@ -1,0 +1,28 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter 2. Background
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{배경}
+\label{sec:background}
+
+% ----------------------------------------------------------------
+\subsection{LLM 추론을 위한 Soft Prompt 기법}\label{sec:rw_soft_prompt}
+% ----------------------------------------------------------------
+
+\textit{Soft prompt}는 전체 미세조정의 대안이 되는 parameter-efficient 접근으로 등장했다. Prefix-Tuning \citep{li2021prefix}은 학습 가능한 연속 벡터를 각 transformer 레이어 앞에 붙이는 패러다임을 제안했고, Prompt Tuning \citep{lester2021power}은 이를 입력 레이어만 사용하는 단순한 형태로 줄이면서 충분히 큰 모델에서는 전체 미세조정과 맞먹는 성능을 낼 수 있음을 보였다. P-tuning \citep{liu2021gpt}은 여기에 LSTM 기반 prompt encoder를 도입해 위치 간 의존성을 모델링했다.
+
+최근에는 이러한 \textit{soft prompt}가 LLM 추론에도 적극적으로 적용되고 있다. TTSV \citep{kang2025model}는 테스트 시점에 prefix 임베딩을 엔트로피 최소화로 최적화해 모델을 더 확신적인 상태로 유도함으로써 잠재 추론 능력을 활성화한다. SoftCoT \citep{xu2025softcot}은 assistant model이 생성한 soft token으로 명시적 chain-of-thought 토큰을 대체해, 연속 표현이 이산 언어보다 더 강한 표현력을 가질 수 있음을 활용한다. LTPO \citep{ye2025thinking}는 confidence 기반 내재 보상을 사용한 policy gradient로 테스트 샘플마다 latent thought 임베딩을 최적화한다. COCONUT \citep{hao2024training}은 모델 자신의 은닉 상태를 다시 입력 임베딩으로 되먹임해 연속 잠재 공간에서 추론하게 만들고, MemGen \citep{zhang2025memgen}은 임베딩 벡터가 경험 메모리로 기능할 수 있음을 보이며 추론을 보강하는 latent token 시퀀스를 구성한다. Pause token \citep{goyal2024think}은 입력 중간에 학습 가능한 토큰을 삽입해 추가 계산 단계를 제공한다.
+
+이들 접근은 모두 과제 특화 목적함수에 맞게 최적화된 어휘 바깥의 연속 임베딩을 주입한다. 그러나 평가는 주로 최종 정확도에 맞춰져 있기 때문에, 주입 자체의 효과와 최적화의 효과는 분리되어 있지 않으며, 이런 연속 임베딩 주입이 모델 행동을 어떻게 바꾸는지는 별도의 미해결 문제로 남아 있다.
+
+% ----------------------------------------------------------------
+\subsection{신경망에서의 노이즈 주입}\label{sec:rw_perturbation}
+% ----------------------------------------------------------------
+
+신경망은 여러 단계에서 노이즈를 도입해 왔다. 학습 과정에서는 dropout \citep{srivastava2014dropout}이 은닉 유닛을 무작위로 비활성화해 과적합을 방지하고, NEFTune \citep{jain2024neftune}은 instruction fine-tuning 중 토큰 임베딩에 노이즈를 더해 instruction following 성능 향상을 보고한다. 그러나 이런 방법은 학습 시점의 regularization에 초점을 두며, 추론 시점의 섭동은 다루지 않는다.
+
+추론 시점의 섭동 기반 접근은 주로 강건성과 안전성을 겨냥한다. Randomized smoothing \citep{cohen2019certified}은 입력에 가우시안 노이즈를 주입해 certified robustness를 얻고, LLM 맥락의 SmoothLLM \citep{robey2023smoothllm}은 문자 수준의 프롬프트 변형을 통해 jailbreak 공격을 방어한다. 이들 방법은 여러 번의 noisy forward pass와 출력 집계를 필요로 하며, 목표도 출력 다양성이 아니라 예측 안정성이다.
+
+강화학습에서는 NoisyNet \citep{fortunato2018noisy}이 네트워크 가중치에 학습 가능한 노이즈를 넣어 탐색 성능을 높였고, 노이즈의 위치와 구조가 탐색 품질을 좌우한다는 점을 보였다. 이 문제의식은 다양성을 겨냥하는 RSP와 가장 가깝지만, 주입 대상이 입력 임베딩이 아니라 네트워크 가중치이며, 노이즈 파라미터를 따로 학습해야 한다는 점에서 다르다.
+
+RSP는 이들과 세 가지 점에서 구별된다. \textbf{(1)} RSP는 어떠한 학습도 없이 추론 시점에만 동작하는 반면, dropout과 NEFTune은 학습 과정에서 노이즈를 넣고 결과적으로 모델 파라미터 자체를 바꾼다. \textbf{(2)} RSP는 원래 입력을 보존한 채 새로운 임베딩 벡터를 한 번의 forward pass 안에 덧붙이지만, 강건성 방법은 입력을 오염시키고 여러 번의 noisy pass를 집계한다. \textbf{(3)} RSP는 사전학습 임베딩 통계에서 샘플링한 순수한 무작위 벡터를 사용하지만, NoisyNet은 노이즈 파라미터 자체를 학습한다.

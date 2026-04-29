@@ -1,0 +1,72 @@
+\documentclass{article}
+
+\usepackage{neurips_2026}
+
+\usepackage{kotex}
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+\setmainfont{TeX Gyre Termes}
+\setsansfont{TeX Gyre Heros}
+\setmonofont{TeX Gyre Cursor}
+\setmainhangulfont[
+  ItalicFont={Noto Serif CJK KR},
+  BoldItalicFont={Noto Serif CJK KR Bold},
+  ItalicFeatures={FakeSlant=0.16},
+  BoldItalicFeatures={FakeSlant=0.16}
+]{Noto Serif CJK KR}
+\setsanshangulfont[
+  ItalicFont={Noto Sans CJK KR},
+  BoldItalicFont={Noto Sans CJK KR Bold},
+  ItalicFeatures={FakeSlant=0.16},
+  BoldItalicFeatures={FakeSlant=0.16}
+]{Noto Sans CJK KR}
+\setmonohangulfont{Noto Sans CJK KR}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage[most]{tcolorbox}
+
+\newtheorem{theorem}{정리}
+\newtheorem{proposition}{명제}
+\newtheorem{lemma}{보조정리}
+\newtheorem{corollary}{따름정리}
+\newtheorem{definition}{정의}
+
+\title{노이즈에서 다양성으로: 대형 언어 모델 추론에서의 무작위 임베딩 주입}
+
+\author{%
+  익명 저자
+}
+
+\begin{document}
+
+\maketitle
+
+\input{sections_ko/0_abstract}
+\input{sections_ko/1_introduction}
+\input{sections_ko/2_related_work}
+\input{sections_ko/3_experimental_analysis}
+\input{sections_ko/4_why_rsp_works}
+\input{sections_ko/5_conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{biblist}
+
+\appendix
+\input{appendix/appendix_ko}
+
+\end{document}
