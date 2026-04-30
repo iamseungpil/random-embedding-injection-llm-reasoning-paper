@@ -372,34 +372,12 @@ C \sqrt{\frac{\log(M/\delta)}{d}}
 \]
 즉 토큰 프롬프트는 적어도 하나의 의미 방향과 최대 정렬을 이루지만, 등방성 무작위 프롬프트는 어떤 고정된 유한 집합의 의미 방향에도 거의 직교한다. 우리가 말하는 ``의미적 비개입성''은 바로 이 뜻이다. 토큰은 의미적 commitment를 주입하는 반면, 무작위 프롬프트는 의미적으로 특정 방향에 묶이지 않은 섭동으로 기능한다.
 
-\subsection{미니맥스 방향 커버리지}
+\subsection{Theorem~\ref{thm:minimax_directional_coverage} (미니맥스 방향 커버리지)의 증명}
 
-두 번째 요구 사항은 방향 커버리지다. 평균이 0인 섭동 분포 $D$를 $\mathbb{R}^d$ 위에 두고, 공분산을 $\Sigma_D$, 분산 예산을 $\mathrm{tr}(\Sigma_D)\le \rho^2$라 하자. 단위벡터 $b$에 대해 $b$ 방향의 1차 섭동 에너지는 $\mathrm{Var}_{h \sim D}(b^\top h)=b^\top \Sigma_D b$로 주어진다. 이것이 본문에서 사용한 local linear logit surrogate에 직접 등장하는 양이다.
+본문에서 사용한 local linear logit surrogate에 직접 등장하는 양은 단위벡터 $b$에 대해 $b$ 방향의 1차 섭동 에너지 $\mathrm{Var}_{h\sim D}(b^\top h)=b^\top\Sigma_D b$이다. $\min_{\|b\|=1}b^\top\Sigma_D b = \lambda_{\min}(\Sigma_D)$이므로 최소 방향 분산은 정확히 $\lambda_{\min}(\Sigma_D)$이다.
 
-\begin{theorem}[미니맥스 방향 커버리지]\label{thm:minimax_directional_coverage_proof}
-\[
-\mathcal{E}(D)
-:=
-\min_{\|b\|=1}
-\mathrm{Var}_{h \sim D}(b^\top h)
-\]
-라 두면,
-\[
-\mathcal{E}(D)
-=
-\lambda_{\min}(\Sigma_D)
-\le
-\frac{\rho^2}{d},
-\]
-이고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때 그리고 그럴 때만 성립한다.
-\end{theorem}
-
-\begin{proof}
-임의의 대칭 공분산 행렬 $\Sigma_D$에 대해
-\[
-\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D),
-\]
-이므로 $\mathcal{E}(D)=\lambda_{\min}(\Sigma_D)$이다. $\Sigma_D$의 고윳값을 $\lambda_1,\dots,\lambda_d$라 하면,
+\begin{proof}[Theorem~\ref{thm:minimax_directional_coverage}의 증명]
+$\Sigma_D$의 고윳값을 $\lambda_1,\dots,\lambda_d$라 하면,
 \[
 \lambda_{\min}(\Sigma_D)
 \le
@@ -412,7 +390,7 @@ C \sqrt{\frac{\log(M/\delta)}{d}}
 모든 고윳값이 같을 때, 즉 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때 그리고 그럴 때만 등호가 성립한다.
 \end{proof}
 
-이 정리는 등방성 무작위성이 갖는 장점을 형식화한다. RSP는 주어진 프롬프트에서 어떤 logit-sensitive 방향 $b_{ij}$를 섭동해야 하는지 사전에 알지 못한다. 고정된 분산 예산 아래에서, 등방성 분포는 가능한 모든 방향에 대한 최악 경우 섭동량을 최대화하는 유일한 선택이다. 고정된 토큰 프롬프트는 결정적 섭동에 해당하므로 $\Sigma_D = 0$이고, 따라서 $\mathcal{E}(D)=0$이다. 더 일반적으로, 비등방성 섭동은 언제나 $\lambda_{\min}(\Sigma_D) < \rho^2/d$를 만족하므로 적어도 한 방향에서는 등방성 최적해보다 덜 탐색하게 된다.
+이 정리는 등방성 무작위성의 장점을 형식화한다. RSP는 어떤 logit-sensitive 방향을 섭동해야 하는지 사전에 알지 못하므로, 고정된 분산 예산 아래에서 등방성 분포는 모든 방향에 대한 최악 경우 섭동량을 유일하게 최대화한다. 고정 토큰 프롬프트는 결정적 섭동이므로 $\Sigma_D=0$이고 $\lambda_{\min}=0$이며, 비등방 섭동은 항상 $\lambda_{\min}(\Sigma_D)<\rho^2/d$이므로 적어도 한 방향에서 등방 최적해보다 덜 탐색하게 된다.
 
 \clearpage
 \section{본문 이론 결과의 증명}\label{app:proofs}
@@ -424,11 +402,10 @@ C \sqrt{\frac{\log(M/\delta)}{d}}
 본문 Eq.~\eqref{eq:decomp}의 분해 $\mathbf{x}_i^{(\ell+1)} = (1-w_{r,i}^{(\ell)})\tilde{\mathbf{x}}_i^{(\ell+1)} + \boldsymbol{\eta}_i^{(\ell)}$에서 무작위 기여 항 $\boldsymbol{\eta}_i^{(\ell)} = \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$의 통계적 성질을 분석한다.
 
 \paragraph{조건부 기댓값.}
-Attention weight에 조건부로 두면
+Attention weight에 조건부로 두면, 본문 §\ref{sec:mechanism}에서 정의한 무작위 토큰 어텐션 질량 $w_{r,i}^{(\ell)}$를 써서
 \begin{equation}
-\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right] = \mu_E \, w_{r,i}^{(\ell)},
+\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right] = \mu_E \, w_{r,i}^{(\ell)}.
 \end{equation}
-여기서 $w_{r,i}^{(\ell)} := \sum_{j=1}^{L} \alpha_{i,n+j}^{(\ell)}$이다.
 
 \paragraph{조건부 공분산.}
 무작위 벡터들이 공분산 $\sigma_E^2 \mathbf{I}$를 갖는 독립 샘플이라고 가정하면
@@ -478,11 +455,11 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \subsection{Attention 감쇠 경계}
 
 \begin{theorem}[Attention 감쇠]\label{thm:decay_proof}
-무작위 토큰에 할당되는 총 attention은
+본문 §\ref{sec:mechanism}의 logit gap $\Delta_i^{(\ell)}$ 아래에서, 무작위 토큰에 할당되는 총 attention은
 \begin{equation}
-w_{r,i}^{(\ell)} \leq \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})},
+w_{r,i}^{(\ell)} \leq \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})}
 \end{equation}
-를 만족한다. 여기서 $\Delta_i^{(\ell)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [L]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$는 실제 key와 무작위 key 사이의 logit gap이다.
+를 만족한다.
 \end{theorem}
 \begin{proof}
 실제 key에 대해 $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$, 무작위 key에 대해 $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$라 하자. $\Delta_i^{(\ell)}$의 정의에 따라 각 실제 key는 $s_j \geq \Delta_i^{(\ell)}/\sqrt{d} + s_{r,\max}$를 만족하며, 여기서 $s_{r,\max} = \max_{j'} s_{r_{j'}}$이다. 따라서 모든 실제 key에 대해 $\exp(s_j) \geq \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \exp(s_{r,\max})$가 성립한다. 이를 $n$개의 실제 key에 대해 합하면
