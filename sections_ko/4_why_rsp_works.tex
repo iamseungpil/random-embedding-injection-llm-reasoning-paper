@@ -61,12 +61,12 @@ w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
 $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰면 $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이 모든 실제 토큰 $j$에서 성립한다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$이라 두면 $\exp(s_{r,\max})\ge R/L$이므로 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$이고, softmax 정규화에서 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$를 얻는다. 우변을 $n$에 대해 미분하면 음수이므로 엄격히 감소하고, 같은 식에서 $n\to\infty$일 때 0으로 간다.
 \end{proof}
 
-이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터로 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로, 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 결과적으로 RSP의 효과는 생성 \emph{초반}에 가장 크게 나타나고, 토큰이 누적될수록 자연스럽게 약해진다 — 별도의 schedule 없이 디코딩 자체가 explore-then-exploit 형태의 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 예측이 실제 모델에서 그대로 관찰됨을 보여 준다.
+이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터로 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로, 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점뿐이다 — 즉 autoregressive position 방향의 attenuation이지 layer 깊이 방향의 monotonic decay는 아니다. 새 토큰이 생성될 때마다 query·key·hidden state가 갱신되어 $\Delta_i^{(\ell)}$도 시간에 따라 변하므로, ``실현된 attention mass의 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대값의 단조 envelope 감소''가 정확하다. 결과적으로 RSP 효과는 생성 \emph{초반}에 가장 크고 토큰 누적과 함께 envelope이 좁아져, 별도 schedule 없이 디코딩 자체가 explore-then-exploit 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 sequence-direction 예측을 실증한다.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.72\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 레이어 깊이와 추론 위치 두 축 모두에서 감소하고, (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 두 축의 감소는 모두 Theorem~\ref{thm:decay}의 부등식에서 따라온다.}
+  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소하며, 이는 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상으로, 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 logit gap이 더 날카로워지는 경향을 시사하지만 Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass로, RSP 길이 $L$로 나눈 \emph{평균} 값이며 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
   \label{fig:attention_mass}
 \end{figure}
 
@@ -98,11 +98,15 @@ $\mathrm{Var}_{h\sim D}(b^\top h) = b^\top \Sigma_D b$이고 임의 대칭 공�
 \subsection{출력 지지 집합 확장과 Pass@$N$ 누적}\label{sec:multipath}
 % ================================================================
 
-두 결과를 결합하면 한 번의 RSP가 출력 분포에 무엇을 할 수 있는지가 정해진다. 어텐션 단의 비영(非零) 영향(\S\ref{sec:mechanism})과 모든 방향에 양의 확률(\S\ref{sec:isotropy})이 만나면, baseline에서 거의 보이지 않던 토큰이 어떤 prompt 추첨에서는 답 후보권 안으로 들어올 수 있다.
+두 결과를 결합하면 한 번의 RSP가 출력 분포에 무엇을 \emph{할 수 있는지}가 정해진다 — \emph{무엇을 할 수밖에 없는지}는 아니다. 어텐션 단의 비영(非零) 영향(\S\ref{sec:mechanism})과 모든 방향에 양의 확률(\S\ref{sec:isotropy})이 만나면, baseline에서 거의 보이지 않던 토큰이 어떤 prompt 추첨에서는 답 후보권 안으로 들어올 수 있다 — 단, 그런 영역이 surrogate 위에 \emph{존재한다는 가정} 아래에서. 메커니즘은 영역에 양의 확률을 부여할 뿐, 영역 자체의 존재를 자동 보장하지는 않는다.
 
 단발 진입 확률이 작더라도 \emph{독립} 재추첨이 그것을 빠르게 누적시킨다. $N$번의 새로운 RSP 가운데 적어도 한 번 진입할 확률은 1에 지수 속도로 다가가야 한다. Temperature sampling은 logit의 단조 변환이라 토큰 순위를 절대 바꾸지 못하므로, 이 영역에는 도달할 수 없다.
 
-중심화된 prompt $\bar h$ 근방에서 logit을 1차로 근사한 surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h}z_i(0)$를 둔다. baseline 외 토큰 $i$가 다른 후보 $K-1$개 이상을 엄격한 마진으로 앞서는 어떤 $\bar h_0$가 존재한다고 하자. surrogate의 연속성으로 $\bar h_0$ 주변의 비공집합 열린집합 $\mathcal{G}_{i,K}$가 전부 $i$를 top-$K$로 진입시키고, 등방 가우시안의 full support가 이 영역에 양의 확률을 부여한다. 따라서 단발 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이며 이게 Proposition~\ref{prop:support_expansion}이다(정식 statement와 증명: Appendix~\ref{app:proofs}).
+중심화된 prompt $\bar h$ 근방에서 logit을 1차로 근사한 surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h}z_i(0)$를 둔다. baseline 외 토큰 $i$의 top-$K$ 진입 영역을 \emph{$i$보다 높은 surrogate logit을 갖는 토큰이 $K-1$개 이하}인 prompt들의 집합
+\[
+\mathcal{G}_{i,K} \;:=\; \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
+\]
+으로 정의한다 (이는 실제 top-$K$ 정의와 정확히 맞는다). 어떤 $\bar h_0$에서 $i$가 다른 후보를 엄격한 마진으로 충분히 앞서면 $\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하고, 등방 가우시안의 full support가 그 영역에 양의 확률을 부여한다. 따라서 \emph{$\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하는 토큰 $i$에 대해} 단발 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이며, 이게 Proposition~\ref{prop:support_expansion}의 \emph{조건부} claim이다(정식 statement와 증명: Appendix~\ref{app:proofs}).
 
 이 단발 확률을 task accuracy로 끌어올리려면 task-side 가정이 하나 필요하다. (M1) 단발 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이 양수이고, (M2) $N$번의 실행이 상호 독립이다. 두 가정 아래 Proposition~\ref{prop:multi_path}은 다음 부등식을 준다.
 \[
