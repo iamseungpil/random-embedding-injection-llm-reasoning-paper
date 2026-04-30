@@ -461,179 +461,25 @@ w_{r,i}^{(\ell)}\max_{j\in[L]}\|\mathbf{v}_{r_j}^{(\ell)}\|.
 
 Corollary~\ref{cor:perturbation_magnitude}가 본문에 필요한 유일한 정량적 사실이다. Attention weight와 random key 사이의 독립성은 가정하지 않는다. $w_{r,i}^{(\ell)}$가 작아지면 RSP 기여의 크기도 같은 스칼라에 의해 작게 묶인다.
 
-\subsection{Annealing: upper/lower envelope의 증명}
-
-\paragraph{Theorem~\ref{thm:decay} (upper envelope)의 증명.}
-실제 토큰과 RSP 토큰의 scaled attention score를
-\[
-s_j^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_j^{(\ell)}/\sqrt d \quad (j\in[n]),
-\qquad
-s_{r_{j'}}^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_{r_{j'}}^{(\ell)}/\sqrt d \quad (j'\in[L])
-\]
-로 두고, $s_{r,\max}^{(\ell)} := \max_{j'} s_{r_{j'}}^{(\ell)}$, $R^{(\ell)} := \sum_{j'=1}^{L} \exp(s_{r_{j'}}^{(\ell)})$라 하자. 정방향 gap의 정의에서 모든 $j\in[n]$에 대해
-\[
-s_j^{(\ell)} \;\ge\; s_{r,\max}^{(\ell)} + \Delta_i^{(\ell)}/\sqrt d
-\]
-이고, $\exp(s_{r,\max}^{(\ell)}) \ge R^{(\ell)}/L$ (max $\ge$ avg)이므로 $n$개 실제 키의 합은
-\[
-\sum_{j=1}^{n} \exp(s_j^{(\ell)})
-\;\ge\;
-n\,\exp(\Delta_i^{(\ell)}/\sqrt d)\,\exp(s_{r,\max}^{(\ell)})
-\;\ge\;
-\frac{n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}{L}\,R^{(\ell)}
-\]
-로 묶인다. softmax 정규화에서 RSP 측 mass는
-\[
-w_{r,i}^{(\ell)}
-=
-\frac{R^{(\ell)}}{\sum_{j=1}^{n}\exp(s_j^{(\ell)}) + R^{(\ell)}}
-\;\le\;
-\frac{R^{(\ell)}}{(n\,\exp(\Delta_i^{(\ell)}/\sqrt d)/L)\,R^{(\ell)} + R^{(\ell)}}
-=
-\frac{L}{L+n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
-\]
-우변 $f(n) := L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$은 $L$과 $\Delta_i^{(\ell)}$을 고정하면 $n$에 대해 엄격히 감소한다 ($f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L+n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$). 또한 $n\to\infty$일 때 $f(n)\to 0$이다. \qed
-
-\paragraph{Proposition~\ref{prop:lower_env} (lower envelope)의 증명.}
-대칭이다. $s_{r,\min}^{(\ell)} := \min_{j'} s_{r_{j'}}^{(\ell)}$로 두면 역방향 gap 정의에서 모든 $j\in[n]$에 대해
-\[
-s_j^{(\ell)} \;\le\; s_{r,\min}^{(\ell)} + \Delta_i'^{(\ell)}/\sqrt d
-\]
-이고, $\exp(s_{r,\min}^{(\ell)}) \le R^{(\ell)}/L$ (min $\le$ avg)이므로
-\[
-\sum_{j=1}^{n} \exp(s_j^{(\ell)})
-\;\le\;
-\frac{n\,\exp(\Delta_i'^{(\ell)}/\sqrt d)}{L}\,R^{(\ell)}
-\]
-이다. 따라서
-\[
-w_{r,i}^{(\ell)}
-=
-\frac{R^{(\ell)}}{\sum_{j=1}^{n}\exp(s_j^{(\ell)}) + R^{(\ell)}}
-\;\ge\;
-\frac{L}{L+n\,\exp(\Delta_i'^{(\ell)}/\sqrt d)}.
-\]
-
-\subsection{Annealing: cache 성장에 따른 따름정리}
-
-두 envelope에서 다음 두 따름정리가 따른다.
+\subsection{Theorem~\ref{thm:decay}의 따름정리}
 
 \begin{corollary}[fixed-gap envelope의 시퀀스 방향 단조 감소]\label{cor:sequence_annealing}
-$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계
-\[
-f(n)=\frac{L}{L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})}
-\]
-는 $n$에 대해 엄격히 감소한다. 따라서 \emph{같은 gap을 유지한다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
+$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$는 $n$에 대해 엄격히 감소한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
 \end{corollary}
 
-\noindent 자기회귀 디코딩에서는 새 토큰이 생성될 때마다 query·key·hidden state가 함께 갱신되어 $\Delta_i^{(\ell)}$도 step별로 변하므로, ``실현된 mass가 매 step 단조 감소한다''가 아니라 ``같은 gap이 유지되는 한 가능한 최대 mass의 envelope이 단조 감소한다''가 정확한 진술이다.
+\noindent 자기회귀 디코딩에서는 새 토큰이 생성될 때마다 query·key·hidden state가 함께 갱신되어 $\Delta_i^{(\ell)}$도 step별로 변하므로, ``실현된 mass가 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대 mass의 envelope이 단조 감소한다''가 정확한 진술이다.
 
 \begin{proof}
-$f(n)$을 $n$에 대해 미분하면
-\[
-f'(n)
-=
--\frac{L\exp(\Delta_i^{(\ell)}/\sqrt{d})}{\left(L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})\right)^2}
-<
-0.
-\]
-따라서 $f(n)$은 엄격히 감소한다.
+$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 엄격히 감소한다.
 \end{proof}
 
 \begin{corollary}[고정 gap envelope 아래의 RSP 기여 감쇠]\label{cor:vanishing_perturbation}
-$L$과 $\Delta_i^{(\ell)}$를 고정하고 $n\to\infty$이면 $w_{r,i}^{(\ell)} \to 0$이다. 또한 RSP value의 고정된 실현에 대해
-\[
-\|\boldsymbol{\eta}_i^{(\ell)}\|
-\le
-w_{r,i}^{(\ell)}\max_{j\in[L]}\|\mathbf{v}_{r_j}^{(\ell)}\|
-\to
-0.
-\]
+$L$과 $\Delta_i^{(\ell)}$를 고정하고 $n\to\infty$이면 $w_{r,i}^{(\ell)} \to 0$이고, RSP value의 고정된 실현에 대해 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\max_{j\in[L]}\|\mathbf{v}_{r_j}^{(\ell)}\| \to 0$이다.
 \end{corollary}
 
 \begin{proof}
-Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이다. 나머지는 Corollary~\ref{cor:perturbation_magnitude}의 상계를 그대로 적용하면 된다. 유한한 개수의 sampled value에 대한 최대 norm은 고정 실현에서 유한하다.
+Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, Corollary~\ref{cor:perturbation_magnitude}의 상계를 그대로 적용하면 된다. 유한한 개수의 sampled value에 대한 최대 norm은 고정 실현에서 유한하다.
 \end{proof}
-
-\subsection{Annealing: 국소 Lipschitz 제어 아래의 유한 깊이 전파}\label{app:ffn_lipschitz_ko}
-
-transformer block은 attention sublayer + residual + FFN sublayer + residual의 형태로 작동한다.
-\[
-\mathbf{x}_i^{(\ell, \text{attn})}
-=
-\mathbf{x}_i^{(\ell)} + \mathrm{Attn}^{(\ell)}(\mathbf{x}_i^{(\ell)}),
-\qquad
-\mathbf{x}_i^{(\ell+1)}
-=
-\mathbf{x}_i^{(\ell, \text{attn})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn})}).
-\]
-$\mathbf{x}_i^{(\ell, \text{attn,RSP})}$, $\mathbf{x}_i^{(\ell, \text{attn,base})}$를 같은 입력 $\mathbf{x}_i^{(\ell)}$에 RSP attention과 baseline attention을 각각 적용한 post-attention state라 하자. RSP 길이 $L$과 충돌하지 않도록 FFN sublayer Lipschitz 상수를 $\kappa^{(\ell)}$, block 전체 Lipschitz 상수를 $\kappa^{(\ell)}_{\mathrm{B}}$, 모델 깊이를 $\Lambda$로 표기한다.
-
-\begin{lemma}[Per-block FFN 전파]\label{lem:ffn_lipschitz}
-post-attention difference는
-\[
-\|\mathbf{x}_i^{(\ell, \text{attn,RSP})} - \mathbf{x}_i^{(\ell, \text{attn,base})}\|
-\le
-\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|
-\]
-를 만족한다. 또한 $F^{(\ell)}$이 두 state를 포함하는 유계 집합 위에서 $\kappa^{(\ell)}$-Lipschitz라면
-\[
-\|\mathbf{x}_i^{(\ell+1, \text{RSP})} - \mathbf{x}_i^{(\ell+1, \text{base})}\|
-\le
-(1+\kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big).
-\]
-\end{lemma}
-
-\begin{proof}
-Baseline에서는 $\mathbf{x}_i^{(\ell, \text{attn,base})} = \mathbf{x}_i^{(\ell)} + \tilde{\mathbf{x}}_i^{(\ell+1)}$이고, RSP 측은 Proposition~\ref{prop:attention_decomposition}에 의해 $\mathbf{x}_i^{(\ell, \text{attn,RSP})} = \mathbf{x}_i^{(\ell)} + (1-w_{r,i}^{(\ell)})\tilde{\mathbf{x}}_i^{(\ell+1)} + \boldsymbol{\eta}_i^{(\ell)}$이다. 차를 취하면
-\[
-\mathbf{x}_i^{(\ell, \text{attn,RSP})} - \mathbf{x}_i^{(\ell, \text{attn,base})}
-=
-\boldsymbol{\eta}_i^{(\ell)} - w_{r,i}^{(\ell)}\tilde{\mathbf{x}}_i^{(\ell+1)}
-\]
-이고 삼각부등식이 첫 부등식을 준다. 둘째 부등식은 post-FFN 차이를
-\[
-\big[\mathbf{x}_i^{(\ell, \text{attn,RSP})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn,RSP})})\big]
--
-\big[\mathbf{x}_i^{(\ell, \text{attn,base})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn,base})})\big]
-\]
-로 적고 Lipschitz 부등식 $\|F^{(\ell)}(\cdot)-F^{(\ell)}(\cdot)\| \le \kappa^{(\ell)}\|\cdot - \cdot\|$을 적용해 얻는다.
-\end{proof}
-
-\begin{corollary}[Cross-block 전파 제어]\label{cor:cross_block}
-$\Delta^{(\ell)} := \mathbf{x}_i^{(\ell,\text{RSP})} - \mathbf{x}_i^{(\ell,\text{base})}$, $\Delta^{(0)} = \mathbf{0}$로 두고, baseline block map $B^{(\ell)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(\ell)}(\mathbf{x})+F^{(\ell)}(\mathbf{x}+\mathrm{Attn}^{(\ell)}(\mathbf{x}))$와 RSP-augmented block map $B^{(\ell)}_{\text{RSP}}$가 두 trajectory를 포함하는 ball 위에서 공통 국소 Lipschitz 상수 $\kappa^{(\ell)}_{\mathrm{B}}$를 갖는다 하자(표준 transformer block에서 Attn, LayerNorm, FFN이 모두 임의의 유계 집합 위에서 국소 Lipschitz이고 \citep{xiong2020layer, kim2021lipschitz}, RSP 토큰은 매 layer에 유한 개의 softmax 항만 추가하므로 이런 상수가 존재한다). 이때
-\[
-\|\Delta^{(\ell+1)}\|
-\le
-(1+\kappa^{(\ell)}_{\mathrm{B}})\,\|\Delta^{(\ell)}\|
-+
-(1+\kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big)
-\]
-가 성립하고, $\Lambda$개 블록을 $\Delta^{(0)}=\mathbf{0}$에서 출발해 펼치면
-\[
-\|\Delta^{(\Lambda)}\|
-\le
-\sum_{\ell=0}^{\Lambda-1}\prod_{\ell'=\ell+1}^{\Lambda-1}(1+\kappa^{(\ell')}_{\mathrm{B}})
-\cdot
-(1+\kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big)
-\]
-를 얻는다.
-\end{corollary}
-
-\begin{proof}
-layer $\ell+1$에서의 cross-block 차이를
-\[
-\Delta^{(\ell+1)}
-=
-\underbrace{B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{RSP})}) - B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{base})})}_{\text{(I) 기존 } \Delta^{(\ell)}\text{의 전파}}
-+
-\underbrace{B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{base})}) - B^{(\ell)}_{\text{base}}(\mathbf{x}^{(\ell,\text{base})})}_{\text{(II) block }\ell\text{에서의 RSP 주입}}
-\]
-로 분해한다. (I)는 block Lipschitz로 $\|(I)\|\le\kappa^{(\ell)}_{\mathrm{B}}\|\Delta^{(\ell)}\|$이고, residual을 합치면 $(1+\kappa^{(\ell)}_{\mathrm{B}})$ 인자가 된다. (II)는 Lemma~\ref{lem:ffn_lipschitz}의 per-block 주입 상계 $(1+\kappa^{(\ell)})(\|\boldsymbol{\eta}_i^{(\ell)}\|+w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|)$이다. 삼각부등식으로 recursion이 따르고, $\Delta^{(0)}=\mathbf{0}$에서 펼치면 displayed sum이 나온다.
-\end{proof}
-
-\paragraph{표준 architecture에서 $\kappa^{(\ell)}$의 유계성.}
-LayerNorm은 원점에서 떨어진 임의의 유계 집합 위에서 $\|\gamma\|/\inf\|x\|$ 정도의 Lipschitz 상수를 가지며 \citep{xiong2020layer}, GELU나 SwiGLU는 부드러운 함수이므로 유계 활성 영역에서 국소 Lipschitz, 선형 사영의 Lipschitz 상수는 가중치 행렬의 spectral norm이다. self-attention sublayer의 Lipschitz는 $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$의 spectral norm과 inverse-temperature $\beta$에 의해 결정된다 \citep{kim2021lipschitz}. 한 forward pass가 지나는 유계 활성 영역 위에서 Corollary~\ref{cor:cross_block}의 per-block Lipschitz 상수는 모두 유한하므로, 고정 깊이 $\Lambda$에서 $\|\Delta^{(\Lambda)}\|$의 누적 상계도 유한하다. depth-uniform 비확장은 추가적인 수축 가정을 요구하므로 본 논문은 주장하지 않는다. 새 주입 한 번의 크기는 $w_{r,i}^{(\ell)}$가 결정한다.
 
 % [본문 Section 4.2 (Output Distribution Shift and Exploration) 에 대한 증명]
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications

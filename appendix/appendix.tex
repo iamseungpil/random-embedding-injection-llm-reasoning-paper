@@ -499,55 +499,7 @@ w_{r,i}^{(\ell)} \max_{j \in [L]} \|\mathbf{v}_{r_j}^{(\ell)}\|.
 
 Corollary~\ref{cor:perturbation_magnitude} is the only quantitative fact needed in the main text. No independence assumption between attention weights and random keys is required. Once $w_{r,i}^{(\ell)}$ is small, the random contribution must be small as well.
 
-\subsection{Annealing: upper and lower envelopes}
-
-\paragraph{Proof of Theorem~\ref{thm:decay} (upper envelope).}
-Write the scaled scores as $s_j^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top \mathbf{k}_j^{(\ell)}/\sqrt d$ for $j\in[n]$ and $s_{r_{j'}}^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top \mathbf{k}_{r_{j'}}^{(\ell)}/\sqrt d$ for $j'\in[L]$, and let $s_{r,\max}^{(\ell)} := \max_{j'} s_{r_{j'}}^{(\ell)}$ and $R^{(\ell)} := \sum_{j'=1}^{L} \exp(s_{r_{j'}}^{(\ell)})$. The forward-gap definition gives, for every $j\in[n]$,
-\[
-s_j^{(\ell)} \;\ge\; s_{r,\max}^{(\ell)} + \Delta_i^{(\ell)}/\sqrt d.
-\]
-Since $\exp(s_{r,\max}^{(\ell)}) \ge R^{(\ell)}/L$ (max dominates average), summing over the $n$ real keys yields
-\[
-\sum_{j=1}^{n} \exp(s_j^{(\ell)})
-\;\ge\;
-n\,\exp(\Delta_i^{(\ell)}/\sqrt d)\,\exp(s_{r,\max}^{(\ell)})
-\;\ge\;
-\frac{n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}{L}\,R^{(\ell)}.
-\]
-Plugging this into the softmax-normalized RSP mass,
-\[
-w_{r,i}^{(\ell)}
-=
-\frac{R^{(\ell)}}{\sum_{j=1}^{n} \exp(s_j^{(\ell)}) + R^{(\ell)}}
-\;\le\;
-\frac{R^{(\ell)}}{(n\,\exp(\Delta_i^{(\ell)}/\sqrt d)/L)\,R^{(\ell)} + R^{(\ell)}}
-=
-\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
-\]
-The right-hand side $f(n) := L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$ is strictly decreasing in $n$ at fixed $L$ and $\Delta_i^{(\ell)}$, since
-$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$, and $f(n)\to 0$ as $n\to\infty$. \qed
-
-\paragraph{Proof of Proposition~\ref{prop:lower_env} (lower envelope).}
-The argument is symmetric. Let $s_{r,\min}^{(\ell)} := \min_{j'} s_{r_{j'}}^{(\ell)}$. The reverse-gap definition gives, for every $j\in[n]$,
-\[
-s_j^{(\ell)} \;\le\; s_{r,\min}^{(\ell)} + \Delta_i'^{(\ell)}/\sqrt d.
-\]
-Since $\exp(s_{r,\min}^{(\ell)}) \le R^{(\ell)}/L$ (min is dominated by average),
-\[
-\sum_{j=1}^{n} \exp(s_j^{(\ell)})
-\;\le\;
-\frac{n\,\exp(\Delta_i'^{(\ell)}/\sqrt d)}{L}\,R^{(\ell)},
-\]
-and therefore
-\[
-w_{r,i}^{(\ell)}
-=
-\frac{R^{(\ell)}}{\sum_{j=1}^{n} \exp(s_j^{(\ell)}) + R^{(\ell)}}
-\;\ge\;
-\frac{L}{L + n\,\exp(\Delta_i'^{(\ell)}/\sqrt d)}.
-\]
-
-\subsection{Annealing: corollaries on cache growth}
+\subsection{Corollaries of Theorem~\ref{thm:decay} on cache growth}
 
 The two envelopes yield the corollaries below.
 
@@ -587,85 +539,6 @@ w_{r,i}^{(\ell)} \max_{j \in [L]} \|\mathbf{v}_{r_j}^{(\ell)}\|
 \begin{proof}
 $w_{r,i}^{(\ell)}\to 0$ by Corollary~\ref{cor:sequence_annealing}. Apply Corollary~\ref{cor:perturbation_magnitude} to bound $\|\boldsymbol{\eta}_i^{(\ell)}\|$. The maximum norm is finite for any realization of finitely many sampled values.
 \end{proof}
-
-\subsection{Annealing: finite-depth propagation under local Lipschitz control}\label{app:ffn_lipschitz}
-
-A transformer block applies an attention sublayer followed by a feed-forward sublayer with residual connections:
-\[
-\mathbf{x}_i^{(\ell, \text{attn})}
-=
-\mathbf{x}_i^{(\ell)} + \mathrm{Attn}^{(\ell)}(\mathbf{x}_i^{(\ell)}),
-\qquad
-\mathbf{x}_i^{(\ell+1)}
-=
-\mathbf{x}_i^{(\ell, \text{attn})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn})}).
-\]
-Let $\mathbf{x}_i^{(\ell, \text{attn,RSP})}$ and $\mathbf{x}_i^{(\ell, \text{attn,base})}$ denote the post-attention states under RSP and the unperturbed forward pass at the same input $\mathbf{x}_i^{(\ell)}$. To avoid clashing with the RSP length $L$, we write Lipschitz constants of the FFN sublayer as $\kappa^{(\ell)}$ and of the full block as $\kappa^{(\ell)}_{\mathrm{B}}$, and the model depth as $\Lambda$.
-
-\begin{lemma}[Per-block FFN propagation]\label{lem:ffn_lipschitz}
-The post-attention difference satisfies
-\[
-\|\mathbf{x}_i^{(\ell, \text{attn,RSP})} - \mathbf{x}_i^{(\ell, \text{attn,base})}\|
-\le
-\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)} \|\tilde{\mathbf{x}}_i^{(\ell+1)}\|.
-\]
-If, in addition, $F^{(\ell)}$ is $\kappa^{(\ell)}$-Lipschitz on a bounded set containing both $\mathbf{x}_i^{(\ell, \text{attn,RSP})}$ and $\mathbf{x}_i^{(\ell, \text{attn,base})}$, then
-\[
-\|\mathbf{x}_i^{(\ell+1, \text{RSP})} - \mathbf{x}_i^{(\ell+1, \text{base})}\|
-\le
-(1 + \kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)} \|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big).
-\]
-\end{lemma}
-
-\begin{proof}
-The unperturbed attention sublayer produces $\mathbf{x}_i^{(\ell, \text{attn,base})} = \mathbf{x}_i^{(\ell)} + \tilde{\mathbf{x}}_i^{(\ell+1)}$, while the RSP attention sublayer produces $\mathbf{x}_i^{(\ell, \text{attn,RSP})} = \mathbf{x}_i^{(\ell)} + (1-w_{r,i}^{(\ell)})\tilde{\mathbf{x}}_i^{(\ell+1)} + \boldsymbol{\eta}_i^{(\ell)}$ by Proposition~\ref{prop:attention_decomposition}. Subtracting,
-\[
-\mathbf{x}_i^{(\ell, \text{attn,RSP})} - \mathbf{x}_i^{(\ell, \text{attn,base})}
-=
-\boldsymbol{\eta}_i^{(\ell)} - w_{r,i}^{(\ell)} \tilde{\mathbf{x}}_i^{(\ell+1)},
-\]
-and the triangle inequality gives the first bound. For the second, write the post-FFN difference as
-\[
-\big[\mathbf{x}_i^{(\ell, \text{attn,RSP})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn,RSP})})\big]
--
-\big[\mathbf{x}_i^{(\ell, \text{attn,base})} + F^{(\ell)}(\mathbf{x}_i^{(\ell, \text{attn,base})})\big].
-\]
-By Lipschitz continuity, $\|F^{(\ell)}(\mathbf{x}^{(\ell, \text{attn,RSP})}) - F^{(\ell)}(\mathbf{x}^{(\ell, \text{attn,base})})\| \le \kappa^{(\ell)} \|\mathbf{x}_i^{(\ell, \text{attn,RSP})} - \mathbf{x}_i^{(\ell, \text{attn,base})}\|$. The triangle inequality combined with the first bound gives the second.
-\end{proof}
-
-\begin{corollary}[Cross-block propagation control]\label{cor:cross_block}
-Define $\Delta^{(\ell)} := \mathbf{x}_i^{(\ell, \text{RSP})} - \mathbf{x}_i^{(\ell, \text{base})}$ with $\Delta^{(0)} = \mathbf{0}$ (matched inputs at layer $0$), and let $\kappa^{(\ell)}_{\mathrm{B}}$ denote a common local Lipschitz constant valid for both the baseline block map $B^{(\ell)}_{\text{base}}:\mathbf{x}\mapsto\mathbf{x}+\mathrm{Attn}^{(\ell)}(\mathbf{x})+F^{(\ell)}(\mathbf{x}+\mathrm{Attn}^{(\ell)}(\mathbf{x}))$ and the RSP-augmented block map $B^{(\ell)}_{\text{RSP}}$ (which replaces $\mathrm{Attn}^{(\ell)}$ with the attention computation that includes the random tokens) on a ball containing both trajectories. Such a constant exists for standard transformer blocks because Attn, LayerNorm, and the FFN sublayer are each locally Lipschitz on any bounded set \citep{xiong2020layer, kim2021lipschitz}, and the random-key augmentation only adds a finite number of additional softmax inputs at every layer. Then
-\[
-\|\Delta^{(\ell+1)}\|
-\le
-(1 + \kappa^{(\ell)}_{\mathrm{B}})\,\|\Delta^{(\ell)}\|
-+
-(1 + \kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)} \|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big).
-\]
-Iterating across $\Lambda$ blocks with $\Delta^{(0)}=\mathbf{0}$ yields
-\[
-\|\Delta^{(\Lambda)}\|
-\le
-\sum_{\ell=0}^{\Lambda-1} \prod_{\ell' = \ell+1}^{\Lambda-1} (1 + \kappa^{(\ell')}_{\mathrm{B}})
-\cdot
-(1 + \kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\| + w_{r,i}^{(\ell)} \|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big).
-\]
-\end{corollary}
-
-\begin{proof}
-Decompose the cross-block discrepancy at layer $\ell+1$ into two contributions:
-\[
-\Delta^{(\ell+1)}
-=
-\underbrace{B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{RSP})}) - B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{base})})}_{\text{(I) propagation of prior } \Delta^{(\ell)}}
-+
-\underbrace{B^{(\ell)}_{\text{RSP}}(\mathbf{x}^{(\ell,\text{base})}) - B^{(\ell)}_{\text{base}}(\mathbf{x}^{(\ell,\text{base})})}_{\text{(II) RSP-induced injection at block } \ell},
-\]
-where $B^{(\ell)}_{\text{RSP}}$ replaces $\mathrm{Attn}^{(\ell)}$ with the RSP-augmented attention. Term (I) is bounded via the block Lipschitz constant: $\|(I)\|\le \kappa^{(\ell)}_{\mathrm{B}}\|\Delta^{(\ell)}\|$. With residuals included one obtains the factor $(1+\kappa^{(\ell)}_{\mathrm{B}})$ when also propagating $\Delta^{(\ell)}$ itself. Term (II) is exactly the per-block injection from Lemma~\ref{lem:ffn_lipschitz}, bounded by $(1+\kappa^{(\ell)})\big(\|\boldsymbol{\eta}_i^{(\ell)}\|+w_{r,i}^{(\ell)}\|\tilde{\mathbf{x}}_i^{(\ell+1)}\|\big)$. The triangle inequality gives the recursion, and unrolling with $\Delta^{(0)}=\mathbf{0}$ yields the displayed sum.
-\end{proof}
-
-\paragraph{Boundedness of $\kappa^{(\ell)}$ for standard architectures.}
-Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and linear projections. LayerNorm has Lipschitz constant on the order of $\|\gamma\|/\inf\|x\|$ on every set bounded away from the origin, where $\gamma$ is the LayerNorm scale parameter \citep{xiong2020layer}. GELU and SwiGLU are smooth and therefore locally Lipschitz on bounded activation regions, and linear projections have Lipschitz constant equal to the spectral norm of the weight matrix. The composed self-attention sublayer has a Lipschitz constant determined by the spectral norms of $\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V$ and the inverse-temperature $\beta$ as analyzed by \citet{kim2021lipschitz}. On the bounded activation regions traversed during a single forward pass, the per-block Lipschitz constants in Corollary~\ref{cor:cross_block} are therefore finite. For a fixed depth $\Lambda$ this yields a finite cumulative bound on $\|\Delta^{(\Lambda)}\|$; stronger depth-uniform non-expansion would require additional contraction assumptions not imposed here. This is the formal sense in which the injected perturbation stays controlled across a finite forward pass, while the size of each new injection is set by $w_{r,i}^{(\ell)}$.
 
 \subsection{Performance gain: from local admission to Pass@N}
 
