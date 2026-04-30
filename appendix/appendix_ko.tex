@@ -421,45 +421,30 @@ C \sqrt{\frac{\log(M/\delta)}{d}}
 % RSP perturbation term의 expectation, covariance, bias-to-variance ratio
 \subsection{RSP가 유도하는 섭동의 성질}\label{app:rsp_noise}
 
-\paragraph{Attention 출력의 분해.}
-$n$개의 실제 key와 $k$개의 무작위 key가 있을 때 attention 업데이트는 다음처럼 분해된다.
-\begin{equation}
-\mathbf{x}_i^{(l+1)} = (1 - w_{r,i}^{(l)}) \, \tilde{\mathbf{x}}_i^{(l+1)} + \boldsymbol{\eta}_i^{(l)},
-\end{equation}
-여기서
-\begin{equation}
-\tilde{\mathbf{x}}_i^{(l+1)} = \sum_{j=1}^{n} \tilde{\alpha}_{ij}^{(l)} \mathbf{v}_j^{(l)}, \quad \tilde{\alpha}_{ij}^{(l)} = \frac{\alpha_{ij}^{(l)}}{1 - w_{r,i}^{(l)}},
-\end{equation}
-이고,
-\begin{equation}
-\boldsymbol{\eta}_i^{(l)} = \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)} \mathbf{v}_{r_j}^{(l)}
-\end{equation}
-이다.
-
-이제 섭동 항 $\boldsymbol{\eta}_i^{(l)}$의 성질을 분석한다.
+본문 Eq.~\eqref{eq:decomp}의 분해 $\mathbf{x}_i^{(\ell+1)} = (1-w_{r,i}^{(\ell)})\tilde{\mathbf{x}}_i^{(\ell+1)} + \boldsymbol{\eta}_i^{(\ell)}$에서 무작위 기여 항 $\boldsymbol{\eta}_i^{(\ell)} = \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$의 통계적 성질을 분석한다.
 
 \paragraph{조건부 기댓값.}
 Attention weight에 조건부로 두면
 \begin{equation}
-\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right] = \mu_E \, w_{r,i}^{(l)},
+\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right] = \mu_E \, w_{r,i}^{(\ell)},
 \end{equation}
-여기서 $w_{r,i}^{(l)} := \sum_{j=1}^{k} \alpha_{i,n+j}^{(l)}$이다.
+여기서 $w_{r,i}^{(\ell)} := \sum_{j=1}^{L} \alpha_{i,n+j}^{(\ell)}$이다.
 
 \paragraph{조건부 공분산.}
 무작위 벡터들이 공분산 $\sigma_E^2 \mathbf{I}$를 갖는 독립 샘플이라고 가정하면
 \begin{equation}
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right) = \sigma_E^2 \sum_{j=1}^{k} (\alpha_{i,n+j}^{(l)})^2 \, \mathbf{I}.
+\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right) = \sigma_E^2 \sum_{j=1}^{L} (\alpha_{i,n+j}^{(\ell)})^2 \, \mathbf{I}.
 \end{equation}
 $\sum_j \alpha_j^2 \le (\sum_j \alpha_j)^2$를 이용하면
 \begin{equation}
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right) \preceq \sigma_E^2 (w_{r,i}^{(l)})^2 \, \mathbf{I}
+\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right) \preceq \sigma_E^2 (w_{r,i}^{(\ell)})^2 \, \mathbf{I}
 \end{equation}
 를 얻는다.
 
 \paragraph{Bias-to-variance 비율.}
 평균과 표준편차의 비는 다음처럼 상계된다.
 \begin{equation}
-\frac{\|\mathbb{E}[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}]\|}{\sqrt{\mathrm{Var}(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)})}} \le \frac{|\mu_E|}{\sigma_E}.
+\frac{\|\mathbb{E}[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}]\|}{\sqrt{\mathrm{Var}(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)})}} \le \frac{|\mu_E|}{\sigma_E}.
 \end{equation}
 실험적으로는 $|\mu_E|/\sigma_E \ll 1$이므로, 체계적 bias보다 확률적 성분이 지배적이다.
 
@@ -486,7 +471,7 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \end{table}
 
 \paragraph{함의.}
-따라서 이 섭동은 $w_{r,i}^{(l)}$에 의해 크기가 제어되는 거의 zero-mean noise처럼 동작하며, 본문에서 제시한 Langevin 유사 해석을 정당화한다.
+따라서 이 섭동은 $w_{r,i}^{(\ell)}$에 의해 크기가 제어되는 거의 zero-mean noise처럼 동작하며, 본문에서 제시한 Langevin 유사 해석을 정당화한다.
 
 % [본문 문단 6에 대한 증명]
 % attention decay bound: softmax 정규화에서 real key의 exponential sum을 lower bound하여 유도
@@ -495,25 +480,25 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \begin{theorem}[Attention 감쇠]\label{thm:decay_proof}
 무작위 토큰에 할당되는 총 attention은
 \begin{equation}
-w_{r,i}^{(l)} \leq \frac{k}{k + n \cdot \exp(\Delta_i^{(l)} / \sqrt{d})},
+w_{r,i}^{(\ell)} \leq \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})},
 \end{equation}
-를 만족한다. 여기서 $\Delta_i^{(l)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [k]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$는 실제 key와 무작위 key 사이의 logit gap이다.
+를 만족한다. 여기서 $\Delta_i^{(\ell)} := \min_{j \in [n]} \mathbf{q}_i^\top \mathbf{k}_j - \max_{j' \in [L]} \mathbf{q}_i^\top \mathbf{k}_{r_{j'}}$는 실제 key와 무작위 key 사이의 logit gap이다.
 \end{theorem}
 \begin{proof}
-실제 key에 대해 $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$, 무작위 key에 대해 $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$라 하자. $\Delta_i^{(l)}$의 정의에 따라 각 실제 key는 $s_j \geq \Delta_i^{(l)}/\sqrt{d} + s_{r,\max}$를 만족하며, 여기서 $s_{r,\max} = \max_{j'} s_{r_{j'}}$이다. 따라서 모든 실제 key에 대해 $\exp(s_j) \geq \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max})$가 성립한다. 이를 $n$개의 실제 key에 대해 합하면
+실제 key에 대해 $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$, 무작위 key에 대해 $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$라 하자. $\Delta_i^{(\ell)}$의 정의에 따라 각 실제 key는 $s_j \geq \Delta_i^{(\ell)}/\sqrt{d} + s_{r,\max}$를 만족하며, 여기서 $s_{r,\max} = \max_{j'} s_{r_{j'}}$이다. 따라서 모든 실제 key에 대해 $\exp(s_j) \geq \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \exp(s_{r,\max})$가 성립한다. 이를 $n$개의 실제 key에 대해 합하면
 \begin{equation}
-\sum_{j=1}^{n} \exp(s_j) \geq n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \exp(s_{r,\max}) \geq n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot \frac{1}{k}\sum_{j'=1}^{k} \exp(s_{r_{j'}}).
+\sum_{j=1}^{n} \exp(s_j) \geq n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \exp(s_{r,\max}) \geq n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \frac{1}{L}\sum_{j'=1}^{L} \exp(s_{r_{j'}}).
 \end{equation}
-무작위 토큰에 대한 총 attention은 $w_{r,i}^{(l)} = \sum_{j'} \exp(s_{r_{j'}}) / (\sum_j \exp(s_j) + \sum_{j'} \exp(s_{r_{j'}}))$이므로, 실제 key 합에 대한 하한을 대입하고 $R = \sum_{j'} \exp(s_{r_{j'}})$로 두면
+무작위 토큰에 대한 총 attention은 $w_{r,i}^{(\ell)} = \sum_{j'} \exp(s_{r_{j'}}) / (\sum_j \exp(s_j) + \sum_{j'} \exp(s_{r_{j'}}))$이므로, 실제 key 합에 대한 하한을 대입하고 $R = \sum_{j'} \exp(s_{r_{j'}})$로 두면
 \begin{equation}
-w_{r,i}^{(l)} = \frac{R}{\sum_j \exp(s_j) + R} \leq \frac{R}{n \cdot \exp(\Delta_i^{(l)}/\sqrt{d}) \cdot R/k + R} = \frac{k}{k + n \cdot \exp(\Delta_i^{(l)}/\sqrt{d})}.
+w_{r,i}^{(\ell)} = \frac{R}{\sum_j \exp(s_j) + R} \leq \frac{R}{n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot R/L + R} = \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d})}.
 \end{equation}
 \end{proof}
 
 \begin{corollary}[고정된 logit gap 아래의 시퀀스 방향 annealing]\label{cor:sequence_annealing}
-$k$와 $\Delta_i^{(l)}$를 고정하면, 상계
+$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계
 \[
-f(n)=\frac{k}{k+n\exp(\Delta_i^{(l)}/\sqrt{d})}
+f(n)=\frac{L}{L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})}
 \]
 는 실제 토큰 수 $n$에 대해 엄격히 감소한다. 따라서 cache 성장만으로도 그 gap과 양립 가능한 최대 섭동 질량은 감소한다.
 \end{corollary}
@@ -523,7 +508,7 @@ $f(n)$을 $n$에 대해 미분하면
 \[
 f'(n)
 =
--\frac{k\exp(\Delta_i^{(l)}/\sqrt{d})}{\left(k+n\exp(\Delta_i^{(l)}/\sqrt{d})\right)^2}
+-\frac{L\exp(\Delta_i^{(\ell)}/\sqrt{d})}{\left(L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})\right)^2}
 <
 0.
 \]
@@ -531,25 +516,25 @@ f'(n)
 \end{proof}
 
 \begin{corollary}[Annealing 하에서의 섭동 소멸]\label{cor:vanishing_perturbation}
-Decoding 동안 $n \to \infty$이고 $k$와 $\Delta_i^{(l)}$가 고정되어 있다면, $w_{r,i}^{(l)} \to 0$가 된다. 따라서
+Decoding 동안 $n \to \infty$이고 $L$과 $\Delta_i^{(\ell)}$가 고정되어 있다면, $w_{r,i}^{(\ell)} \to 0$가 된다. 따라서
 \[
-\left\|\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right]\right\| = O(w_{r,i}^{(l)})
+\left\|\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right]\right\| = O(w_{r,i}^{(\ell)})
 \qquad\text{and}\qquad
-\mathrm{tr}\,\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right)=O\!\left((w_{r,i}^{(l)})^2\right)
+\mathrm{tr}\,\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right)=O\!\left((w_{r,i}^{(\ell)})^2\right)
 \]
 도 함께 0으로 간다.
 \end{corollary}
 
 \begin{proof}
-Corollary~\ref{cor:sequence_annealing}에 의해 $w_{r,i}^{(l)} \to 0$이다. 기댓값 경계는
+Corollary~\ref{cor:sequence_annealing}에 의해 $w_{r,i}^{(\ell)} \to 0$이다. 기댓값 경계는
 \[
-\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right] = \mu_E w_{r,i}^{(l)}
+\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right] = \mu_E w_{r,i}^{(\ell)}
 \]
 에서 바로 나오고, 공분산 경계는
 \[
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(l)} \mid \alpha^{(l)}\right)
+\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right)
 \preceq
-\sigma_E^2 (w_{r,i}^{(l)})^2 \mathbf{I}
+\sigma_E^2 (w_{r,i}^{(\ell)})^2 \mathbf{I}
 \]
 에서 따른다.
 \end{proof}
@@ -570,71 +555,41 @@ Corollary~\ref{cor:sequence_annealing}에 의해 $w_{r,i}^{(l)} \to 0$이다. �
 
 \subsubsection{RSP 하에서의 logits 국소 선형화}
 
-중심화된 random soft prompt를 $\bar{h}$라 하자. 섭동된 logits를 $\bar{h}$의 함수 $z_i(\bar{h})$로 두고, $\bar{h}=0$ 근방에서 국소 smoothness를 가정하면
-\[
-z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
-\]
-여기서 $r_i(\bar{h}) = O(\|\bar{h}\|^2)$이다. $a_i := \nabla_h z_i(0)$라 두면 국소 선형 근사 $z_i(\bar{h}) \approx z_i + a_i^\top \bar{h}$를 얻는다. 이 근사는 충분히 작은 $\|\bar{h}\|$에서 유효하며, transformer logits의 전역 정확 모델이라기보다 섭동 방향을 설명하는 1차 surrogate로 사용한다.
+중심화된 random soft prompt를 $\bar{h}$라 하자. 섭동된 logits를 $\bar{h}$의 함수로 보고 $\bar{h}=0$ 근방에서 국소 smoothness를 가정하면 $z_i(\bar{h}) = z_i + a_i^\top \bar{h} + O(\|\bar{h}\|^2)$이며, 여기서 $a_i := \nabla_{\bar h} z_i(0)$이다. 본문 §\ref{sec:multipath}와 같은 표기로 \emph{1차 surrogate}를 $z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h$로 정의한다. 이 surrogate는 충분히 작은 $\|\bar{h}\|$에서 유효하며, transformer logits의 전역 모델이라기보다 섭동 방향을 설명하는 1차 근사다.
 
 \subsubsection{명제 1의 증명 (확률적 순위화)}
 
 \begin{proposition}[확률적 순위화]\label{prop:stochastic_ranking}
-토큰 쌍 $(i,j)$ 중 $a_i \neq a_j$인 것이 존재하면, $0 < \Pr_{\bar{h}}(z_i(\bar{h}) > z_j(\bar{h})) < 1$이 성립한다.
+토큰 쌍 $(i,j)$ 중 $a_i \neq a_j$인 것이 존재하면, $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$이 성립한다.
 \end{proposition}
 
 \begin{proof}
-국소 선형 근사 아래에서
-\[
-z_i(\bar{h}) - z_j(\bar{h})
-=
-(z_i-z_j) + (a_i-a_j)^\top \bar{h}.
-\]
-$b_{ij}:=a_i-a_j \neq 0$라 두자. 만약 $\bar{h} \sim \mathcal{N}(0,\sigma^2 I)$이면, $b_{ij}^\top \bar{h} \sim \mathcal{N}(0,\sigma^2 \|b_{ij}\|^2)$인 비퇴화 가우시안이 된다. 따라서 섭동된 logit 차이
-\[
-\Delta_{ij}(\bar{h}) := (z_i-z_j) + b_{ij}^\top \bar{h}
-\]
-는 0의 양쪽에 모두 양의 확률 질량을 가지며, 결과적으로
-\[
-0 < \Pr_{\bar{h}}(\Delta_{ij}(\bar{h})>0) < 1
-\]
-이 성립한다.
+$z_i^{\mathrm{lin}}(\bar{h}) - z_j^{\mathrm{lin}}(\bar{h}) = (z_i-z_j) + (a_i-a_j)^\top \bar{h}$이고, $b_{ij}:=a_i-a_j \neq 0$이며 $\bar{h} \sim \mathcal{N}(0,\sigma^2 I)$이면 $b_{ij}^\top \bar{h} \sim \mathcal{N}(0,\sigma^2 \|b_{ij}\|^2)$인 비퇴화 가우시안이다. 따라서 섭동된 logit 차이는 0의 양쪽에 모두 양의 확률 질량을 갖고, $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$이 성립한다.
 \end{proof}
 
 \subsubsection{명제 2의 증명 (지지 집합 확장)}
 
 \begin{proposition}[지지 집합 확장]\label{prop:support_expansion}
-상태 $s_t$에서 baseline top-$K$ 집합을 $J_K(s_t)$라 하자. 어떤 토큰 $i \notin J_K(s_t)$에 대해 집합
+상태 $s_t$에서 baseline top-$K$ 집합을 $J_K(s_t)$라 하자. 어떤 토큰 $i \notin J_K(s_t)$에 대해 진입 영역
 \[
-\mathcal{H}_i
+\mathcal{G}_{i,K}
 :=
 \left\{
 \bar{h} \in \mathbb{R}^d :
-z_i + a_i^\top \bar{h} > z_j + a_j^\top \bar{h}
+z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)
 \ \text{for all } j \in J_K(s_t)
 \right\}
 \]
-의 내부가 비어 있지 않다고 하자. $\bar{h}$를 등방성 가우시안에서 샘플링하면
-\[
-\Pr_{\bar{h}}\big(i \in \mathrm{TopK}(p^{\mathrm{RSP}}(\cdot \mid s_t, \bar{h}))\big) > 0
-\]
-이 성립한다.
+의 내부가 비어 있지 않다고 하자. $\bar{h}$를 등방성 가우시안에서 샘플링하면 $\Pr_{\bar{h}}(\bar h \in \mathcal{G}_{i,K}) > 0$이 성립한다.
 \end{proposition}
 
 \begin{proof}
-국소 선형 모델에서 토큰 $i$가 $J_K(s_t)$의 모든 토큰을 앞지른다는 조건은 정확히 $\bar{h} \in \mathcal{H}_i$와 동치다. 각 부등식
-\[
-z_i + a_i^\top \bar{h} > z_j + a_j^\top \bar{h}
-\]
-는 열린 half-space를 정의한다. 따라서 유한 개의 열린 half-space의 교집합인 $\mathcal{H}_i$ 역시 열린 집합이다. 가정에 의해 그 내부는 비어 있지 않으므로, $\mathcal{H}_i$는 $\mathbb{R}^d$의 비어 있지 않은 열린집합이다. 등방성 가우시안은 $\mathbb{R}^d$ 전역에서 엄밀히 양수인 밀도를 가지므로, 모든 비어 있지 않은 열린집합은 양의 확률 측도를 갖는다. 따라서
-\[
-\Pr_{\bar{h}}(\bar{h}\in \mathcal{H}_i) > 0
-\]
-이며, 이것이 바로 섭동된 분포 아래에서 토큰 $i$가 top-$K$ 집합에 진입하는 사건이다.
+1차 surrogate에서 토큰 $i$가 $J_K(s_t)$의 모든 토큰을 앞지른다는 조건은 정확히 $\bar{h} \in \mathcal{G}_{i,K}$와 동치다. 각 부등식 $z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)$은 열린 half-space를 정의하므로, 유한 개 열린 half-space의 교집합인 $\mathcal{G}_{i,K}$ 역시 열린 집합이다. 가정에 의해 내부가 비어 있지 않으므로 $\mathcal{G}_{i,K}$는 $\mathbb{R}^d$의 비공집합 열린집합이다. 등방성 가우시안은 $\mathbb{R}^d$ 전역에서 엄밀히 양수인 밀도를 가지므로 비공집합 열린집합은 양의 확률 측도를 갖는다. 따라서 $\Pr_{\bar{h}}(\bar h \in \mathcal{G}_{i,K}) > 0$이며, 이것이 토큰 $i$의 top-$K$ 진입 사건이다.
 \end{proof}
 
 \subsubsection{궤적 수준의 함의: 다중 경로 Pass@$N$}
 
-자기회귀 생성은 조건부 분포를 단계별로 합성하므로, 초기 단계의 섭동이 전혀 다른 궤적으로 이어질 수 있다. 적어도 한 번 baseline top-$K$ 바깥 토큰을 포함하는 궤적의 집합을 $\mathcal{R}_{k,K}(x)$라 하자. 만약 RSP가 초기 단계에서 이런 토큰의 접근 가능성을 높인다면, 반복 샘플링에서 $\mathcal{R}_{k,K}(x)$에 속하는 궤적을 뽑을 확률도 증가한다. 핵심은 시간적 누적이다. 초반의 top-$K$ 진입 한 번이 다음 decoding state를 바꾸고, 그것이 다시 다음 후보 집합을 바꾸는 식으로 이어진다. 이를 형식적으로 모으면 다음 명제가 된다.
+자기회귀 생성은 조건부 분포를 단계별로 합성하므로, 초기 단계의 섭동이 전혀 다른 궤적으로 이어질 수 있다. 적어도 한 번 baseline top-$K$ 바깥 토큰을 포함하는 궤적의 집합을 $\mathcal{R}_{L,K}(x)$라 하자. 만약 RSP가 초기 단계에서 이런 토큰의 접근 가능성을 높인다면, 반복 샘플링에서 $\mathcal{R}_{L,K}(x)$에 속하는 궤적을 뽑을 확률도 증가한다. 핵심은 시간적 누적이다. 초반의 top-$K$ 진입 한 번이 다음 decoding state를 바꾸고, 그것이 다시 다음 후보 집합을 바꾸는 식으로 이어진다. 이를 형식적으로 모으면 다음 명제가 된다.
 
 \begin{proposition}[다중 경로 Pass@$N$]\label{prop:multi_path}
 문제 $x$를 고정하고 정답 궤적 집합 $\mathcal{T}^\star(x)$가 비어 있지 않다고 하자. baseline 정답 지시자를 $p_{\mathrm{base}}(x)\in\{0,1\}$이라 하고, $N$개의 독립적이고 새로운 RSP를 추첨하여 표본당 한 번씩 디코딩한다. \textbf{(M1)} 각 $n$에 대해, $n$번째 RSP 실행이 $\mathcal{T}^\star(x)$의 궤적을 만들 주변 확률이 적어도 $p_{\min}(x)>0$이고, \textbf{(M2)} $N$번의 RSP 실행이 상호 독립이라 가정하자. 그러면

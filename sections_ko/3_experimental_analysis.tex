@@ -17,7 +17,7 @@
 평가는 세 가지 수학 추론 벤치마크, MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 사용하며, instruct model, base model, 그리고 chat template이 맞지 않는 base model까지 포함해 총 일곱 설정을 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용한다. 평가는 fallback 기반의 answer extraction pipeline으로 최종 답만 채점한다. 전체 실험 설정은 Appendix~\ref{app:setup}에 정리했다.
 
 % ================================================================
-\subsection{RSP는 추론 성능을 떨어뜨리는가?}\label{sec:performance}
+\subsection{RSP는 추론 성능을 개선할까?}\label{sec:performance}
 % ================================================================
 
 \begin{table}[!t]
@@ -169,14 +169,14 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
 
 Figure~\ref{fig:semantic_diversity}(a)에서 RSP 샘플(파랑)은 baseline 영역을 포함하면서 baseline이 도달하지 못한 별도 클러스터까지 확장되고, 그 영역에도 정답 궤적이 포함된다. (b), (c)는 64개 문제 전반에 걸쳐 RSP가 더 많은 클러스터와 더 큰 pairwise cosine distance를 만든다는 패턴이 반복됨을 보여준다. 즉 RSP는 클러스터 내부 진행은 흐트러뜨리지 않으면서 궤적이 진입하는 전략 클러스터 자체를 바꾼다. 문제별 추가 t-SNE는 Appendix~\ref{app:semantic}에 있다.
 
-\paragraph{결과 수준: Pass@$n$ 스케일링.}
-마지막으로 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$n$로 본다($n$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $n=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.
+\paragraph{결과 수준: Pass@$N$ 스케일링.}
+마지막으로 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$N$로 본다($N$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $N=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/diversity/pass_at_n_combined.pdf}
-  \caption{Qwen2.5-Math-1.5B-Instruct에서의 Pass@$n$ 스케일링. 좌측은 MATH-500, 우측은 AIME24이며, 문제당 $n=16$개의 샘플을 사용했다. Baseline은 temperature sampling만, fixed seed는 고정된 하나의 RSP와 temperature를 함께 쓴 경우, indep.\ seed는 샘플마다 다른 RSP를 쓰는 경우다.}
+  \caption{Qwen2.5-Math-1.5B-Instruct에서의 Pass@$N$ 스케일링. 좌측은 MATH-500, 우측은 AIME24이며, 문제당 $N=16$개의 샘플을 사용했다. Baseline은 temperature sampling만, fixed seed는 고정된 하나의 RSP와 temperature를 함께 쓴 경우, indep.\ seed는 샘플마다 다른 RSP를 쓰는 경우다.}
   \label{fig:pass_at_n}
 \end{figure}
 
-조건 \textit{(iv)}가 두 벤치마크 모두에서 가장 높은 Pass@$n$를 달성하며 $n=16$에서 MATH-500 92.80\%, AIME24 36.67\%에 이른다. \textit{(ii)}는 baseline 대비 거의 개선이 없어, 다양성 이득의 핵심이 \emph{고정} 섭동이 아니라 샘플마다 \emph{독립}된 무작위 임베딩임을 드러낸다. Pass@1은 MATH-500에서 baseline 수준을 유지하고 더 어려운 AIME24에서는 \textit{(iv)}가 더 높아, 독립 RSP + temperature 결합이 단일 샘플 정확도를 해치지 않으면서 추론 궤적을 다양화한다.
+조건 \textit{(iv)}가 두 벤치마크 모두에서 가장 높은 Pass@$N$을 달성하며 $N=16$에서 MATH-500 92.80\%, AIME24 36.67\%에 이른다. \textit{(ii)}는 baseline 대비 거의 개선이 없어, 다양성 이득의 핵심이 \emph{고정} 섭동이 아니라 샘플마다 \emph{독립}된 무작위 임베딩임을 드러낸다. Pass@1은 MATH-500에서 baseline 수준을 유지하고 더 어려운 AIME24에서는 \textit{(iv)}가 더 높아, 독립 RSP + temperature 결합이 단일 샘플 정확도를 해치지 않으면서 추론 궤적을 다양화한다.
