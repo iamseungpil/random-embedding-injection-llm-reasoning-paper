@@ -343,13 +343,13 @@ We use base-2 logarithms so that $\mathrm{JS} \in [0, 1]$. Tokens absent from th
 \clearpage
 \section{Why Random Prompts Are Semantically Neutral and Direction-Agnostic}\label{app:why_random}
 
-This appendix formalizes the ``why random'' claim used in Section~\ref{sec:why_random_prompt}. The point is not that random prompts contain hidden task information. The point is structural: if the perturbation is meant to act as a generic exploration device rather than as a learned prompt prior, then it should be resampled across runs, centered so that it does not induce a fixed first-order drift, and direction-agnostic so that it does not under-serve whichever local branch direction matters for the current prompt.
+This appendix formalizes the ``why random'' claim used in Section~\ref{sec:multipath}. The point is not that random prompts contain hidden task information. The point is structural: if the perturbation is meant to act as a generic exploration device rather than as a learned prompt prior, then it should be resampled across runs, centered so that it does not induce a fixed first-order drift, and direction-agnostic so that it does not under-serve whichever local branch direction matters for the current prompt.
 
 \subsection{Semantic Neutrality}
 
 Let $\bar{h} \sim \mathcal{N}(0, \sigma^2 \mathbf{I}_d)$ and $\hat{h} := \bar{h}/\|\bar{h}\|$ whenever $\bar{h}\neq 0$. Let $u_1,\dots,u_M \in \mathbb{S}^{d-1}$ be any fixed unit vectors representing semantic anchor directions.
 
-\begin{lemma}[Semantic neutrality]\label{lem:semantic_neutrality_proof}
+\begin{lemma}[Semantic neutrality]\label{lem:semantic_neutrality_proof}\label{lem:semantic_neutrality}
 For any $\delta \in (0,1)$,
 \[
 \Pr\!\left[
@@ -510,7 +510,7 @@ and the Rayleigh quotient bounds give the stated inequalities.
 \clearpage
 \section{Interpretive Connection to Hopfield Retrieval (Optional)}\label{app:hopfield_descent}
 
-\emph{This appendix is included for completeness and is not load-bearing for any quantitative result in the main text.} Section~\ref{sec:energy_landscape} of the main paper deliberately uses only standard self-attention identities (the exact decomposition of Eq.~\eqref{eq:decomp} and the decay bound of Eq.~\eqref{eq:decay_main}); the formal claims there do not assume $\mathbf{K}=\mathbf{V}$, weight-tied layers, or the existence of a global energy. The present appendix records the alternative reading---originating from the Modern Hopfield correspondence \citep{ramsauer2021hopfield}---under which a single attention update with $\mathbf{K}=\mathbf{V}$ becomes one gradient step on a Hopfield energy. This reading provides additional intuition for why a deterministic forward pass can be exploration-poor and has been a useful lens in the related literature, but it is not used in any proof of Section~\ref{sec:why_rsp_works}.
+\emph{This appendix is included for completeness and is not load-bearing for any quantitative result in the main text.} Section~\ref{sec:converge} of the main paper deliberately uses only standard self-attention identities (the exact decomposition of Eq.~\eqref{eq:decomp} and the decay bound of Theorem~\ref{thm:decay}); the formal claims there do not assume $\mathbf{K}=\mathbf{V}$, weight-tied layers, or the existence of a global energy. The present appendix records the alternative reading---originating from the Modern Hopfield correspondence \citep{ramsauer2021hopfield}---under which a single attention update with $\mathbf{K}=\mathbf{V}$ becomes one gradient step on a Hopfield energy. This reading provides additional intuition for why a deterministic forward pass can be exploration-poor and has been a useful lens in the related literature, but it is not used in any proof of Section~\ref{sec:why_rsp_works}.
 
 We restate the Modern Hopfield correspondence in the form used in this interpretive lens. For a key matrix $\mathbf{K} = (\mathbf{k}_1, \ldots, \mathbf{k}_n)$ at a fixed query position, the Hopfield energy is
 \[
@@ -567,7 +567,7 @@ Theorem~\ref{thm:basin_trapping} depends on three assumptions that are individua
 \clearpage
 \section{Proofs for the Transformer-Level Mechanism}\label{app:proofs}
 
-This appendix collects the formal proofs underlying Sections~\ref{sec:energy_landscape}--\ref{sec:multipath} of the main text.
+This appendix collects the formal proofs underlying Sections~\ref{sec:converge}--\ref{sec:multipath} of the main text.
 
 \subsection{Exact Attention Decomposition and Magnitude Control}\label{app:rsp_noise}
 
@@ -790,7 +790,7 @@ Modern transformer blocks combine LayerNorm, GELU or SwiGLU activations, and lin
 
 \subsection{Proofs for Output Distribution Shift}
 
-The main text makes two output-level claims. Proposition~\ref{prop:stochastic_ranking} establishes pairwise rank randomness, and Proposition~\ref{prop:support_expansion} upgrades that statement to top-$K$ entry. Both are statements about a local first-order surrogate of the perturbed logits.
+The main text §\ref{sec:multipath} reports the surrogate-level top-$K$ entry result (Proposition~\ref{prop:support_expansion}) and the multi-path Pass@$N$ accumulation (Proposition~\ref{prop:multi_path}). For completeness, we also include a pairwise rank randomness statement below.
 
 \subsubsection{Autoregressive Formulation}
 
@@ -802,7 +802,7 @@ where each step is governed by a prefix-conditioned distribution. Any perturbati
 
 \subsubsection{Local Linearization of Logits under RSP}
 
-Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector $\bar h_l$ from Definition~\ref{def:rsp}, treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the propositions below identify how each individual $\bar h_l$ shifts the logits, and the multi-token compounding through softmax-weighted attention is reported empirically in Figure~\ref{fig:attention_mass} and Section~\ref{sec:diversity}. We model the perturbed logits as a function $z_i(\bar{h})$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
+Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector $\bar h_l$ from the RSP definition (Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition}), treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the propositions below identify how each individual $\bar h_l$ shifts the logits, and the multi-token compounding through softmax-weighted attention is reported empirically in Figure~\ref{fig:attention_mass} and Section~\ref{sec:diversity}. We model the perturbed logits as a function $z_i(\bar{h})$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
 \[
 z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
 \]
@@ -816,11 +816,13 @@ For the two propositions below we isolate the only support property that is actu
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]
-The Gaussian instantiation in Section~\ref{sec:why_random_prompt} satisfies (S1), but the proofs below require only this support condition.
+The Gaussian instantiation in Section~\ref{sec:multipath} satisfies (S1), but the proofs below require only this support condition.
 
-\subsubsection{Proof of Proposition 1 (Stochastic Ranking)}
+\subsubsection{Proposition (Stochastic Ranking) and proof}
 
-\textit{If there exists a token pair $(i,j)$ such that $a_i \neq a_j$, and if the centered prompt law satisfies (S1), then $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$.}
+\begin{proposition}[Stochastic ranking]\label{prop:stochastic_ranking}
+If there exists a token pair $(i,j)$ such that $a_i \neq a_j$ and the centered prompt law satisfies (S1), then $0 < \Pr_{\bar{h}}(z_i^{\mathrm{lin}}(\bar{h}) > z_j^{\mathrm{lin}}(\bar{h})) < 1$.
+\end{proposition}
 
 \begin{proof}
 Under the local affine surrogate,
@@ -888,9 +890,11 @@ The reverse inclusion fails only on the measure-zero set of $\bar h$ that produc
 which is exactly the event that token $i$ enters the surrogate top-$K$ set.
 \end{proof}
 
-\subsubsection{Proof of Corollary~\ref{cor:sample_complexity} (Sample Complexity)}
+\subsubsection{Sample complexity corollary and proof}
 
-\textit{Let $\mu_i = \Pr_{\bar{h}}(\bar{h} \in \mathcal{G}_{i,K}) > 0$. Within $N$ independent RSP samples $\bar{h}_1, \ldots, \bar{h}_N$, the probability of at least one admission is at least $1 - (1-\mu_i)^N \ge 1 - \exp(-N\mu_i)$.}
+\begin{corollary}[Sample complexity]\label{cor:sample_complexity}
+Let $\mu_i = \Pr_{\bar{h}}(\bar{h} \in \mathcal{G}_{i,K}) > 0$. Within $N$ independent RSP samples $\bar{h}_1, \ldots, \bar{h}_N$, the probability of at least one admission is at least $1 - (1-\mu_i)^N \ge 1 - \exp(-N\mu_i)$.
+\end{corollary}
 
 \begin{proof}
 The samples $\{\bar{h}_n\}_{n=1}^N$ are independent, so
@@ -983,7 +987,7 @@ The two lines of evidence above identify known late-layer phenomena --- linear r
 
 \subsection{Additional Suffix Heatmaps}
 
-Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under suffix injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows the layer-wise and sequence-wise decay predicted by Eq.~\eqref{eq:decay_main}.
+Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under suffix injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows the layer-wise and sequence-wise decay predicted by Theorem~\ref{thm:decay}.
 
 \begin{figure}[ht]
   \centering

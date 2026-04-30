@@ -1,20 +1,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Chapter 3. Experimental Analysis
+% This file is loaded as Section 4 (empirical) in the new structure.
+% Filename retained for git history continuity.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Experimental Analysis}\label{sec:experimental_analysis}
+\section{Empirical Validation}\label{sec:experimental_analysis}
+
+We now examine how the explanation in §\ref{sec:why_rsp_works} appears in actual LLM generation through three scenes. First, we ask whether RSP preserves baseline accuracy without breaking it, and recovers it in some settings (\S\ref{sec:performance}). Second, we check whether the early diversification followed by late stabilization---predicted by the two-sided envelope---is observed empirically (\S\ref{sec:entropy}). Finally, we contrast Pass@$N$ between sharing one RSP across samples versus drawing a fresh RSP per sample, directly probing whether \emph{independence} is the key (\S\ref{sec:diversity}).
 
 % ================================================================
-\subsection{Random Soft Prompts: Definition and Experimental Setup}\label{sec:rsp_definition}
+\subsection{Experimental Setup}\label{sec:setup}
 % ================================================================
 
-Let $\mathbf{W}_E \in \mathbb{R}^{V \times d}$ denote the token embedding matrix of a pretrained LLM, where $V$ is the vocabulary size and $d$ is the hidden dimension. We define an RSP $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L \times d}$ as a sequence of $L$ continuous vectors, where each vector is independently sampled from an isotropic Gaussian distribution whose mean and variance are matched to those of the pretrained token embedding matrix:
-\begin{equation}
-  h_j \sim \mathcal{N}(\mu_E,\; \sigma_E^2 \mathbf{I}), \quad j = 1, \dots, L,
-\end{equation}
-with $\mu_E = \frac{1}{Vd}\sum_{i,k} [\mathbf{W}_E]_{i,k}$ and $\sigma_E = \mathrm{std}(\mathbf{W}_E)$. Let $\mathbf{X} = [x_1, \dots, x_T] \in \mathbb{R}^{T \times d}$ denote the embedding sequence of the original input. The RSP-augmented input $\tilde{\mathbf{X}}$ is constructed by concatenating $\mathbf{H}$ with $\mathbf{X}$ at one of three positions without modifying the original prompt text: \textit{prefix} ($[\mathbf{H}; \mathbf{X}]$), \textit{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), or \textit{suffix} ($[\mathbf{X}; \mathbf{H}]$), following the injection strategies adopted in prior work \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. Sampling a new $\mathbf{H}$ for each batch ensures that the results are not dependent on any realization of the random embeddings.
-
-We evaluate on mathematical reasoning benchmarks: MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, and AIME24, using LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama} and the Qwen2.5-Math model family \citep{yang2024qwen25math} across instruct models, base models, and base models with mismatched chat templates. All experiments use greedy decoding to isolate the effect of RSPs from sampling stochasticity. Full experimental details are provided in Appendix~\ref{app:setup}.
+We evaluate on three mathematical reasoning benchmarks, MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, and AIME24, using LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama} and the Qwen2.5-Math model family \citep{yang2024qwen25math} across instruct models, base models, and base models with mismatched chat templates---seven configurations in total. All experiments use greedy decoding to isolate the effect of RSPs from sampling stochasticity, and the answer-extraction pipeline uses fallbacks to score only the final answer. RSPs follow the definition of §\ref{sec:rsp_definition} and are concatenated at one of three positions (prefix, infix, suffix) with a freshly drawn $\mathbf{H}$ for each batch. Full experimental details and per-position results are in Appendix~\ref{app:setup}.
 
 % ================================================================
 \subsection{How Does Untrained RSP Compare to Baselines \& Optimized Soft Prompts?}\label{sec:performance}
