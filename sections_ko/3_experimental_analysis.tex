@@ -118,7 +118,6 @@ Varentropy & 0.2181 & \cellcolor{blue!10}0.2207 & \cellcolor{blue!10}0.2463 & \c
 
 Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 사실을 보였다. 이제 이 변화가 실제 추론 다양성으로 이어지는지를 세 수준에서 살펴본다. 분석 수준은 토큰 순위, 궤적의 의미적 내용, 과제 수준 결과다. 세 분석 모두 Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix 주입, $L=10$ 설정을 공유한다.
 
-\paragraph{토큰 수준: temperature만으로는 얻을 수 없는 분포 이동.}
 \begin{wraptable}{r}{0.42\textwidth}
   \vspace{-1.2em}
   \centering
@@ -137,9 +136,8 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
     \bottomrule
   \end{tabular}
 \end{wraptable}
-자기회귀 생성에서 baseline과 RSP의 궤적 차이는 결국 첫 토큰에서 시작될 수밖에 없으므로, baseline $\tau{=}1.0$을 기준으로 단순 flattening의 상한인 baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다. 세 지표---Spearman rank correlation $\rho$, baseline top-10 밖 확률 질량, Jensen--Shannon divergence---는 각각 순위 재배치, 지지 집합 확장, 분포 변화의 크기를 잡아낸다(정의는 Appendix~\ref{app:token_metrics}). Table~\ref{tab:rsp_vs_temp}에서 baseline top-10 밖으로 이동하는 질량은 $\tau{=}2.0$에서 5.15\%에 그치지만 RSP $\tau{=}1.0$에서는 27.64\%이고, Spearman 상관은 1에서 0.651로 떨어진다. Temperature는 단조 변환이라 어떤 $\tau$에서도 순위를 보존하므로 $\rho=1$이 강제되는 반면, RSP는 순위 자체를 뒤섞는다(이 차이의 메커니즘적 근거는 §\ref{sec:multipath}). JS divergence 0.231은 이 변화의 전체 크기를 요약한다.
+먼저 토큰 수준에서 보면, 자기회귀 생성에서 baseline과 RSP의 궤적 차이는 결국 첫 토큰에서 시작될 수밖에 없으므로 baseline $\tau{=}1.0$을 기준으로 단순 flattening의 상한인 baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다. 세 지표---Spearman rank correlation $\rho$, baseline top-10 밖 확률 질량, Jensen--Shannon divergence---는 각각 순위 재배치, 지지 집합 확장, 분포 변화의 크기를 잡아낸다(정의는 Appendix~\ref{app:token_metrics}). Table~\ref{tab:rsp_vs_temp}에서 baseline top-10 밖으로 이동하는 질량은 $\tau{=}2.0$에서 5.15\%에 그치지만 RSP $\tau{=}1.0$에서는 27.64\%이고, Spearman 상관은 1에서 0.651로 떨어진다. Temperature는 단조 변환이라 어떤 $\tau$에서도 순위를 보존하므로 $\rho=1$이 강제되는 반면, RSP는 순위 자체를 뒤섞는다(이 차이의 메커니즘적 근거는 §\ref{sec:multipath}). JS divergence 0.231은 이 변화의 전체 크기를 요약한다.
 
-\paragraph{궤적 수준: 의미적 다양성.}
 \begin{wraptable}{r}{0.34\textwidth}
   \vspace{-1.2em}
   \centering
@@ -158,7 +156,7 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
     \bottomrule
   \end{tabular}
 \end{wraptable}
-첫 토큰 수준의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지도 중요하다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau = 1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 RSP가 intra-cluster distance는 거의 바꾸지 않으면서 inter-cluster distance를 크게 키운다는 점을 보여준다. 즉, 각 전략 내부의 일관성은 유지하면서 전략 간 거리를 벌린다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
+한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau = 1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 RSP가 intra-cluster distance는 거의 바꾸지 않으면서 inter-cluster distance를 크게 키운다는 점을 보여준다. 즉, 각 전략 내부의 일관성은 유지하면서 전략 간 거리를 벌린다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
 
 \begin{figure}[ht]
   \centering
@@ -169,8 +167,7 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
 
 Figure~\ref{fig:semantic_diversity}(a)에서 RSP 샘플(파랑)은 baseline 영역을 포함하면서 baseline이 도달하지 못한 별도 클러스터까지 확장되고, 그 영역에도 정답 궤적이 포함된다. (b), (c)는 64개 문제 전반에 걸쳐 RSP가 더 많은 클러스터와 더 큰 pairwise cosine distance를 만든다는 패턴이 반복됨을 보여준다. 즉 RSP는 클러스터 내부 진행은 흐트러뜨리지 않으면서 궤적이 진입하는 전략 클러스터 자체를 바꾼다. 문제별 추가 t-SNE는 Appendix~\ref{app:semantic}에 있다.
 
-\paragraph{결과 수준: Pass@$N$ 스케일링.}
-마지막으로 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$N$로 본다($N$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $N=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.
+마지막 결과 수준에서는, 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$N$로 본다($N$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $N=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.
 
 \begin{figure}[ht]
   \centering
