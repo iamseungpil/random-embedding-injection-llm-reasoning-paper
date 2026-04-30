@@ -41,21 +41,7 @@ Theorem~\ref{thm:minimax_directional_coverage} is a minimax statement: among zer
 \subsection{Exact Transformer-Level Mechanism}\label{sec:energy_landscape}
 % ================================================================
 
-The effect of RSP in a standard transformer is controlled by the attention mass assigned to the random tokens. Consider self-attention layer $\ell$ with $n$ real and $k$ RSP tokens, attention weights $\alpha_{ij}^{(\ell)}$, and value vectors $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$ for real and RSP tokens. Let
-\[
-w_{r,i}^{(\ell)} \;=\; \sum_{j=1}^{k} \alpha_{i,n+j}^{(\ell)}
-\]
-denote the random-token attention mass. The attention output then decomposes \emph{exactly} as
-\begin{equation}\label{eq:decomp}
-\mathbf{x}_i^{(\ell+1)}
-\;=\;
-(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}
-\;+\;
-\boldsymbol{\eta}_i^{(\ell)},
-\qquad
-\tilde{\mathbf{x}}_i^{(\ell+1)} \;=\; \sum_{j=1}^n \tfrac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}}\,\mathbf{v}_j^{(\ell)},
-\end{equation}
-with random contribution $\boldsymbol{\eta}_i^{(\ell)} = \sum_{j=1}^k \alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$ obeying $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_{j}\|\mathbf{v}_{r_j}^{(\ell)}\|$. The same scalar $w_{r,i}^{(\ell)}$ thus controls both how much real-token signal is displaced and how large the random contribution can be; Eq.~\eqref{eq:decomp} is an algebraic identity rather than an approximation, and the deterministic norm bound is recorded in Appendix~\ref{app:rsp_noise}. (A complementary interpretation as iterative retrieval on a Hopfield-style energy landscape \citep{ramsauer2021hopfield} is offered in Appendix~\ref{app:hopfield_descent}; the formal results in this section do not depend on it.)
+The effect of RSP in a standard transformer is controlled by the attention mass assigned to the random tokens. Consider self-attention layer $\ell$ with $n$ real and $k$ RSP tokens, attention weights $\alpha_{ij}^{(\ell)}$, and value vectors $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$ for real and RSP tokens. Let $w_{r,i}^{(\ell)} = \sum_{j=1}^{k} \alpha_{i,n+j}^{(\ell)}$ denote the random-token attention mass. The attention output then decomposes \emph{exactly} as $\mathbf{x}_i^{(\ell+1)} = (1-w_{r,i}^{(\ell)})\tilde{\mathbf{x}}_i^{(\ell+1)} + \boldsymbol{\eta}_i^{(\ell)}$, where $\tilde{\mathbf{x}}_i^{(\ell+1)} = \sum_{j=1}^n \tfrac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}}\mathbf{v}_j^{(\ell)}$ and the random contribution $\boldsymbol{\eta}_i^{(\ell)} = \sum_{j=1}^k \alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$ obeys $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\max_{j}\|\mathbf{v}_{r_j}^{(\ell)}\|$. The same scalar $w_{r,i}^{(\ell)}$ thus controls both how much real-token signal is displaced and how large the random contribution can be; this decomposition is an algebraic identity rather than an approximation, and the deterministic norm bound is recorded in Appendix~\ref{app:rsp_noise}. (A complementary interpretation as iterative retrieval on a Hopfield-style energy landscape \citep{ramsauer2021hopfield} is offered in Appendix~\ref{app:hopfield_descent}; the formal results in this section do not depend on it.)
 
 The dilution structure follows directly. With $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[k]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ the real-vs-random pre-scaling logit gap, scaled dot-product attention gives
 \begin{equation}\label{eq:decay_main}
