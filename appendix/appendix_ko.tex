@@ -447,7 +447,7 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \end{table}
 
 \paragraph{함의.}
-따라서 이 섭동은 $w_{r,i}^{(\ell)}$에 의해 크기가 제어되는 거의 zero-mean noise처럼 동작하며, 본문에서 제시한 Langevin 유사 해석을 정당화한다.
+입력층에서 RSP가 $\mathcal{N}(\mu_E\mathbf{1}_d, \sigma_E^2\mathbf{I}_d)$로 시작하므로 입력층의 평균 항은 작지만, layer 이후의 $\mathbf{v}_{r_j}^{(\ell)}$는 일반적으로 \emph{bounded mean}만 가정한다. Eq.~\eqref{eq:lyap_eta}는 이 약한 가정 아래에서도 RSP 기여의 disturbance energy가 attention-local 수준에서 $w_{r,i}^{(\ell)}$로 통제됨을 보장한다 — 그 이상의 ``zero-mean noise처럼 동작한다''라는 강한 주장은 입력층에 한정된 해석이다.
 
 \subsection{Theorem~\ref{thm:decay} (Attention 감쇠)의 따름정리들}
 
@@ -479,28 +479,17 @@ f'(n)
 따라서 $f(n)$은 엄격히 감소한다.
 \end{proof}
 
-\begin{corollary}[Annealing 하에서의 섭동 소멸]\label{cor:vanishing_perturbation}
-Decoding 동안 $n \to \infty$이고 $L$과 $\Delta_i^{(\ell)}$가 고정되어 있다면, $w_{r,i}^{(\ell)} \to 0$가 된다. 따라서
+\begin{corollary}[고정 gap envelope 아래의 disturbance energy 감쇠]\label{cor:vanishing_perturbation}
+$L$과 $\Delta_i^{(\ell)}$를 고정하고 $n\to\infty$이면 $w_{r,i}^{(\ell)} \to 0$이다. 본 절의 약화된 가정 하에서 attention-local disturbance energy는 다음과 같이 좁아진다.
 \[
-\left\|\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right]\right\| = O(w_{r,i}^{(\ell)})
-\qquad\text{and}\qquad
-\mathrm{tr}\,\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right)=O\!\left((w_{r,i}^{(\ell)})^2\right)
+\bigl\|\mathbb{E}[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}]\bigr\| \le m_v^{(\ell)}\,w_{r,i}^{(\ell)} \;\to\; 0,
+\qquad
+V_{\eta,i}^{(\ell)} \le M_v^{(\ell)}\,(w_{r,i}^{(\ell)})^2 \;\to\; 0.
 \]
-도 함께 0으로 간다.
 \end{corollary}
 
 \begin{proof}
-Corollary~\ref{cor:sequence_annealing}에 의해 $w_{r,i}^{(\ell)} \to 0$이다. 기댓값 경계는
-\[
-\mathbb{E}\!\left[\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right] = \mu_E w_{r,i}^{(\ell)}
-\]
-에서 바로 나오고, 공분산 경계는
-\[
-\mathrm{Cov}\!\left(\boldsymbol{\eta}_i^{(\ell)} \mid \alpha^{(\ell)}\right)
-\preceq
-\sigma_E^2 (w_{r,i}^{(\ell)})^2 \mathbf{I}
-\]
-에서 따른다.
+Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, 본 절의 평균·second-moment 상계 $m_v^{(\ell)}, M_v^{(\ell)} < \infty$를 곱하면 결과가 따른다.
 \end{proof}
 
 % [본문 Section 4.2 (Output Distribution Shift and Exploration) 에 대한 증명]
