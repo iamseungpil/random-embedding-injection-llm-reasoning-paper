@@ -6,31 +6,31 @@
 
 \section{Random Soft Prompt와 작동 원리}\label{sec:why_rsp_works}
 
-이 절은 RSP를 정의하고 그것이 왜 작동하는지를 두 가닥의 자연스러운 이야기로 푼다. 한 번의 주입을 보면 RSP의 영향은 transformer 어텐션이 무작위 토큰에 배정하는 비중 한 가지로 모이고, 그 비중은 토큰이 쌓일수록 저절로 약해진다 — 그래서 효과는 \emph{초반} 토큰에서 가장 잘 나타난다. 한 번 추첨된 RSP는 그 시도 안에서 고정된 perturbation으로 작동해 baseline과 다른 \emph{한 갈래}를 결정하지만, 시도가 바뀌면 RSP도 새로 뽑히므로 시도들 사이에는 서로 다른 갈래가 활성화된다. 그 결과 baseline이 거의 보지 못하던 후보가 어떤 시도에서는 답 후보권 안으로 들어오고, 이 분기 사건이 반복 시도에서 누적된다. 첫 가닥은 \S\ref{sec:mechanism}에서 어텐션 분해와 자동 어닐링으로, 둘째 가닥은 \S\ref{sec:isotropy}의 등방성 정당화와 \S\ref{sec:multipath}의 독립 재추첨 누적으로 정리된다. 자세한 부등식은 본문 안에서 등장하지만, 직관과 결론은 모두 자연어로 먼저 말한다.
+이 절은 RSP를 정의한다. 그 작동 원리는 두 가닥의 자연스러운 이야기로 푼다. 먼저 한 번의 주입에서 RSP의 영향은 transformer 어텐션이 무작위 토큰에 배정하는 비중 한 가지로 모인다. 그 비중은 토큰이 쌓일수록 저절로 약해진다. 그래서 효과는 \emph{초반} 토큰에서 가장 잘 나타난다. 한 번 추첨된 RSP는 그 시도 안에서 고정된 perturbation으로 작동해 baseline과 다른 \emph{한 갈래}를 정한다. 다만 시도가 바뀌면 RSP도 새로 뽑히므로, 시도들 사이에는 서로 다른 갈래가 활성화된다. 그 결과 baseline이 거의 보지 못하던 후보가 어떤 시도에서는 답 후보권 안으로 들어온다. 이 분기 사건은 반복 시도에서 누적된다. 첫 가닥은 \S\ref{sec:mechanism}에서 어텐션 분해와 자동 어닐링으로 다룬다. 둘째 가닥은 \S\ref{sec:isotropy}의 등방성 정당화와 \S\ref{sec:multipath}의 독립 재추첨 누적으로 정리한다. 자세한 부등식은 본문 안에서 등장하지만, 직관과 결론은 모두 자연어로 먼저 풀어 둔다.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
 % ================================================================
 
-구현은 단순하다. 사전학습된 토큰 임베딩 행렬의 평균과 스케일만 빌려 같은 모양의 연속 벡터를 추첨하고, 이를 prompt 앞·중간·뒤 어디에든 붙여 넣는다. 이렇게 만든 시퀀스가 RSP다.
+구현은 단순하다. 사전학습된 토큰 임베딩 행렬의 평균과 스케일만 빌려 같은 모양의 연속 벡터를 추첨한다. 이를 prompt 앞·중간·뒤 어디에든 붙여 넣는다. 이렇게 만든 시퀀스가 RSP다.
 
-형식적으로, 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V \times d}$($V$는 어휘 크기, $d$는 은닉 차원)로 두고 그 항별 평균과 표준편차를 $\mu_E := \frac{1}{Vd}\sum_{i,k}[\mathbf{W}_E]_{i,k}$, $\sigma_E := \mathrm{std}(\mathbf{W}_E)$라 쓴다. 길이 $L$의 RSP는 다음 분포에서 독립적으로 추첨한 연속 벡터의 시퀀스 $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L\times d}$이다.
+형식적으로, 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V \times d}$($V$는 어휘 크기, $d$는 은닉 차원)로 둔다. 그 항별 평균과 표준편차를 $\mu_E := \frac{1}{Vd}\sum_{i,k}[\mathbf{W}_E]_{i,k}$, $\sigma_E := \mathrm{std}(\mathbf{W}_E)$라 쓴다. 길이 $L$의 RSP는 다음 분포에서 독립적으로 추첨한 연속 벡터의 시퀀스 $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L\times d}$이다.
 \begin{equation}\label{eq:rsp_def}
 h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\; \sigma_E^2\,\mathbf{I}_d), \qquad j = 1,\dots,L.
 \end{equation}
 중심화한 $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0, \sigma_E^2\mathbf{I}_d)$은 평균이 0인 등방 가우시안이 된다. 원래 입력 임베딩 시퀀스 $\mathbf{X}$에 RSP를 결합하는 위치는 세 가지다. prefix $[\mathbf{H};\mathbf{X}]$, infix($\mathbf{H}$를 $\mathbf{X}$ 안쪽에 삽입), suffix $[\mathbf{X};\mathbf{H}]$ \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. 반복 샘플링 프로토콜에서는 비교되는 시도들의 prompt 추첨과 디코딩 무작위성을 모두 독립으로 가정한다.
 
-무작위성의 핵심은 같은 prompt가 rollout마다 \emph{독립}된 섭동을 만들도록 해 준다는 데 있다. 임베딩 분포를 모사하는 데 의미가 있는 게 아니라, 매 시도의 출발점을 서로 다르게 만드는 데 의미가 있다 — 탐색이 요구하는 것도 정확히 이 독립성이다.
+무작위성의 핵심은 같은 prompt가 rollout마다 \emph{독립}된 섭동을 만들도록 한다는 점이다. RSP는 임베딩 분포를 모사하지 않는다. 매 시도의 출발점을 서로 다르게 만드는 일에 의미가 있다. 탐색이 요구하는 것도 바로 이 독립성이다.
 
 % ================================================================
 \subsection{어텐션 분해와 자동 어닐링}\label{sec:mechanism}
 % ================================================================
 
-먼저 한 번의 RSP 주입이 hidden state를 어떻게 흔드는지부터 묻는다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, 그 영향이 수많은 머리·층을 거치며 흩어지지 않고 한 가지 양으로 모일 수 있다는 가능성이 자연스럽게 떠오른다.
+먼저 한 번의 RSP 주입이 hidden state를 어떻게 흔드는지부터 묻는다. RSP는 hidden state에 직접 더해지지 않는다. 어텐션 가중치를 통해서만 들어간다. 그래서 그 영향이 수많은 머리·층을 거치며 흩어지지 않고 한 가지 양으로 모일 가능성이 자연스럽게 떠오른다.
 
-어텐션 분해를 다시 정리해 보면, RSP의 모든 영향은 ``무작위 토큰에 배정된 어텐션 비중'' 한 스칼라로 \emph{정확히} 묶일 것이다. 그리고 디코딩이 진행될수록 KV 캐시에 실제 토큰이 더 쌓이므로, 그 비중은 별도 schedule 없이 \emph{자동으로} 약해질 것이다.
+어텐션 분해를 다시 정리해 보자. RSP의 모든 영향은 ``무작위 토큰에 배정된 어텐션 비중'' 한 스칼라로 \emph{정확히} 묶인다. 디코딩이 진행될수록 KV 캐시에 실제 토큰이 더 쌓인다. 그러면 그 비중은 별도 schedule 없이 \emph{자동으로} 약해진다.
 
-self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다고 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두면 어텐션 출력은 다음 형태로 정확히 정리된다.
+self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다고 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두자. 그러면 어텐션 출력은 다음 형태로 정확히 정리된다.
 \begin{equation}\label{eq:decomp}
 \mathbf{x}_i^{(\ell+1)}
 \;=\;
@@ -44,31 +44,31 @@ self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 
 \end{equation}
 
 \begin{proof}[Eq.~\eqref{eq:decomp}의 도출]
-어텐션 출력 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^{(\ell)}$를 실제 토큰 항과 RSP 토큰 항으로 가른 뒤, 실제 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}$를 묶어 내면 된다. softmax 정규화 항등식 외에는 어떤 근사도 쓰이지 않는다.
+어텐션 출력 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^{(\ell)}$를 실제 토큰 항과 RSP 토큰 항으로 가른다. 실제 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}$를 묶어 내면 된다. softmax 정규화 항등식 외에는 어떤 근사도 쓰지 않는다.
 \end{proof}
 
-이 한 양 $w_{r,i}^{(\ell)}$이 두 가지를 동시에 통제한다는 점에 주목하자. 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$이 모두 같은 스칼라에 매여 있다. RSP가 만드는 변동은 다차원 섭동이 아니라 0과 1 사이 한 값을 추적하는 문제로 환원된다. 다음 자연스러운 질문: 디코딩이 진행되면 이 값은 어떻게 변하는가? 자기회귀 생성에서 KV 캐시는 매 step 한 토큰씩 길어져 softmax 분모가 커지므로, 그 비중은 자연히 줄어든다. 이 직관이 부등식으로 나타난다.
+여기서 한 양 $w_{r,i}^{(\ell)}$이 두 가지를 동시에 통제한다. 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$이 모두 같은 스칼라에 매여 있다. RSP가 만드는 변동은 다차원 섭동이 아니다. 0과 1 사이 한 값을 추적하는 문제로 환원된다. 그러면 다음 질문이 자연스럽다. 디코딩이 진행되면 이 값은 어떻게 변하는가? 자기회귀 생성에서 KV 캐시는 매 step 한 토큰씩 길어진다. softmax 분모가 커지므로, 그 비중은 자연히 줄어든다. 이 직관이 부등식으로 나타난다.
 
 \begin{theorem}[캐시 성장에 의한 RSP 어텐션의 단조 희석]\label{thm:decay}
-사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서
+사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두자. scaled-dot-product 어텐션에서
 \[
 w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
 \]
-가 성립하며, 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다. 따라서 $n$이 커지면 $w_{r,i}^{(\ell)} \to 0$이다.
+가 성립한다. 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다. 따라서 $n$이 커지면 $w_{r,i}^{(\ell)} \to 0$이다.
 \end{theorem}
 
 \begin{proof}
-$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰면 $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이 모든 실제 토큰 $j$에서 성립한다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$이라 두면 $\exp(s_{r,\max})\ge R/L$이므로 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$이고, softmax 정규화에서 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$를 얻는다. 우변을 $n$에 대해 미분하면 음수이므로 엄격히 감소하고, 같은 식에서 $n\to\infty$일 때 0으로 간다.
+$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰자. $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이 성립한다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$이라 두면 $\exp(s_{r,\max})\ge R/L$이다. 따라서 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$이다. softmax 정규화에서 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$를 얻는다. 우변을 $n$에 대해 미분하면 음수이므로 엄격히 감소한다. 같은 식에서 $n\to\infty$일 때 0으로 간다.
 \end{proof}
 
-이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터로 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로, 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점뿐이다 — 즉 autoregressive position 방향의 attenuation이지 layer 깊이 방향의 monotonic decay는 아니다. 새 토큰이 생성될 때마다 query·key·hidden state가 갱신되어 $\Delta_i^{(\ell)}$도 시간에 따라 변하므로, ``실현된 attention mass의 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대값의 단조 envelope 감소''가 정확하다. 결과적으로 RSP 효과는 생성 \emph{초반}에 가장 크고 토큰 누적과 함께 envelope이 좁아져, 별도 schedule 없이 디코딩 자체가 explore-then-exploit 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 sequence-direction 예측을 실증한다.
+이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터다. 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키운다. 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 정리가 보장하는 범위는 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점뿐이다. 즉 autoregressive position 방향의 attenuation이지 layer 깊이 방향의 monotonic decay는 아니다. 새 토큰이 생성될 때마다 query·key·hidden state가 갱신되고 $\Delta_i^{(\ell)}$도 시간에 따라 변한다. 따라서 ``실현된 attention mass의 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대값의 단조 envelope 감소''가 정확하다. 결과적으로 RSP 효과는 생성 \emph{초반}에 가장 크다. 토큰 누적과 함께 envelope이 좁아진다. 그래서 별도 schedule 없이 디코딩 자체가 explore-then-exploit 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 sequence-direction 예측을 실증한다.
 
-이 결과는 ``RSP가 모델을 흔들면서도 망가뜨리지 않는 이유''를 attention-local 수준에서 설명한다. RSP가 주입하는 무작위 기여 항의 disturbance energy $V_{\eta,i}^{(\ell)} := \mathbb{E}\|\boldsymbol{\eta}_i^{(\ell)}\|^2$는 Appendix~\ref{app:rsp_noise}에서 $V_{\eta,i}^{(\ell)} \le M_v^{(\ell)}(w_{r,i}^{(\ell)})^2$로 상계되며, Theorem~\ref{thm:decay}와 결합하면 같은 layer·query·logit gap 아래에서 이 상계는 시퀀스 길이 방향으로 $O(1/n^2)$로 좁아진다. 즉 RSP는 attention-local 수준에서는 크기가 통제되는 \emph{transient disturbance}로 해석할 수 있다. 다만 우리는 전체 hidden-state trajectory $\|h_t^{\mathrm{RSP}} - h_t^{\mathrm{base}}\|$의 감소나 layer 방향 단조 안정성, 또는 transformer가 어떤 전역 함수를 최소화한다는 주장은 \emph{하지 않는다} — 본문 결과는 어디까지나 attention-local disturbance term의 상계다.
+이 결과는 ``RSP가 모델을 흔들면서도 망가뜨리지 않는 이유''를 attention-local 수준에서 설명한다. RSP가 주입하는 무작위 기여 항의 disturbance energy는 $V_{\eta,i}^{(\ell)} := \mathbb{E}\|\boldsymbol{\eta}_i^{(\ell)}\|^2$이다. Appendix~\ref{app:rsp_noise}에서 이 양은 $V_{\eta,i}^{(\ell)} \le M_v^{(\ell)}(w_{r,i}^{(\ell)})^2$로 상계된다. Theorem~\ref{thm:decay}와 결합하면, 같은 layer·query·logit gap 아래에서 이 상계는 시퀀스 길이 방향으로 $O(1/n^2)$로 좁아진다. 즉 RSP는 attention-local 수준에서 크기가 통제되는 \emph{transient disturbance}로 해석할 수 있다. 다만 우리는 전체 hidden-state trajectory $\|h_t^{\mathrm{RSP}} - h_t^{\mathrm{base}}\|$의 감소를 주장하지 않는다. layer 방향 단조 안정성도 주장하지 않는다. transformer가 어떤 전역 함수를 최소화한다는 주장 역시 하지 않는다. 본문 결과는 어디까지나 attention-local disturbance term의 상계다.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.72\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소하며, 이는 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상으로, 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 logit gap이 더 날카로워지는 경향을 시사하지만 Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass로, RSP 길이 $L$로 나눈 \emph{평균} 값이며 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
+  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소한다. 이 양상은 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상이다. 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 logit gap이 더 날카로워지는 경향을 시사하지만, Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass다. RSP 길이 $L$로 나눈 \emph{평균} 값이며, 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
   \label{fig:attention_mass}
 \end{figure}
 
@@ -76,43 +76,43 @@ $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top
 \subsection{등방 가우시안의 미니맥스 정당성}\label{sec:isotropy}
 % ================================================================
 
-\S\ref{sec:mechanism}은 RSP가 \emph{어떻게} 어텐션 출력에 들어가는지를 설명했지만, 분포 선택 자체는 아직 정당화하지 않았다. 학습된 고정 prompt나 어휘 토큰 무작위 추첨, 임베딩 공분산 정합 같은 자연스러운 대안이 모두 후보로 떠오를 수 있다.
+\S\ref{sec:mechanism}은 RSP가 \emph{어떻게} 어텐션 출력에 들어가는지를 설명했다. 분포 선택 자체는 아직 정당화하지 않았다. 학습된 고정 prompt, 어휘 토큰 무작위 추첨, 임베딩 공분산 정합 같은 자연스러운 대안도 후보로 떠오를 수 있다.
 
-문제마다 분기를 가르는 결정적 방향이 다르고 미리 알 수 없으므로, 한두 방향에 힘을 몰아주는 노이즈는 다른 방향을 덜 탐색하게 만든다. 가장 고르게 모든 방향을 탐색하려면, 분산 예산을 어느 방향에도 치우치지 않게 분배하는 분포가 필요하다.
+문제마다 분기를 가르는 결정적 방향이 다르고 미리 알 수도 없다. 그래서 한두 방향에 힘을 몰아주는 노이즈는 다른 방향을 덜 탐색하게 만든다. 모든 방향을 가장 고르게 탐색하려면 분산 예산을 어느 방향에도 치우치지 않게 분배하는 분포가 필요하다.
 
 이 요건을 미니맥스로 형식화하면 다음과 같다.
 
 \begin{theorem}[방향 무관 미니맥스 커버리지]\label{thm:minimax_directional_coverage}
-$\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면
+$\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족한다고 하자. 그러면
 \[
 \min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) \;=\; \lambda_{\min}(\Sigma_D) \;\le\; \rho^2/d
 \]
-이 성립하고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
+이 성립한다. 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{theorem}
 
 \begin{proof}
-$\mathrm{Var}_{h\sim D}(b^\top h) = b^\top \Sigma_D b$이고 임의 대칭 공분산에서 $\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D)$이다. $\Sigma_D$의 고윳값을 $\lambda_1\le\dots\le\lambda_d$로 두면 $d\lambda_1 \le \sum_m \lambda_m = \mathrm{tr}(\Sigma_D)\le\rho^2$이므로 $\lambda_{\min}=\lambda_1\le\rho^2/d$. 등호는 모든 고윳값이 같을 때, 즉 $\Sigma_D=(\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
+$\mathrm{Var}_{h\sim D}(b^\top h) = b^\top \Sigma_D b$이다. 임의 대칭 공분산에서 $\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D)$이 성립한다. $\Sigma_D$의 고윳값을 $\lambda_1\le\dots\le\lambda_d$로 두자. 그러면 $d\lambda_1 \le \sum_m \lambda_m = \mathrm{tr}(\Sigma_D)\le\rho^2$이므로 $\lambda_{\min}=\lambda_1\le\rho^2/d$. 등호는 모든 고윳값이 같을 때, 즉 $\Sigma_D=(\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{proof}
 
-같은 분산 예산 아래에서 ``가장 덜 탐색되는 방향''을 가장 크게 만드는 분포는 등방 가우시안이 유일하다. 다른 후보들은 이 기준에서 차례로 탈락한다. 학습된 고정 prompt는 분산 자체가 0이라 어떤 방향도 탐색하지 못하고, PCA 정렬 노이즈는 방향이 치우쳐 직교 보완 공간을 덜 탐색한다. 어휘 토큰 추첨은 방향 편향에 더해 사전학습이 새겨 둔 의미 prior까지 끌어들인다. ``경험적 임베딩 공분산 그대로 사용''조차도 등방이 아닌 한 적어도 한 방향에서 더 적게 탐색한다. 결국 RSP는 \emph{스케일은 임베딩에서 빌려 오되 방향 기하는 의도적으로 버리는} 설계가 된다. 등방 가우시안은 $\mathbb{R}^d$ 전역에서 양의 밀도를 가지므로(full support) 어떤 방향에 대해서도 사전 가중치를 두지 않는다는 의미적 중립성도 자동으로 따라온다(자세한 형식 statement는 Lemma~\ref{lem:semantic_neutrality}).
+같은 분산 예산 아래에서 ``가장 덜 탐색되는 방향''을 가장 크게 만드는 분포는 등방 가우시안이 유일하다. 다른 후보들은 이 기준에서 차례로 탈락한다. 학습된 고정 prompt는 분산 자체가 0이라 어떤 방향도 탐색하지 못한다. PCA 정렬 노이즈는 방향이 치우쳐 직교 보완 공간을 덜 탐색한다. 어휘 토큰 추첨은 방향 편향에 더해 사전학습이 새겨 둔 의미 prior까지 끌어들인다. ``경험적 임베딩 공분산 그대로 사용''조차도 등방이 아닌 한 적어도 한 방향에서 더 적게 탐색한다. 결국 RSP는 \emph{스케일은 임베딩에서 빌려 오되 방향 기하는 의도적으로 버리는} 설계가 된다. 등방 가우시안은 $\mathbb{R}^d$ 전역에서 양의 밀도를 가진다(full support). 그래서 어떤 방향에 대해서도 사전 가중치를 두지 않는다는 의미적 중립성이 자동으로 따라온다(자세한 형식 statement는 Lemma~\ref{lem:semantic_neutrality}).
 
 % ================================================================
 \subsection{출력 지지 집합 확장과 Pass@$N$ 누적}\label{sec:multipath}
 % ================================================================
 
-두 결과를 결합하면 한 번의 RSP가 출력 분포에 무엇을 \emph{할 수 있는지}가 정해진다 — \emph{무엇을 할 수밖에 없는지}는 아니다. 어텐션 단의 비영(非零) 영향(\S\ref{sec:mechanism})과 모든 방향에 양의 확률(\S\ref{sec:isotropy})이 만나면, baseline에서 거의 보이지 않던 토큰이 어떤 prompt 추첨에서는 답 후보권 안으로 들어올 수 있다 — 단, 그런 영역이 surrogate 위에 \emph{존재한다는 가정} 아래에서. 메커니즘은 영역에 양의 확률을 부여할 뿐, 영역 자체의 존재를 자동 보장하지는 않는다.
+두 결과를 결합하면 한 번의 RSP가 출력 분포에 무엇을 \emph{할 수 있는지}가 정해진다. 다만 \emph{무엇을 할 수밖에 없는지}는 아니다. 어텐션 단의 비영(非零) 영향(\S\ref{sec:mechanism})과 모든 방향에 양의 확률(\S\ref{sec:isotropy})이 만난다고 하자. 그러면 baseline에서 거의 보이지 않던 토큰이 어떤 prompt 추첨에서는 답 후보권 안으로 들어올 수 있다. 단, 그런 영역이 surrogate 위에 \emph{존재한다는 가정} 아래에서다. 메커니즘은 영역에 양의 확률을 부여할 뿐, 영역 자체의 존재를 자동으로 보장하지는 않는다.
 
-단발 진입 확률이 작더라도 \emph{독립} 재추첨이 그것을 빠르게 누적시킨다. $N$번의 새로운 RSP 가운데 적어도 한 번 진입할 확률은 1에 지수 속도로 다가가야 한다. Temperature sampling은 logit의 단조 변환이라 토큰 순위를 절대 바꾸지 못하므로, 이 영역에는 도달할 수 없다.
+단발 진입 확률이 작더라도 \emph{독립} 재추첨이 그 확률을 빠르게 누적시킨다. $N$번의 새로운 RSP 가운데 적어도 한 번 진입할 확률은 1에 지수 속도로 다가간다. 한편 temperature sampling은 logit의 단조 변환이라 토큰 순위를 절대 바꾸지 못한다. 그래서 이 영역에는 도달할 수 없다.
 
-중심화된 prompt $\bar h$ 근방에서 logit을 1차로 근사한 surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h}z_i(0)$를 둔다. baseline 외 토큰 $i$의 top-$K$ 진입 영역을 \emph{$i$보다 높은 surrogate logit을 갖는 토큰이 $K-1$개 이하}인 prompt들의 집합
+중심화된 prompt $\bar h$ 근방에서 logit을 1차로 근사한 surrogate를 $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h}z_i(0)$로 둔다. baseline 외 토큰 $i$의 top-$K$ 진입 영역은 \emph{$i$보다 높은 surrogate logit을 갖는 토큰이 $K-1$개 이하}인 prompt들의 집합
 \[
 \mathcal{G}_{i,K} \;:=\; \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
 \]
-으로 정의한다 (이는 실제 top-$K$ 정의와 정확히 맞는다). 어떤 $\bar h_0$에서 $i$가 다른 후보를 엄격한 마진으로 충분히 앞서면 $\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하고, 등방 가우시안의 full support가 그 영역에 양의 확률을 부여한다. 따라서 \emph{$\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하는 토큰 $i$에 대해} 단발 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이며, 이게 Proposition~\ref{prop:support_expansion}의 \emph{조건부} claim이다(정식 statement와 증명: Appendix~\ref{app:proofs}).
+으로 정의한다 (이 정의는 실제 top-$K$ 정의와 정확히 맞는다). 어떤 $\bar h_0$에서 $i$가 다른 후보를 엄격한 마진으로 충분히 앞선다고 하자. 그러면 $\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함한다. 등방 가우시안의 full support가 그 영역에 양의 확률을 부여한다. 따라서 \emph{$\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하는 토큰 $i$에 대해} 단발 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이 성립한다. 이 명제가 Proposition~\ref{prop:support_expansion}의 \emph{조건부} claim이다(정식 statement와 증명: Appendix~\ref{app:proofs}).
 
-이 단발 확률을 task accuracy로 끌어올리려면 task-side 가정이 하나 필요하다. (M1) 단발 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이 양수이고, (M2) $N$번의 실행이 상호 독립이다. 두 가정 아래 Proposition~\ref{prop:multi_path}은 다음 부등식을 준다.
+이 단발 확률을 task accuracy로 끌어올리려면 task-side 가정이 하나 필요하다. (M1) 단발 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이 양수다. (M2) $N$번의 실행은 상호 독립이다. 두 가정 아래 Proposition~\ref{prop:multi_path}은 다음 부등식을 준다.
 \[
 \Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-e^{-N\,p_{\min}(x)}.
 \]
 
-메커니즘이 보장하는 건 \emph{branch가 열린다}는 것까지다 ($\mu_i > 0$). 열린 branch가 \emph{생산적}이라는 점($p_{\min}(x)>0$)은 task의 성질이고, mechanism만으로는 도출되지 않는다. (M1)이 성립하기만 하면 $N$이 커질수록 정답 trajectory에 도달할 확률이 1로 지수 속도로 다가간다. 같은 RSP를 모든 sample이 공유하면 이 누적이 사라지는데, 이는 \emph{독립}이 핵심임을 메커니즘 차원에서 다시 한번 확인해 준다. (M1)의 경험적 흔적, 곧 RSP가 만든 새 의미 클러스터에 정답 trajectory가 포함된다는 사실은 \S\ref{sec:experimental_analysis}에서 직접 확인된다.
+메커니즘이 보장하는 범위는 \emph{branch가 열린다}는 데까지다 ($\mu_i > 0$). 열린 branch가 \emph{생산적}이라는 점($p_{\min}(x)>0$)은 task의 성질이지, mechanism만으로 도출되는 결과가 아니다. (M1)이 성립하기만 하면 $N$이 커질수록 정답 trajectory에 도달할 확률이 1로 지수 속도로 다가간다. 같은 RSP를 모든 sample이 공유하면 이 누적이 사라진다. 이 사실은 \emph{독립}이 핵심임을 메커니즘 차원에서 다시 한번 확인해 준다. (M1)의 경험적 흔적, 곧 RSP가 만든 새 의미 클러스터에 정답 trajectory가 포함된다는 사실은 \S\ref{sec:experimental_analysis}에서 직접 확인한다.
