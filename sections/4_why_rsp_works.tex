@@ -62,7 +62,15 @@ the right-hand side is strictly decreasing in $n$ at fixed $L$ and $\Delta_i^{(\
 \end{theorem}
 
 \begin{proof}
-Write $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, and $s_{r,\max} := \max_{j'} s_{r_{j'}}$. The gap definition gives $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$ for every real token $j$. Let $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$; since $\exp(s_{r,\max}) \ge R/L$, summing over the $n$ real keys yields $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$. Substituting into the softmax-normalized RSP mass, $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$. Differentiating the right-hand side with respect to $n$ gives a strictly negative value, so the bound is strictly decreasing, and it tends to $0$ as $n\to\infty$.
+Let $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, and $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$. The gap definition gives $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$ for every real $j$, and $\exp(s_{r,\max}) \ge R/L$ holds because the max dominates the average; combining the two and summing over the $n$ real keys yields $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R$. Substituting into $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R)$ gives
+\[
+w_{r,i}^{(\ell)}
+\;\le\;
+\frac{R}{(n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R + R}
+\;=\;
+\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
+\]
+The derivative of the right-hand side in $n$ is $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$, so the bound is strictly decreasing and tends to $0$ as $n\to\infty$.
 \end{proof}
 
 This single inequality carries two messages. The RSP length $L$ is the design parameter we choose; it sits in the numerator and sets the \emph{maximum} influence of the perturbation. The real-token count $n$ grows automatically every step and sits in the denominator, so the \emph{envelope} of the influence shrinks under the same $L$. What the theorem guarantees is the sequence-direction attenuation of the upper envelope at fixed (layer, query position, logit gap), not a layer-direction monotone decay; queries, keys, and hidden states co-evolve, so $\Delta_i^{(\ell)}$ also moves and the realized $w_{r,i}^{(\ell)}$ need not decrease at every step. The accurate reading is that ``the envelope compatible with a fixed gap shrinks as $n$ grows.'' Because Eq.~\eqref{eq:decomp} bounds the random contribution by the same scalar, the perturbation magnitude inherits the envelope. Decoding itself produces an explore-then-exploit annealing without any explicit schedule. Figure~\ref{fig:attention_mass} verifies the sequence-direction prediction empirically.

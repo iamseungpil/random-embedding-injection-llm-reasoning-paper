@@ -61,7 +61,15 @@ w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
 \end{theorem}
 
 \begin{proof}
-$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰면 $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이 모든 실제 토큰 $j$에서 성립한다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$이라 두면 $\exp(s_{r,\max})\ge R/L$이므로 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$이고, softmax 정규화에서 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$를 얻는다. 우변을 $n$에 대해 미분하면 음수이므로 엄격히 감소하고, 같은 식에서 $n\to\infty$일 때 0으로 간다.
+$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$로 두자. gap 정의에서 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이고, max는 average보다 크므로 $\exp(s_{r,\max}) \ge R/L$이다. 두 사실을 결합해 $n$개 실제 키를 합하면 $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R$이다. 이를 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R)$에 대입하면
+\[
+w_{r,i}^{(\ell)}
+\;\le\;
+\frac{R}{(n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R + R}
+\;=\;
+\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
+\]
+가 따른다. 우변의 미분은 $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
 \end{proof}
 
 이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터로 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로, 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점뿐이다 — 즉 autoregressive position 방향의 attenuation이지 layer 깊이 방향의 monotonic decay는 아니다. 새 토큰이 생성될 때마다 query·key·hidden state가 갱신되어 $\Delta_i^{(\ell)}$도 시간에 따라 변하므로, ``실현된 attention mass의 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대값의 단조 envelope 감소''가 정확하다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶어 두므로 perturbation 크기도 같은 envelope의 제약을 받는다. 결과적으로 RSP 효과는 생성 \emph{초반}에 가장 크고 토큰 누적과 함께 envelope이 좁아져, 별도 schedule 없이 디코딩 자체가 explore-then-exploit 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 sequence-direction 예측을 실증한다.
