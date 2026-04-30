@@ -524,6 +524,8 @@ w_{r,i}^{(\ell)}
 =
 \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
 \]
+The right-hand side $f(n) := L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$ is strictly decreasing in $n$ at fixed $L$ and $\Delta_i^{(\ell)}$, since
+$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$, and $f(n)\to 0$ as $n\to\infty$. \qed
 
 \paragraph{Proof of Proposition~\ref{prop:lower_env} (lower envelope).}
 The argument is symmetric. Let $s_{r,\min}^{(\ell)} := \min_{j'} s_{r_{j'}}^{(\ell)}$. The reverse-gap definition gives, for every $j\in[n]$,
