@@ -2,31 +2,31 @@
 % Chapter 4. Why RSP Works
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{이론적 분석: 어텐션 매개 탐색으로서의 RSP}\label{sec:why_rsp_works}
+\section{RSP는 왜 작동하는가? 어텐션 수준 분석}\label{sec:why_rsp_works}
 
-§\ref{sec:experimental_analysis}의 세 관찰---초반 엔트로피 상승, 후반 안정화, Pass@$N$ 향상---은 트랜스포머 구조 자체에서 비롯되는 단일 메커니즘으로 설명된다. 본 절은 이를 \emph{무작위 토큰 어텐션 질량}이라는 어텐션 수준의 단일 스칼라양 위에서 통합한다. 핵심 통찰은 RSP의 \emph{무작위성} 자체가 탐색의 필수 조건이라는 점이며, 등방 가우시안 \emph{재추첨}만이 고정 프롬프트(독립 대안 부재), 어휘 토큰(의미 prior), 비등방 분포(방향 미달)의 세 실패 모드를 동시에 피한다.
+결론부터 말한다. \emph{RSP의 효과는 어텐션 수준의 단일 스칼라---무작위 토큰 어텐션 질량 $w_{r,i}^{(\ell)}$---로 \emph{정확히} 통제되며, 자기회귀 캐시 성장에 의해 구조적으로 희석되고, 등방 재추첨이 baseline에서 제외된 토큰을 유효 top-$K$ 후보로 \emph{독립적으로} 진입시킨다.} 이 결론은 다음 네 단계의 증명 사슬로 따라온다. (i) 등방 가우시안이 분산 예산 한 단위당 미니맥스 의미에서 모든 방향을 균등 탐색함을 보이고(§\ref{sec:rsp_design}), (ii) 어텐션 출력에서 RSP 기여가 $w_{r,i}^{(\ell)}$로 정확히 분리됨을 항등식으로 도출하고(§\ref{sec:mechanism}), (iii) $w_{r,i}^{(\ell)}$의 상계가 캐시 성장에 따라 단조롭게 좁혀짐을 증명하고(§\ref{sec:dilution}), (iv) 단발 진입 확률이 작더라도 \emph{독립} 재추첨이 그것을 Pass@$N$의 지수적 누적으로 전환함을 보인다(§\ref{sec:multipath}).
 
 % ================================================================
-\subsection{RSP는 왜 등방 가우시안 재추첨인가}\label{sec:rsp_design}
+\subsection{등방 가우시안의 미니맥스 정당성}\label{sec:rsp_design}
 % ================================================================
 
-§\ref{sec:rsp_definition}의 정의를 따른다. 길이 $L$의 RSP $\mathbf{H}=[h_1,\dots,h_L]$은 $h_j \sim \mathcal{N}(\mu_E,\sigma_E^2\mathbf{I}_d)$이며, 중심화된 형태 $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$는 평균 0의 등방 가우시안이다. 이 설계의 세 성질---연속, 중심화, 등방---은 각각 다른 실패 모드를 막는다.
-
-먼저 \emph{무작위성}이 없으면 탐색이 불가능하다. 학습된 고정 프롬프트는 rollout마다 같은 섭동 방향만 더해 독립적 대안을 만들지 못하므로 Pass@$N$의 누적 이득을 봉쇄한다. 어휘 토큰 추첨은 다른 방식으로 실패한다. 각 토큰 임베딩은 사전학습이 새겨 둔 의미·어휘 방향을 떠안고 있어 통제되지 않은 의미 편향을 주입한다. 등방 무작위 방향은 임의의 유한 의미 anchor 집합과 높은 확률로 거의 직교한다(Lemma~\ref{lem:semantic_neutrality}, Appendix~\ref{app:proofs}).
-
-다음으로 \emph{등방성} 자체가 분산 예산 한 단위당 탐색 방향을 미니맥스 의미에서 최대화한다.
+§\ref{sec:rsp_definition}의 정의에서 중심화된 RSP는 $\bar h_j \sim \mathcal{N}(0, \sigma_E^2 \mathbf{I}_d)$이다. 분기를 가르는 결정적 방향은 prompt·layer·position·비교 토큰 쌍에 따라 매번 달라지므로, 일반적인 탐색 섭동은 사전에 소수의 임베딩 방향에 자신을 묶어 두면 안 된다. 이 직관을 형식화한 것이 다음 미니맥스 결과다.
 
 \begin{theorem}[방향 무관 미니맥스 커버리지]\label{thm:minimax_directional_coverage}
-$\mathbb{R}^d$ 위 평균 0 분포 $D$가 $\mathrm{tr}(\Sigma_D)\le\rho^2$이면 $\lambda_{\min}(\Sigma_D)\le\rho^2/d$이며, 등호는 $\Sigma_D=(\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
+$\mathbb{R}^d$ 위 평균 0 분포 $D$가 $\mathrm{tr}(\Sigma_D)\le\rho^2$이면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D)\le\rho^2/d$이며, 등호는 $\Sigma_D=(\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{theorem}
 
-\noindent 따라서 ``경험적 임베딩 공분산 $\Sigma_E$를 그대로 사용하기''와 같은 일견 자연스러운 대안조차, $\Sigma_E$가 비등방인 한 적어도 한 방향이 덜 탐색되어 등방 비교군보다 strictly suboptimal이다. RSP는 결국 \emph{스케일은 임베딩에서 빌리되 방향 기하는 의도적으로 버린다}.
+\begin{proof}
+$\mathrm{Var}_{h\sim D}(b^\top h) = b^\top \Sigma_D b$이고 임의 대칭 공분산에 대해 $\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D)$이다. $\Sigma_D$의 고윳값을 $\lambda_1\le\dots\le\lambda_d$라 하면 $d\lambda_1 \le \sum_m \lambda_m = \mathrm{tr}(\Sigma_D) \le \rho^2$이므로 $\lambda_{\min}=\lambda_1\le\rho^2/d$. 등호는 모든 고윳값이 같을 때, 즉 $\Sigma_D=(\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
+\end{proof}
+
+\noindent 이 결과는 등방 분포가 분산 예산을 \emph{최소 탐색 방향}을 최대화하도록 분배함을 뜻한다. 따라서 ``경험적 임베딩 공분산 $\Sigma_E$를 그대로 사용하기''라는 일견 자연스러운 대안조차, $\Sigma_E$가 비등방인 한 적어도 한 방향이 덜 탐색되어 strictly suboptimal이다. RSP는 \emph{스케일은 임베딩에서 빌리되 방향 기하는 의도적으로 버린다}.
 
 % ================================================================
-\subsection{정확한 어텐션 수준 메커니즘}\label{sec:mechanism}
+\subsection{어텐션 출력의 정확한 분해}\label{sec:mechanism}
 % ================================================================
 
-self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다고 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제·RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$라 하고, 무작위 토큰에 배정된 총 어텐션을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 정의한다. softmax 정규화 항등식 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}=1$ 아래에서 어텐션 출력은 \emph{정확히}
+self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제·RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$라 한다. 무작위 토큰에 배정된 총 어텐션을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 정의하면, softmax 정규화 항등식 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}=1$ 아래에서 어텐션 출력은 \emph{정확히}
 \begin{equation}\label{eq:decomp}
 \mathbf{x}_i^{(\ell+1)}
 \;=\;
@@ -38,9 +38,37 @@ self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 
 \quad
 \boldsymbol{\eta}_i^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)},
 \end{equation}
-로 분해된다. 도출은 직접적이다. 어텐션 출력 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^{(\ell)}$를 실제·RSP 두 항으로 가른 뒤 실제 항에서 정규화 인자 $1-w_{r,i}^{(\ell)}=\sum_{j=1}^n\alpha_{ij}^{(\ell)}$를 묶어 내면 위 식이 그대로 나온다. 근사가 아닌 항등식이며, $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j\|\mathbf{v}_{r_j}^{(\ell)}\|$이므로 \emph{같은 스칼라} $w_{r,i}^{(\ell)}$가 실제 신호의 감쇠와 무작위 기여의 진폭을 동시에 통제한다.
+로 분해된다. 이는 근사가 아닌 항등식이다.
 
-이 양은 자기회귀 디코딩에서 구조적으로 희석된다. 사전 스케일 logit gap $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ 아래에서 scaled-dot-product 어텐션은 $w_{r,i}^{(\ell)} \le L/(L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d))$를 만족하고, 우변은 $n$에 대해 엄격히 감소한다. 즉 캐시가 실제 토큰을 누적하는 그 자체로 RSP 영향력 상계가 단조롭게 좁혀지며, 이는 §\ref{sec:entropy}의 후반 안정화의 메커니즘적 근원이다. Figure~\ref{fig:attention_mass}가 Qwen2.5-Math-7B에서 두 축 모두를 따라 감소하는 실제 $w_{r,i}^{(\ell)}$를 보고한다.
+\begin{proof}[Eq.~\eqref{eq:decomp}의 도출]
+어텐션 출력 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^{(\ell)}$를 실제·RSP 두 항으로 가른 뒤 실제 항에서 정규화 인자 $1-w_{r,i}^{(\ell)}=\sum_{j=1}^n\alpha_{ij}^{(\ell)}$를 묶어 내면 위 식이 그대로 나온다.
+\end{proof}
+
+$\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j\|\mathbf{v}_{r_j}^{(\ell)}\|$이므로 \emph{같은 스칼라} $w_{r,i}^{(\ell)}$가 실제 신호의 감쇠와 무작위 기여의 진폭을 동시에 통제한다.
+
+% ================================================================
+\subsection{캐시 성장에 의한 단조 희석}\label{sec:dilution}
+% ================================================================
+
+§\ref{sec:mechanism}에서 어텐션 출력의 모든 변동이 단일 스칼라 $w_{r,i}^{(\ell)}$로 통제됨을 보였다. 자기회귀 디코딩에서 실제 토큰 $n$이 누적되면 이 스칼라의 \emph{상계}가 다음과 같이 단조 감소한다.
+
+\begin{theorem}[캐시 성장에 의한 어텐션 감쇠]\label{thm:decay}
+사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션은
+\[
+w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
+\]
+를 만족하고, 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다.
+\end{theorem}
+
+\begin{proof}
+$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰면 $\Delta_i^{(\ell)}/\sqrt d$의 정의에 의해 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$로 두면 $\exp(s_{r,\max})\ge R/L$이므로 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$. softmax 정규화에서
+\[
+w_{r,i}^{(\ell)} = \frac{R}{\sum_j \exp(s_j) + R} \le \frac{R}{n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L + R} = \frac{L}{L + n\exp(\Delta_i^{(\ell)}/\sqrt d)}.
+\]
+우변을 $n$에 대해 미분하면 음수이므로 엄격 감소.
+\end{proof}
+
+\noindent 즉 캐시가 실제 토큰을 누적하는 그 자체로 RSP 영향력의 상계가 좁혀진다. 이는 §\ref{sec:entropy}의 후반 안정화에 대한 메커니즘적 근거를 제공한다. Figure~\ref{fig:attention_mass}는 Qwen2.5-Math-7B에서 실제 $w_{r,i}^{(\ell)}$가 레이어 깊이와 토큰 위치 두 축 모두에서 감소함을 보인다.
 
 \begin{figure}[ht]
   \centering
@@ -50,9 +78,11 @@ self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 
 \end{figure}
 
 % ================================================================
-\subsection{독립 재추첨에서 Pass@$N$으로}\label{sec:multipath}
+\subsection{출력 지지 집합 확장과 독립 재추첨}\label{sec:multipath}
 % ================================================================
 
-Temperature는 $p_i^{(\tau)}\propto p_i^{1/\tau}$로 순위를 보존하므로 어떤 $\tau$에서도 baseline top-$K$ 밖 토큰을 안으로 들여보내지 못한다. RSP는 출력 softmax 이전에 작동해 순위를 바꿀 수 \emph{있다}. 국소 affine surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$ 위에서 baseline 외 토큰 $i$가 다른 후보를 엄격한 마진으로 $K-1$개 이상 앞서는 $\bar h_0$가 존재하면, 연속성과 등방 가우시안의 full support로부터 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K}) > 0$이 따라온다(Proposition~\ref{prop:support_expansion}). 이는 모든 $\tau$에서 0인 temperature와 본질적으로 다르다.
+앞의 세 단계는 RSP 영향력이 \emph{어떻게} 통제·희석되는지를 설명했다. 마지막으로 그 영향이 단순한 분포 평탄화가 아니라 baseline 외 토큰을 \emph{후보 집합 안}으로 들여보내며, 그 단발 효과가 \emph{독립} 재추첨에서 Pass@$N$의 지수적 누적으로 전환됨을 보인다.
 
-\emph{독립} 재추첨은 이 단발 확률을 지수적으로 포화시킨다. $N$번 중 적어도 한 번 진입할 확률은 $1-(1-\mu_i)^N \ge 1-e^{-N\mu_i}$이며, 정답 궤적이 비어 있지 않은 문제 $x$에 대해 RSP 한 번이 정답을 만들 주변 확률 $p_{\min}(x)>0$ 및 실행 독립성 (M1, M2) 아래 $\Pr(\mathrm{Pass@}(N{+}1)\text{ on }x) \ge 1-e^{-Np_{\min}(x)}$의 하한이 성립한다(Proposition~\ref{prop:multi_path}). (M1)은 과제 측 가정으로 §\ref{sec:diversity}의 의미 클러스터·Pass@$N$ 누적이 그 경험적 흔적이다.
+Temperature는 $p_i^{(\tau)}\propto p_i^{1/\tau}$로 순위를 보존하므로 어떤 $\tau$에서도 baseline top-$K$ 밖 토큰을 안으로 들여보내지 못한다. 반면 RSP는 출력 softmax 이전에 작동하여 순위를 바꿀 수 \emph{있다}. 국소 affine surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h} z_i(0)$ 위에서 baseline 외 토큰 $i$가 다른 후보를 엄격한 마진으로 $K-1$개 이상 앞서는 $\bar h_0$가 존재하면, 연속성에 의해 $\bar h_0$ 주변의 비공집합 열린집합 $\mathcal{G}_{i,K}$가 $i$를 top-$K$로 진입시키며, 등방 가우시안이 그 위에 양의 확률을 부여하므로 단발 진입 확률 $\mu_i := \Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K}) > 0$이 따라온다(Proposition~\ref{prop:support_expansion}).
+
+\emph{독립} 재추첨은 이 단발 확률을 지수적으로 포화시킨다. $N$번 중 적어도 한 번 진입할 확률은 $1-(1-\mu_i)^N \ge 1-e^{-N\mu_i}$이며, 정답 궤적이 비어 있지 않은 문제 $x$에 대해 RSP 한 번이 정답을 만들 주변 확률 $p_{\min}(x)>0$ 및 실행 독립성 (M1, M2) 아래 $\Pr(\mathrm{Pass@}(N{+}1)\text{ on }x) \ge 1-e^{-Np_{\min}(x)}$의 하한이 성립한다(Proposition~\ref{prop:multi_path}). (M1)은 과제 측 가정이며, §\ref{sec:diversity}의 의미 클러스터·Pass@$N$ 누적이 그 경험적 흔적이다. 이로써 도입에서 제시한 결론---RSP는 단일 스칼라로 통제되고, 캐시에 의해 희석되며, 독립 재추첨을 통해 baseline 외 토큰을 유효 top-$K$로 누적적으로 진입시킨다---의 증명 사슬이 완결된다.

@@ -450,27 +450,13 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \paragraph{함의.}
 따라서 이 섭동은 $w_{r,i}^{(\ell)}$에 의해 크기가 제어되는 거의 zero-mean noise처럼 동작하며, 본문에서 제시한 Langevin 유사 해석을 정당화한다.
 
-% [본문 문단 6에 대한 증명]
-% attention decay bound: softmax 정규화에서 real key의 exponential sum을 lower bound하여 유도
-\subsection{Attention 감쇠 경계}
+\subsection{Theorem~\ref{thm:decay} (Attention 감쇠)의 따름정리들}
 
-\begin{theorem}[Attention 감쇠]\label{thm:decay_proof}
-본문 §\ref{sec:mechanism}의 logit gap $\Delta_i^{(\ell)}$ 아래에서, 무작위 토큰에 할당되는 총 attention은
-\begin{equation}
-w_{r,i}^{(\ell)} \leq \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})}
-\end{equation}
-를 만족한다.
-\end{theorem}
-\begin{proof}
-실제 key에 대해 $s_j = \mathbf{q}_i^\top \mathbf{k}_j / \sqrt{d}$, 무작위 key에 대해 $s_{r_{j'}} = \mathbf{q}_i^\top \mathbf{k}_{r_{j'}} / \sqrt{d}$라 하자. $\Delta_i^{(\ell)}$의 정의에 따라 각 실제 key는 $s_j \geq \Delta_i^{(\ell)}/\sqrt{d} + s_{r,\max}$를 만족하며, 여기서 $s_{r,\max} = \max_{j'} s_{r_{j'}}$이다. 따라서 모든 실제 key에 대해 $\exp(s_j) \geq \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \exp(s_{r,\max})$가 성립한다. 이를 $n$개의 실제 key에 대해 합하면
-\begin{equation}
-\sum_{j=1}^{n} \exp(s_j) \geq n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \exp(s_{r,\max}) \geq n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot \frac{1}{L}\sum_{j'=1}^{L} \exp(s_{r_{j'}}).
-\end{equation}
-무작위 토큰에 대한 총 attention은 $w_{r,i}^{(\ell)} = \sum_{j'} \exp(s_{r_{j'}}) / (\sum_j \exp(s_j) + \sum_{j'} \exp(s_{r_{j'}}))$이므로, 실제 key 합에 대한 하한을 대입하고 $R = \sum_{j'} \exp(s_{r_{j'}})$로 두면
-\begin{equation}
-w_{r,i}^{(\ell)} = \frac{R}{\sum_j \exp(s_j) + R} \leq \frac{R}{n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d}) \cdot R/L + R} = \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)}/\sqrt{d})}.
-\end{equation}
-\end{proof}
+본문 §\ref{sec:dilution}의 Theorem~\ref{thm:decay}이 제공하는 상계
+\[
+w_{r,i}^{(\ell)} \le \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})}
+\]
+는 두 가지 따름정리를 갖는다. 본문 증명을 그대로 받아 다음을 보인다.
 
 \begin{corollary}[고정된 logit gap 아래의 시퀀스 방향 annealing]\label{cor:sequence_annealing}
 $L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계
