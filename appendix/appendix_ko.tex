@@ -309,13 +309,13 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 \clearpage
 \section{무작위 프롬프트는 왜 의미적으로 중립적이고 방향적으로 포괄적인가}\label{app:why_random}
 
-이 부록은 Section~\ref{sec:why_random_prompt}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
+이 부록은 Section~\ref{sec:rsp_design}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
 
 \subsection{의미적 중립성}
 
 $\bar{h} \sim \mathcal{N}(0, \sigma^2 \mathbf{I}_d)$라 하고, $\bar{h}\neq 0$일 때 $\hat{h} := \bar{h}/\|\bar{h}\|$라 하자. 또한 $u_1,\dots,u_M \in \mathbb{S}^{d-1}$를 의미 anchor 방향을 나타내는 임의의 고정 단위벡터라 하자.
 
-\begin{lemma}[의미적 중립성]\label{lem:semantic_neutrality_proof}
+\begin{lemma}[의미적 중립성]\label{lem:semantic_neutrality_proof}\label{lem:semantic_neutrality}
 보편 상수 $C$가 존재하여, 모든 $\delta \in (0,1)$에 대해
 \[
 \Pr\!\left[
@@ -415,46 +415,10 @@ C \sqrt{\frac{\log(M/\delta)}{d}}
 이 정리는 등방성 무작위성이 갖는 장점을 형식화한다. RSP는 주어진 프롬프트에서 어떤 logit-sensitive 방향 $b_{ij}$를 섭동해야 하는지 사전에 알지 못한다. 고정된 분산 예산 아래에서, 등방성 분포는 가능한 모든 방향에 대한 최악 경우 섭동량을 최대화하는 유일한 선택이다. 고정된 토큰 프롬프트는 결정적 섭동에 해당하므로 $\Sigma_D = 0$이고, 따라서 $\mathcal{E}(D)=0$이다. 더 일반적으로, 비등방성 섭동은 언제나 $\lambda_{\min}(\Sigma_D) < \rho^2/d$를 만족하므로 적어도 한 방향에서는 등방성 최적해보다 덜 탐색하게 된다.
 
 \clearpage
-\section{에너지 이론 분석에 대한 증명}\label{app:proofs}
-
-% [본문 문단 2, 3에 대한 증명]
-% Hopfield energy의 smoothness로부터 매 layer에서 energy가 단조 감소함을 보이고,
-% 이를 통해 perturbation 없는 forward pass가 local minimum에 갇힘을 증명
-\subsection{결정적 포획}
-
-\begin{lemma}[하강 보조정리]\label{lem:descent}
-만약 $E$가 $L_E$-smooth이고 $\eta \leq 1/L_E$라면, $E(\boldsymbol{\sigma}^{\mathrm{new}}) \leq E(\boldsymbol{\sigma}) - \frac{\eta}{2}\|\nabla E(\boldsymbol{\sigma})\|^2$가 성립한다.
-\end{lemma}
-\begin{proof}
-$L_E$-smoothness에 의해 $E(\boldsymbol{\sigma} - \eta \nabla E) \leq E(\boldsymbol{\sigma}) - \eta \|\nabla E\|^2 + \frac{L_E \eta^2}{2}\|\nabla E\|^2 = E(\boldsymbol{\sigma}) - \eta(1 - \frac{L_E \eta}{2})\|\nabla E\|^2$이다. $\eta \leq 1/L_E$이므로 $L_E \eta / 2 \leq 1/2$이고, 따라서 $E(\boldsymbol{\sigma}^{\mathrm{new}}) \leq E(\boldsymbol{\sigma}) - \frac{\eta}{2}\|\nabla E\|^2$를 얻는다.
-\end{proof}
-
-\begin{theorem}[결정적 포획]\label{thm:trapping_proof}
-$E$가 아래로 유계이고 $L_E$-smooth이며, 업데이트 step size가 $\eta \le 1/L_E$라고 하자. 섭동이 없을 때 forward pass는 단조 하강 궤적을 만들며 $\boldsymbol{\sigma}^{(0)}$의 basin of attraction 안에 머문다. 특히 다른 basin의 더 낮은 minimum으로 가기 위해 에너지 장벽을 넘을 수 없다.
-\end{theorem}
-\begin{proof}
-Lemma~\ref{lem:descent}에 의해 모든 레이어 $l$에 대해
-\[
-E(\boldsymbol{\sigma}^{(l)}) - E(\boldsymbol{\sigma}^{(l+1)})
-\ge
-\frac{\eta}{2}\|\nabla E(\boldsymbol{\sigma}^{(l)})\|^2
-\]
-가 성립한다. 이를 $l=0,\dots,L-1$에 대해 합하면
-\[
-\frac{\eta}{2}\sum_{l=0}^{L-1}\|\nabla E(\boldsymbol{\sigma}^{(l)})\|^2
-\le
-E(\boldsymbol{\sigma}^{(0)}) - E(\boldsymbol{\sigma}^{(L)})
-\le
-E(\boldsymbol{\sigma}^{(0)}) - \inf E
-<
-\infty,
-\]
-이므로 궤적 전체의 squared-gradient 질량은 유한하고, 따라서 $\|\nabla E(\boldsymbol{\sigma}^{(l)})\| \to 0$이다. 즉 모든 accumulation point는 critical point다. 그러나 본문에 더 중요한 점은, 각 iterate가 이전 iterate에서 결정적 하강으로 만들어지므로 전체 경로가 $\boldsymbol{\sigma}^{(0)}$에 의해 유일하게 정해진다는 사실이다. 초기 basin을 벗어나려면 어느 순간 에너지 장벽을 넘어야 하고, 그러려면 경로 어딘가에서 상승 step이 필요하다. 하지만 업데이트는 $E$를 결코 증가시키지 않으므로 그런 crossing은 불가능하다. 따라서 비섭동 동역학은 초기 basin에서 도달 가능한 critical point에만 접근할 수 있으며, 그 basin 안에 열등한 local minimum이 있으면 더 나은 basin으로 탈출할 수 없다.
-\end{proof}
+\section{본문 이론 결과의 증명}\label{app:proofs}
 
 % [본문 문단 5 메커니즘 1에 대한 증명]
-% RSP perturbation term의 expectation, covariance, bias-to-variance ratio를 유도
-% bias가 negligible함을 보여 Langevin-like 해석을 정당화
+% RSP perturbation term의 expectation, covariance, bias-to-variance ratio
 \subsection{RSP가 유도하는 섭동의 성질}\label{app:rsp_noise}
 
 \paragraph{Attention 출력의 분해.}
@@ -614,7 +578,9 @@ z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
 
 \subsubsection{명제 1의 증명 (확률적 순위화)}
 
-\textit{토큰 쌍 $(i,j)$ 중 $a_i \neq a_j$인 것이 존재하면, $0 < \Pr_{\bar{h}}(z_i(\bar{h}) > z_j(\bar{h})) < 1$이 성립한다.}
+\begin{proposition}[확률적 순위화]\label{prop:stochastic_ranking}
+토큰 쌍 $(i,j)$ 중 $a_i \neq a_j$인 것이 존재하면, $0 < \Pr_{\bar{h}}(z_i(\bar{h}) > z_j(\bar{h})) < 1$이 성립한다.
+\end{proposition}
 
 \begin{proof}
 국소 선형 근사 아래에서
@@ -636,7 +602,8 @@ $b_{ij}:=a_i-a_j \neq 0$라 두자. 만약 $\bar{h} \sim \mathcal{N}(0,\sigma^2 
 
 \subsubsection{명제 2의 증명 (지지 집합 확장)}
 
-\textit{상태 $s_t$에서 baseline top-$K$ 집합을 $J_K(s_t)$라 하자. 어떤 토큰 $i \notin J_K(s_t)$에 대해 다음 집합}
+\begin{proposition}[지지 집합 확장]\label{prop:support_expansion}
+상태 $s_t$에서 baseline top-$K$ 집합을 $J_K(s_t)$라 하자. 어떤 토큰 $i \notin J_K(s_t)$에 대해 집합
 \[
 \mathcal{H}_i
 :=
@@ -646,11 +613,12 @@ z_i + a_i^\top \bar{h} > z_j + a_j^\top \bar{h}
 \ \text{for all } j \in J_K(s_t)
 \right\}
 \]
-\textit{의 내부가 비어 있지 않다고 하자. $\bar{h}$를 등방성 가우시안에서 샘플링하면}
+의 내부가 비어 있지 않다고 하자. $\bar{h}$를 등방성 가우시안에서 샘플링하면
 \[
 \Pr_{\bar{h}}\big(i \in \mathrm{TopK}(p^{\mathrm{RSP}}(\cdot \mid s_t, \bar{h}))\big) > 0
 \]
-\textit{가 성립한다.}
+이 성립한다.
+\end{proposition}
 
 \begin{proof}
 국소 선형 모델에서 토큰 $i$가 $J_K(s_t)$의 모든 토큰을 앞지른다는 조건은 정확히 $\bar{h} \in \mathcal{H}_i$와 동치다. 각 부등식
@@ -664,9 +632,18 @@ z_i + a_i^\top \bar{h} > z_j + a_j^\top \bar{h}
 이며, 이것이 바로 섭동된 분포 아래에서 토큰 $i$가 top-$K$ 집합에 진입하는 사건이다.
 \end{proof}
 
-\subsubsection{궤적 수준의 함의}
+\subsubsection{궤적 수준의 함의: 다중 경로 Pass@$N$}
 
-자기회귀 생성은 조건부 분포를 단계별로 합성하므로, 초기 단계의 섭동이 전혀 다른 궤적으로 이어질 수 있다. 적어도 한 번 baseline top-$K$ 바깥 토큰을 포함하는 궤적의 집합을 $\mathcal{R}_{k,K}(x)$라 하자. 만약 RSP가 초기 단계에서 이런 토큰의 접근 가능성을 높인다면, 반복 샘플링에서 $\mathcal{R}_{k,K}(x)$에 속하는 궤적을 뽑을 확률도 증가한다. 핵심은 시간적 누적이다. 초반의 top-$K$ 진입 한 번이 다음 decoding state를 바꾸고, 그것이 다시 다음 후보 집합을 바꾸는 식으로 이어진다. 이것이 국소적인 순위 섭동이 전역적인 궤적 다양성으로 이어지는 형식적 다리다.
+자기회귀 생성은 조건부 분포를 단계별로 합성하므로, 초기 단계의 섭동이 전혀 다른 궤적으로 이어질 수 있다. 적어도 한 번 baseline top-$K$ 바깥 토큰을 포함하는 궤적의 집합을 $\mathcal{R}_{k,K}(x)$라 하자. 만약 RSP가 초기 단계에서 이런 토큰의 접근 가능성을 높인다면, 반복 샘플링에서 $\mathcal{R}_{k,K}(x)$에 속하는 궤적을 뽑을 확률도 증가한다. 핵심은 시간적 누적이다. 초반의 top-$K$ 진입 한 번이 다음 decoding state를 바꾸고, 그것이 다시 다음 후보 집합을 바꾸는 식으로 이어진다. 이를 형식적으로 모으면 다음 명제가 된다.
+
+\begin{proposition}[다중 경로 Pass@$N$]\label{prop:multi_path}
+문제 $x$를 고정하고 정답 궤적 집합 $\mathcal{T}^\star(x)$가 비어 있지 않다고 하자. baseline 정답 지시자를 $p_{\mathrm{base}}(x)\in\{0,1\}$이라 하고, $N$개의 독립적이고 새로운 RSP를 추첨하여 표본당 한 번씩 디코딩한다. \textbf{(M1)} 각 $n$에 대해, $n$번째 RSP 실행이 $\mathcal{T}^\star(x)$의 궤적을 만들 주변 확률이 적어도 $p_{\min}(x)>0$이고, \textbf{(M2)} $N$번의 RSP 실행이 상호 독립이라 가정하자. 그러면
+\[
+\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-e^{-Np_{\min}(x)}.
+\]
+\end{proposition}
+
+증명은 (M2)에 의한 곱 분해와 (M1)에 의한 단조 하한으로 곧바로 이루어진다. (M1)은 과제 측 가정이며 메커니즘만으로는 유도되지 않는다. 본문 §\ref{sec:diversity}에서 이 가정의 경험적 흔적을 논의했다.
 
 \clearpage
 % ================================================================
@@ -713,7 +690,7 @@ Vision Transformer에서 정보가 거의 없는 patch token은 deeper layer에�
 
 \subsection{추가적인 suffix heatmap}
 
-Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.5B-Instruct와 LLaMA-3.1-8B-Instruct에 대해 동일한 per-token RSP attention 분석을 보고한다. 앞서 설명한 late-layer 이유 때문에 모든 셀에서 패턴이 완전히 동일하게 일반화되지는 않지만, 전체적인 경향은 두 모델에서 일관된다. 즉 질문 토큰 attention은 레이어 전반에 걸쳐 폭넓게 변하는 반면, RSP attention은 Eq.~\eqref{eq:decay_main}이 예측한 것처럼 레이어 방향과 시퀀스 방향으로 함께 감소한다.
+Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.5B-Instruct와 LLaMA-3.1-8B-Instruct에 대해 동일한 per-token RSP attention 분석을 보고한다. 앞서 설명한 late-layer 이유 때문에 모든 셀에서 패턴이 완전히 동일하게 일반화되지는 않지만, 전체적인 경향은 두 모델에서 일관된다. 즉 질문 토큰 attention은 레이어 전반에 걸쳐 폭넓게 변하는 반면, RSP attention은 §\ref{sec:mechanism}의 희석 상계가 예측한 것처럼 레이어 방향과 시퀀스 방향으로 함께 감소한다.
 
 \begin{figure}[ht]
   \centering
