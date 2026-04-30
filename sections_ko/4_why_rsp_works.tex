@@ -26,11 +26,7 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\; \sigma_E^2\,\mathbf{I}_d), \qquad 
 \subsection{어텐션 분해와 자동 어닐링}\label{sec:mechanism}
 % ================================================================
 
-먼저 한 번의 RSP 주입이 hidden state를 어떻게 흔드는지부터 묻는다. RSP는 hidden state에 직접 더해지지 않는다. 어텐션 가중치를 통해서만 들어간다. 그래서 그 영향이 수많은 머리·층을 거치며 흩어지지 않고 한 가지 양으로 모일 가능성이 자연스럽게 떠오른다.
-
-어텐션 분해를 다시 정리해 보자. RSP의 모든 영향은 ``무작위 토큰에 배정된 어텐션 비중'' 한 스칼라로 \emph{정확히} 묶인다. 디코딩이 진행될수록 KV 캐시에 실제 토큰이 더 쌓인다. 그러면 그 비중은 별도 schedule 없이 \emph{자동으로} 약해진다.
-
-self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다고 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두자. 그러면 어텐션 출력은 다음 형태로 정확히 정리된다.
+RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어간다. 그래서 그 영향이 수많은 머리·층을 거치며 흩어지지 않고 한 가지 양으로 모일 가능성이 자연스럽게 떠오른다. self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 함께 attend한다고 하자. 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두자. 그러면 어텐션 출력은 다음 형태로 정확히 정리된다.
 \begin{equation}\label{eq:decomp}
 \mathbf{x}_i^{(\ell+1)}
 \;=\;
@@ -49,16 +45,38 @@ self-attention 레이어 $\ell$이 실제 토큰 $n$개와 RSP 토큰 $L$개를 
 
 여기서 한 양 $w_{r,i}^{(\ell)}$이 두 가지를 동시에 통제한다. 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$이 모두 같은 스칼라에 매여 있다. RSP가 만드는 변동은 다차원 섭동이 아니다. 0과 1 사이 한 값을 추적하는 문제로 환원된다. 그러면 다음 질문이 자연스럽다. 디코딩이 진행되면 이 값은 어떻게 변하는가? 자기회귀 생성에서 KV 캐시는 매 step 한 토큰씩 길어진다. softmax 분모가 커지므로, 그 비중은 자연히 줄어든다. 이 직관이 부등식으로 나타난다.
 
-\begin{theorem}[캐시 성장에 의한 RSP 어텐션의 단조 희석]\label{thm:decay}
-사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두자. scaled-dot-product 어텐션에서
+레이어 $\ell$에서 query 벡터를 $\mathbf{q}_i^{(\ell)}$, 실제 토큰의 key 벡터를 $\mathbf{k}_j^{(\ell)}$ ($j\in[n]$), RSP 토큰의 key 벡터를 $\mathbf{k}_{r_{j'}}^{(\ell)}$ ($j'\in[L]$)로 쓴다. 사전 스케일 logit gap을
+\[
+\Delta_i^{(\ell)} \;:=\; \min_{j\in[n]} (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_j^{(\ell)} \;-\; \max_{j'\in[L]} (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_{r_{j'}}^{(\ell)}
+\]
+로 정의한다.
+
+\begin{theorem}[캐시 성장에 의한 RSP 어텐션 envelope 감소]\label{thm:decay}
+scaled-dot-product 어텐션에서
 \[
 w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
 \]
-가 성립한다. 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다. 따라서 $n$이 커지면 $w_{r,i}^{(\ell)} \to 0$이다.
+가 성립한다. 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소한다. 따라서 fixed-gap setting에서 $n\to\infty$이면 이 \emph{upper envelope}는 0으로 수렴한다.
 \end{theorem}
 
 \begin{proof}
-$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max}:=\max_{j'} s_{r_{j'}}$로 쓰자. $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이 성립한다. $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$이라 두면 $\exp(s_{r,\max})\ge R/L$이다. 따라서 $\sum_{j=1}^n \exp(s_j) \ge n\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R/L$이다. softmax 정규화에서 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R) \le L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$를 얻는다. 우변을 $n$에 대해 미분하면 음수이므로 엄격히 감소한다. 같은 식에서 $n\to\infty$일 때 0으로 간다.
+실제 토큰과 RSP 토큰의 scaled attention score를 각각
+\[
+s_j^{(\ell)} \;:=\; \frac{(\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_j^{(\ell)}}{\sqrt d}
+\quad (j\in[n]),
+\qquad
+s_{r_{j'}}^{(\ell)} \;:=\; \frac{(\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_{r_{j'}}^{(\ell)}}{\sqrt d}
+\quad (j'\in[L])
+\]
+로 쓰고, RSP score의 최대를 $s_{r,\max}^{(\ell)} := \max_{j'\in[L]} s_{r_{j'}}^{(\ell)}$, RSP score 합을 $R^{(\ell)} := \sum_{j'=1}^L \exp(s_{r_{j'}}^{(\ell)})$로 둔다. $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 모든 $j\in[n]$에 대해 $s_j^{(\ell)} \ge s_{r,\max}^{(\ell)} + \Delta_i^{(\ell)}/\sqrt d$이 성립한다. 또한 $\exp(s_{r,\max}^{(\ell)}) \ge R^{(\ell)}/L$이다. 따라서
+\[
+\sum_{j=1}^n \exp(s_j^{(\ell)}) \;\ge\; n\,\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R^{(\ell)}/L.
+\]
+softmax 정규화에서
+\[
+w_{r,i}^{(\ell)} \;=\; \frac{R^{(\ell)}}{\sum_{j=1}^n\exp(s_j^{(\ell)}) + R^{(\ell)}} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
+\]
+$f(n) := L/(L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d))$라 두면 $f'(n) = -L\,\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 $f(n)$은 $n$에 대해 엄격히 감소하고, $L$과 $\Delta_i^{(\ell)}$가 고정되면 $n\to\infty$에서 $f(n)\to 0$이다.
 \end{proof}
 
 이 부등식 한 줄에 두 메커니즘이 동시에 담겨 있다. RSP 길이 $L$은 우리가 정하는 설계 파라미터다. 분자에 들어가 \emph{최대} 영향력을 결정한다. 반면 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키운다. 같은 $L$ 아래에서도 영향력의 \emph{상계}는 시간이 갈수록 좁아진다. 정리가 보장하는 범위는 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점뿐이다. 즉 autoregressive position 방향의 attenuation이지 layer 깊이 방향의 monotonic decay는 아니다. 새 토큰이 생성될 때마다 query·key·hidden state가 갱신되고 $\Delta_i^{(\ell)}$도 시간에 따라 변한다. 따라서 ``실현된 attention mass의 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대값의 단조 envelope 감소''가 정확하다. 결과적으로 RSP 효과는 생성 \emph{초반}에 가장 크다. 토큰 누적과 함께 envelope이 좁아진다. 그래서 별도 schedule 없이 디코딩 자체가 explore-then-exploit 어닐링을 만든다. Figure~\ref{fig:attention_mass}는 이 sequence-direction 예측을 실증한다.
@@ -112,7 +130,7 @@ $\mathrm{Var}_{h\sim D}(b^\top h) = b^\top \Sigma_D b$이다. 임의 대칭 공�
 
 이 단발 확률을 task accuracy로 끌어올리려면 task-side 가정이 하나 필요하다. (M1) 단발 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이 양수다. (M2) $N$번의 실행은 상호 독립이다. 두 가정 아래 Proposition~\ref{prop:multi_path}은 다음 부등식을 준다.
 \[
-\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-e^{-N\,p_{\min}(x)}.
+\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-\exp(-N\,p_{\min}(x)).
 \]
 
 메커니즘이 보장하는 범위는 \emph{branch가 열린다}는 데까지다 ($\mu_i > 0$). 열린 branch가 \emph{생산적}이라는 점($p_{\min}(x)>0$)은 task의 성질이지, mechanism만으로 도출되는 결과가 아니다. (M1)이 성립하기만 하면 $N$이 커질수록 정답 trajectory에 도달할 확률이 1로 지수 속도로 다가간다. 같은 RSP를 모든 sample이 공유하면 이 누적이 사라진다. 이 사실은 \emph{독립}이 핵심임을 메커니즘 차원에서 다시 한번 확인해 준다. (M1)의 경험적 흔적, 곧 RSP가 만든 새 의미 클러스터에 정답 trajectory가 포함된다는 사실은 \S\ref{sec:experimental_analysis}에서 직접 확인한다.

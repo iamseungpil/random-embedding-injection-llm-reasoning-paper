@@ -547,7 +547,7 @@ z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)
 \begin{proposition}[다중 경로 Pass@$N$]\label{prop:multi_path}
 문제 $x$를 고정하고 정답 궤적 집합 $\mathcal{T}^\star(x)$가 비어 있지 않다고 하자. baseline 정답 지시자를 $p_{\mathrm{base}}(x)\in\{0,1\}$이라 하고, $N$개의 독립적이고 새로운 RSP를 추첨하여 표본당 한 번씩 디코딩한다. \textbf{(M1)} 각 $n$에 대해, $n$번째 RSP 실행이 $\mathcal{T}^\star(x)$의 궤적을 만들 주변 확률이 적어도 $p_{\min}(x)>0$이고, \textbf{(M2)} $N$번의 RSP 실행이 상호 독립이라 가정하자. 그러면
 \[
-\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-e^{-Np_{\min}(x)}.
+\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-\exp(-Np_{\min}(x)).
 \]
 \end{proposition}
 
