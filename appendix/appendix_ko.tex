@@ -309,7 +309,7 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 \clearpage
 \section{무작위 프롬프트는 왜 의미적으로 중립적이고 방향적으로 포괄적인가}\label{app:why_random}
 
-이 부록은 Section~\ref{sec:rsp_design}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
+이 부록은 Section~\ref{sec:isotropy}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
 
 \subsection{의미적 중립성}
 
@@ -452,7 +452,7 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 
 \subsection{Theorem~\ref{thm:decay} (Attention 감쇠)의 따름정리들}
 
-본문 §\ref{sec:dilution}의 Theorem~\ref{thm:decay}이 제공하는 상계
+본문 §\ref{sec:mechanism}의 Theorem~\ref{thm:decay}이 제공하는 상계
 \[
 w_{r,i}^{(\ell)} \le \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})}
 \]

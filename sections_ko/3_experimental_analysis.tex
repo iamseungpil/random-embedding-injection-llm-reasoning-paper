@@ -1,20 +1,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Chapter 3. Experimental Analysis
+% This file is loaded as Section 4 (empirical) in the new structure.
+% Filename retained for git history continuity.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{실험 분석}\label{sec:experimental_analysis}
+\section{실험적 확인}\label{sec:experimental_analysis}
+
+§\ref{sec:why_rsp_works}의 분석은 세 가지 검증 가능한 예측을 만든다. (P1) RSP는 baseline 정확도를 크게 깎지 않으면서 일부 설정에서 회복시킨다 — 단발 RSP가 정답 trajectory를 완전히 망가뜨릴 만큼 큰 섭동이 아니라는 Theorem~\ref{thm:decay}의 귀결. (P2) 생성 초반에 토큰 분포가 평탄해졌다가 후반에 baseline 수준으로 돌아온다 — 같은 정리에서 따라오는 자동 어닐링의 직접 흔적. (P3) 독립 RSP 추첨이 Pass@$N$을 단조롭게 끌어올리고, 그 한계는 단일 고정 RSP를 재사용했을 때보다 본질적으로 크다 — Proposition~\ref{prop:multi_path}이 예측하는 지수 saturation이 실제로 작동한다는 신호. 본 절은 세 예측을 차례로 확인한다.
 
 % ================================================================
-\subsection{Random Soft Prompt의 정의와 설정}\label{sec:rsp_definition}
+\subsection{실험 설정}\label{sec:setup}
 % ================================================================
 
-사전학습된 LLM의 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V \times d}$라 하자. 여기서 $V$는 어휘 크기이고 $d$는 은닉 차원이다. RSP는 $L$개의 연속 벡터 시퀀스 $\mathbf{H} = [h_1, \dots, h_L] \in \mathbb{R}^{L \times d}$로 정의되며, 각 벡터는 다음 분포에서 독립적으로 샘플링된다.
-\begin{equation}
-  h_j \sim \mathcal{N}(\mu_E,\; \sigma_E^2 \mathbf{I}), \quad j = 1, \dots, L,
-\end{equation}
-여기서 $\mu_E = \frac{1}{Vd}\sum_{i,k} [\mathbf{W}_E]_{i,k}$, $\sigma_E = \mathrm{std}(\mathbf{W}_E)$이다. 원래 입력의 임베딩 시퀀스를 $\mathbf{X} = [x_1, \dots, x_T] \in \mathbb{R}^{T \times d}$라 하면, RSP가 주입된 입력 $\tilde{\mathbf{X}}$는 원래 프롬프트 텍스트는 바꾸지 않은 채 세 위치 중 하나에서 $\mathbf{H}$를 연결해 만든다: \textit{prefix} ($[\mathbf{H}; \mathbf{X}]$), \textit{infix} ($\mathbf{H}$가 $\mathbf{X}$ 내부에 삽입됨), \textit{suffix} ($[\mathbf{X}; \mathbf{H}]$). 이는 선행 연구의 주입 전략을 따른다 \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. 각 배치마다 새로운 $\mathbf{H}$를 샘플링함으로써, 결과가 특정 무작위 임베딩 실현값 하나에 의존하지 않도록 했다.
-
-평가는 세 가지 수학 추론 벤치마크, MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 사용하며, instruct model, base model, 그리고 chat template이 맞지 않는 base model까지 포함해 총 일곱 설정을 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용한다. 평가는 fallback 기반의 answer extraction pipeline으로 최종 답만 채점한다. 전체 실험 설정은 Appendix~\ref{app:setup}에 정리했다.
+평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct, base, 그리고 chat template이 맞지 않는 base 설정까지 합쳐 총 일곱 가지를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하고, fallback 기반 answer extraction pipeline으로 최종 답만 채점한다. RSP는 §\ref{sec:rsp_definition}의 정의를 따르며 prefix/infix/suffix 세 주입 위치 중 하나에 매 배치마다 새로 추첨된 $\mathbf{H}$를 결합한다. 전체 실험 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
 
 % ================================================================
 \subsection{RSP는 추론 성능을 개선할까?}\label{sec:performance}
@@ -136,7 +133,7 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
     \bottomrule
   \end{tabular}
 \end{wraptable}
-먼저 토큰 수준에서 보면, 자기회귀 생성에서 baseline과 RSP의 궤적 차이는 결국 첫 토큰에서 시작될 수밖에 없으므로 baseline $\tau{=}1.0$을 기준으로 단순 flattening의 상한인 baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다. 세 지표---Spearman rank correlation $\rho$, baseline top-10 밖 확률 질량, Jensen--Shannon divergence---는 각각 순위 재배치, 지지 집합 확장, 분포 변화의 크기를 잡아낸다(정의는 Appendix~\ref{app:token_metrics}). Table~\ref{tab:rsp_vs_temp}에서 baseline top-10 밖으로 이동하는 질량은 $\tau{=}2.0$에서 5.15\%에 그치지만 RSP $\tau{=}1.0$에서는 27.64\%이고, Spearman 상관은 1에서 0.651로 떨어진다. Temperature는 단조 변환이라 어떤 $\tau$에서도 순위를 보존하므로 $\rho=1$이 강제되는 반면, RSP는 순위 자체를 뒤섞는다(이 차이의 메커니즘적 근거는 §\ref{sec:multipath}). JS divergence 0.231은 이 변화의 전체 크기를 요약한다.
+먼저 토큰 수준에서 보면, 자기회귀 생성에서 baseline과 RSP의 궤적 차이는 결국 첫 토큰에서 시작될 수밖에 없으므로 baseline $\tau{=}1.0$을 기준으로 단순 flattening의 상한인 baseline $\tau{=}2.0$과 RSP $\tau{=}1.0$을 비교한다. 세 지표---Spearman rank correlation $\rho$, baseline top-10 밖 확률 질량, Jensen--Shannon divergence---는 각각 순위 재배치, 지지 집합 확장, 분포 변화의 크기를 잡아낸다(정의는 Appendix~\ref{app:token_metrics}). Table~\ref{tab:rsp_vs_temp}에서 baseline top-10 밖으로 이동하는 질량은 $\tau{=}2.0$에서 5.15\%에 그치지만 RSP $\tau{=}1.0$에서는 27.64\%이고, Spearman 상관은 1에서 0.651로 떨어진다. Temperature는 단조 변환이라 어떤 $\tau$에서도 순위를 보존하므로 $\rho=1$이 강제되는 반면, RSP는 순위 자체를 뒤섞는다 — §\ref{sec:multipath}이 surrogate 수준에서 보인 branch opening의 직접 흔적. JS divergence 0.231은 이 변화의 전체 크기를 요약한다.
 
 \begin{wraptable}{r}{0.34\textwidth}
   \vspace{-1.2em}
