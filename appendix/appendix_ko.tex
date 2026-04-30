@@ -309,7 +309,7 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 \clearpage
 \section{무작위 프롬프트는 왜 의미적으로 중립적이고 방향적으로 포괄적인가}\label{app:why_random}
 
-이 부록은 Section~\ref{sec:isotropy}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
+이 부록은 Section~\ref{sec:multipath}에서 사용한 주장을 형식화한다. 핵심은 무작위 프롬프트가 유용한 잠재 의미를 담고 있다는 것이 아니다. 더 약하고 정확한 주장은, 중심화한 뒤에는 어떤 미리 정한 의미 방향도 체계적으로 편들지 않으면서도, 고정된 분산 예산 아래 모든 방향을 덮을 수 있다는 것이다. 이는 언어학적 의미가 완전히 사라진다는 주장이 아니라, 섭동 방향의 기하학적 성질에 관한 명제다.
 
 \subsection{의미적 중립성}
 
@@ -425,7 +425,7 @@ V_{\eta,i}^{(\ell)} \;\le\; M_v^{(\ell)}\,\bigl(w_{r,i}^{(\ell)}\bigr)^2.
 Theorem~\ref{thm:decay}와 결합하면 \emph{같은 layer, 같은 query 위치, 같은 logit gap} 아래에서 $w_{r,i}^{(\ell)} = O(1/n)$이고, Eq.~\eqref{eq:lyap_eta}로부터 $V_{\eta,i}^{(\ell)} = O(1/n^2)$이다. layer 방향에 대한 단조 감소는 $M_v^{(\ell)}$, $\Delta_i^{(\ell)}$, hidden state geometry가 layer마다 달라지므로 일반적으로 보장되지 않는다 — 본문 Figure~\ref{fig:attention_mass}의 layer-축 감소는 이 정리의 직접 귀결이 아니라 deeper layer가 실제 토큰 evidence에 더 정렬되는 별개의 경험적 현상이다.
 
 \paragraph{입력층 등방성의 의의.}
-입력층에서는 RSP가 $\mathcal{N}(\mu_E\mathbf{1}_d, \sigma_E^2\mathbf{I}_d)$로 정의되므로, 중심화한 $\bar h$는 정확히 등방이고 모든 방향에 양의 밀도(full support)를 갖는다. Lemma~\ref{lem:semantic_neutrality}와 본문 §\ref{sec:isotropy}, §\ref{sec:multipath}의 결과는 이 입력층 등방성을 직접 사용하므로 layer 이후의 등방성 보존을 요구하지 않는다.
+입력층에서는 RSP가 $\mathcal{N}(\mu_E\mathbf{1}_d, \sigma_E^2\mathbf{I}_d)$로 정의되므로, 중심화한 $\bar h$는 정확히 등방이고 모든 방향에 양의 밀도(full support)를 갖는다. Lemma~\ref{lem:semantic_neutrality}와 본문 §\ref{sec:multipath}의 결과는 이 입력층 등방성을 직접 사용하므로 layer 이후의 등방성 보존을 요구하지 않는다.
 
 \begin{table}[ht]
 \centering
@@ -449,13 +449,20 @@ Qwen2.5-Math-1.5B & 0.00038 & 0.02990 & 0.013 \\
 \paragraph{함의.}
 입력층에서 RSP가 $\mathcal{N}(\mu_E\mathbf{1}_d, \sigma_E^2\mathbf{I}_d)$로 시작하므로 입력층의 평균 항은 작지만, layer 이후의 $\mathbf{v}_{r_j}^{(\ell)}$는 일반적으로 \emph{bounded mean}만 가정한다. Eq.~\eqref{eq:lyap_eta}는 이 약한 가정 아래에서도 RSP 기여의 disturbance energy가 attention-local 수준에서 $w_{r,i}^{(\ell)}$로 통제됨을 보장한다 — 그 이상의 ``zero-mean noise처럼 동작한다''라는 강한 주장은 입력층에 한정된 해석이다.
 
-\subsection{Theorem~\ref{thm:decay} (Attention 감쇠)의 따름정리들}
+\subsection{Eq.~\eqref{eq:decomp} 도출, Theorem~\ref{thm:decay}, Proposition~\ref{prop:lower_env}의 증명}
 
-본문 §\ref{sec:mechanism}의 Theorem~\ref{thm:decay}이 제공하는 상계
-\[
-w_{r,i}^{(\ell)} \le \frac{L}{L + n \cdot \exp(\Delta_i^{(\ell)} / \sqrt{d})}
-\]
-는 두 가지 따름정리를 갖는다. 본문 증명을 그대로 받아 다음을 보인다.
+\paragraph{Eq.~\eqref{eq:decomp}의 도출.}
+어텐션 출력 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^{(\ell)}$를 실제 토큰 항과 RSP 토큰 항으로 가르고, 실제 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}$를 묶어 내면 본문 Eq.~\eqref{eq:decomp}가 그대로 나온다. softmax 정규화 항등식 $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}=1$ 외에는 어떤 근사도 사용하지 않는다.
+
+\paragraph{Theorem~\ref{thm:decay} (upper envelope)의 증명.}
+실제 토큰과 RSP 토큰의 scaled attention score를 각각 $s_j^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_j^{(\ell)}/\sqrt d$ ($j\in[n]$), $s_{r_{j'}}^{(\ell)} := (\mathbf{q}_i^{(\ell)})^\top\mathbf{k}_{r_{j'}}^{(\ell)}/\sqrt d$ ($j'\in[L]$)라 하고, $s_{r,\max}^{(\ell)} := \max_{j'} s_{r_{j'}}^{(\ell)}$, $R^{(\ell)} := \sum_{j'=1}^L \exp(s_{r_{j'}}^{(\ell)})$로 둔다. 정방향 gap $\Delta_i^{(\ell)}/\sqrt d$의 정의에서 모든 $j\in[n]$에 대해 $s_j^{(\ell)} \ge s_{r,\max}^{(\ell)} + \Delta_i^{(\ell)}/\sqrt d$이고, max $\ge$ avg에서 $\exp(s_{r,\max}^{(\ell)}) \ge R^{(\ell)}/L$이다. 따라서 $\sum_{j=1}^n \exp(s_j^{(\ell)}) \ge n\,\exp(\Delta_i^{(\ell)}/\sqrt d)\cdot R^{(\ell)}/L$이고, softmax 정규화에서 $w_{r,i}^{(\ell)} = R^{(\ell)}/(\sum_j \exp(s_j^{(\ell)}) + R^{(\ell)}) \le L/(L+n\,\exp(\Delta_i^{(\ell)}/\sqrt d))$. $f(n) = L/(L+n\,\exp(\Delta_i^{(\ell)}/\sqrt d))$의 미분이 음수이므로 $n$에 대해 엄격 감소하고 $n\to\infty$에서 0으로 간다.
+
+\paragraph{Proposition~\ref{prop:lower_env} (lower envelope)의 증명.}
+대칭 도출이다. 역방향 gap $\Delta_i'^{(\ell)}/\sqrt d$의 정의에서 모든 $j\in[n]$에 대해 $s_j^{(\ell)} \le s_{r,\min}^{(\ell)} + \Delta_i'^{(\ell)}/\sqrt d$이며, min $\le$ avg에서 $\exp(s_{r,\min}^{(\ell)}) \le R^{(\ell)}/L$이다. 따라서 $\sum_{j=1}^n \exp(s_j^{(\ell)}) \le n\,\exp(\Delta_i'^{(\ell)}/\sqrt d)\cdot R^{(\ell)}/L$이고, $w_{r,i}^{(\ell)} = R^{(\ell)}/(\sum_j \exp(s_j^{(\ell)}) + R^{(\ell)}) \ge L/(L+n\,\exp(\Delta_i'^{(\ell)}/\sqrt d))$.
+
+\subsection{Theorem~\ref{thm:decay}의 따름정리들}
+
+위 envelope들로부터 두 가지 따름정리가 따른다.
 
 \begin{corollary}[fixed-gap envelope의 시퀀스 방향 단조 감소]\label{cor:sequence_annealing}
 $L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계
@@ -496,7 +503,7 @@ Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, 본 
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
 \subsection{출력 분포 이동에 대한 증명}
 
-본문은 출력 수준에서 두 가지 주장을 한다. Proposition~\ref{prop:stochastic_ranking}은 쌍대 순위의 무작위화를, Proposition~\ref{prop:support_expansion}은 그보다 한 단계 강한 후보 집합 확장을 다룬다. 두 주장 모두 섭동된 logits의 local first-order surrogate에 대한 명제다.
+본문 §\ref{sec:multipath}는 surrogate 위 top-$K$ 진입 명제 (Proposition~\ref{prop:support_expansion})와 다중 경로 Pass@$N$ 누적 명제 (Proposition~\ref{prop:multi_path})를 다룬다. 보조적으로 쌍대 순위 무작위화 명제도 함께 둔다.
 
 \subsubsection{자기회귀 정식화}
 
@@ -523,21 +530,18 @@ $z_i^{\mathrm{lin}}(\bar{h}) - z_j^{\mathrm{lin}}(\bar{h}) = (z_i-z_j) + (a_i-a_
 \subsubsection{명제 2의 증명 (지지 집합 확장)}
 
 \begin{proposition}[지지 집합 확장]\label{prop:support_expansion}
-상태 $s_t$에서 baseline top-$K$ 집합을 $J_K(s_t)$라 하자. 어떤 토큰 $i \notin J_K(s_t)$에 대해 진입 영역
+어떤 토큰 $i$에 대해 진입 영역
 \[
-\mathcal{G}_{i,K}
-:=
-\left\{
-\bar{h} \in \mathbb{R}^d :
-z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)
-\ \text{for all } j \in J_K(s_t)
-\right\}
+\mathcal{G}_{i,K} \;:=\; \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
 \]
-의 내부가 비어 있지 않다고 하자. $\bar{h}$를 등방성 가우시안에서 샘플링하면 $\Pr_{\bar{h}}(\bar h \in \mathcal{G}_{i,K}) > 0$이 성립한다.
+이 비공집합 열린집합을 포함한다고 하자. centered RSP $\bar h$가 등방 가우시안에서 추첨되면 $\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이 성립한다.
 \end{proposition}
 
 \begin{proof}
-1차 surrogate에서 토큰 $i$가 $J_K(s_t)$의 모든 토큰을 앞지른다는 조건은 정확히 $\bar{h} \in \mathcal{G}_{i,K}$와 동치다. 각 부등식 $z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)$은 열린 half-space를 정의하므로, 유한 개 열린 half-space의 교집합인 $\mathcal{G}_{i,K}$ 역시 열린 집합이다. 가정에 의해 내부가 비어 있지 않으므로 $\mathcal{G}_{i,K}$는 $\mathbb{R}^d$의 비공집합 열린집합이다. 등방성 가우시안은 $\mathbb{R}^d$ 전역에서 엄밀히 양수인 밀도를 가지므로 비공집합 열린집합은 양의 확률 측도를 갖는다. 따라서 $\Pr_{\bar{h}}(\bar h \in \mathcal{G}_{i,K}) > 0$이며, 이것이 토큰 $i$의 top-$K$ 진입 사건이다.
+$\mathcal{G}_{i,K}$가 비공집합 열린집합 $U$를 포함한다고 하자. centered 등방 가우시안은 $\mathbb{R}^d$ 전역에서 엄밀히 양수인 밀도를 가지므로 모든 비공집합 열린집합에 양의 확률 측도를 부여한다. 따라서 $\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) \ge \Pr_{\bar h}(\bar h \in U) > 0$이다. 정의상 $\mathcal{G}_{i,K}$는 정확히 surrogate logit이 $i$를 top-$K$로 진입시키는 사건이다.
+
+\smallskip
+\noindent (충분조건 예시.) $i$가 어떤 baseline top-$K$ 부분집합 $S\subseteq J_K(s_t)$ ($|S|=K$)의 모든 원소를 엄격한 마진으로 앞서는 $\bar h_0$가 존재하면, surrogate의 연속성으로 $\bar h_0$ 주변 비공집합 열린집합이 $\mathcal{G}_{i,K}$에 포함된다 (각 부등식이 열린 half-space를 정의).
 \end{proof}
 
 \subsubsection{궤적 수준의 함의: 다중 경로 Pass@$N$}
@@ -547,7 +551,7 @@ z_i^{\mathrm{lin}}(\bar h) > z_j^{\mathrm{lin}}(\bar h)
 \begin{proposition}[다중 경로 Pass@$N$]\label{prop:multi_path}
 문제 $x$를 고정하고 정답 궤적 집합 $\mathcal{T}^\star(x)$가 비어 있지 않다고 하자. baseline 정답 지시자를 $p_{\mathrm{base}}(x)\in\{0,1\}$이라 하고, $N$개의 독립적이고 새로운 RSP를 추첨하여 표본당 한 번씩 디코딩한다. \textbf{(M1)} 각 $n$에 대해, $n$번째 RSP 실행이 $\mathcal{T}^\star(x)$의 궤적을 만들 주변 확률이 적어도 $p_{\min}(x)>0$이고, \textbf{(M2)} $N$번의 RSP 실행이 상호 독립이라 가정하자. 그러면
 \[
-\Pr\!\big(\mathrm{Pass@}(N{+}1)\text{ on }x\big) \;\ge\; \max\!\big\{p_{\mathrm{base}}(x),\,1-(1-p_{\min}(x))^N\big\} \;\ge\; 1-\exp(-Np_{\min}(x)).
+\Pr\!\big(\mathrm{Pass@}N\text{ on }x\big) \;\ge\; 1-(1-p_{\min}(x))^N \;\ge\; 1-\exp(-Np_{\min}(x)).
 \]
 \end{proposition}
 
@@ -598,7 +602,7 @@ Vision Transformer에서 정보가 거의 없는 patch token은 deeper layer에�
 
 \subsection{추가적인 suffix heatmap}
 
-Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.5B-Instruct와 LLaMA-3.1-8B-Instruct에 대해 동일한 per-token RSP attention 분석을 보고한다. 앞서 설명한 late-layer 이유 때문에 모든 셀에서 패턴이 완전히 동일하게 일반화되지는 않지만, 두 모델 모두에서 \emph{시퀀스 방향(가로축)의 단조 감소}는 §\ref{sec:mechanism}의 cache-growth 상계가 예측한 것과 일치한다. layer 축(세로)의 추가 감소는 별개의 경험적 sharpening 현상으로, Theorem~\ref{thm:decay}만으로 직접 따라오는 결과는 아니다.
+Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.5B-Instruct와 LLaMA-3.1-8B-Instruct에 대해 동일한 per-token RSP attention 분석을 보고한다. 앞서 설명한 late-layer 이유 때문에 모든 셀에서 패턴이 완전히 동일하게 일반화되지는 않지만, 두 모델 모두에서 \emph{시퀀스 방향(가로축)의 단조 감소}는 §\ref{sec:converge}의 cache-growth upper envelope가 예측한 것과 일치한다. layer 축(세로)의 추가 감소는 별개의 경험적 sharpening 현상으로, Theorem~\ref{thm:decay}만으로 직접 따라오는 결과는 아니다.
 
 \begin{figure}[ht]
   \centering
