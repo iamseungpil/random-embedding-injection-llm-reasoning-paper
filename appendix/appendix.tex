@@ -316,7 +316,7 @@ This appendix complements the semantic diversity results reported in Section~\re
 \clearpage
 \section{Token-Level Distribution Metrics}\label{app:token_metrics}
 
-This appendix provides formal definitions for the three metrics used in the Token-level analysis of Section~\ref{sec:diversity}. Let $P_{\text{base}}$ denote the baseline next-token distribution at $\tau=1.0$ and $P_{\text{target}}$ the candidate distribution being compared (e.g., the baseline at $\tau=2.0$ or RSP at $\tau=1.0$). All metrics are computed analytically from saved logits at the first generation step.
+This appendix provides formal definitions for the metrics used in Section~\ref{sec:diversity}. Numerical results are reported in Table~\ref{tab:rsp_vs_temp} of the main text. We extract first-token logits via a single forward pass (no autoregressive generation) and store the top-100 token ids and logit values per problem. Temperature conditions reuse the baseline logits scaled by $1/\tau$, requiring no separate inference. RSP draws 16 independent seeds per problem (MATH-500), and reported metrics are the mean across the 16 seeds. Pass@1 accuracy is computed over 16 samples per problem, with the baseline at $\tau{=}1.0$ reaching $73.92 \pm 0.78\%$. Let $P_{\text{base}}$ denote the baseline next-token distribution at $\tau=1.0$ and $P_{\text{target}}$ the candidate distribution being compared (e.g., baselines at $\tau{=}2.0, 3.0$ or RSP at $\tau=1.0$). All metrics are computed analytically from saved logits at the first generation step.
 
 \paragraph{Spearman rank correlation.}
 Spearman's $\rho$ is the Pearson correlation coefficient between the token ranks of two distributions:
@@ -337,7 +337,7 @@ The symmetrized, bounded version of Kullback--Leibler divergence:
 \begin{equation}
 \mathrm{JS}(P, Q) \;=\; \tfrac{1}{2}\,\mathrm{KL}(P \,\|\, M) + \tfrac{1}{2}\,\mathrm{KL}(Q \,\|\, M), \qquad M = \tfrac{1}{2}(P + Q).
 \end{equation}
-We use base-2 logarithms so that $\mathrm{JS} \in [0, 1]$. Tokens absent from the stored top-100 are assigned a sentinel logit ($-10^9$) before softmax, which is negligible for our setting since the top-5 covers more than $99.9\%$ of the probability mass.
+We use base-2 logarithms so that $\mathrm{JS} \in [0, 1]$. Tokens absent from the stored top-100 are assigned a sentinel logit ($-10^9$) before softmax, which is negligible for our setting.
 
 \clearpage
 \clearpage

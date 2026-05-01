@@ -75,7 +75,7 @@ This single inequality carries two messages. The RSP length $L$ is the design pa
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.72\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
   \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
   \label{fig:attention_mass}
 \end{figure}
