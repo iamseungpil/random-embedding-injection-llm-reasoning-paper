@@ -681,18 +681,123 @@ Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attenti
 
 \clearpage
 % ================================================================
-\section{GRPO Formulation}\label{app:grpo}
+\section{DAPO Implementation}\label{app:dapo}
 % ================================================================
 
-For a given prompt $q$, the behavior policy $\pi_{\theta_{\text{old}}}$ samples a group of $G$ responses $\{o_i\}_{i=1}^G$ with corresponding rewards $\{R_i\}_{i=1}^G$. The advantage of each response is computed by normalizing the group-level rewards:
-\begin{equation}
-  \hat{A}_{i,t} = \frac{R_i - \text{mean}(\{R_i\}_{i=1}^G)}{\text{std}(\{R_i\}_{i=1}^G)}.
+This appendix complements Section~\ref{sec:application} with the DAPO loss modifications relative to GRPO, the DAPO~+~RSP implementation, and full per-step results.
+
+\subsection{From GRPO to DAPO}\label{app:grpo}
+
+The vanilla GRPO objective \citep{shao2024deepseekmath} for a group of $G$ rollouts $\{o_i\}_{i=1}^G$ with rewards $\{R_i\}_{i=1}^G$ is
+\begin{equation}\label{eq:grpo}
+\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
 \end{equation}
-The policy is updated via a clipped objective with a KL penalty:
-\begin{equation}
-  \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E} \left[ \frac{1}{G} \sum_{i=1}^{G} \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \left( \min\left( r_{i,t} \hat{A}_{i,t},\; \text{clip}(r_{i,t}, 1\!-\!\varepsilon, 1\!+\!\varepsilon)\, \hat{A}_{i,t} \right) - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}}) \right) \right],
-\end{equation}
-where $r_{i,t} = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})$ is the importance sampling ratio, $\varepsilon$ is the clipping range, and $\beta$ controls the strength of the KL penalty against the reference policy $\pi_{\text{ref}}$.
+with importance ratio $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, group-relative advantage $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, clipping range $\varepsilon$, and KL penalty $\beta\,D_{\text{KL}}$ against the reference $\pi_{\text{ref}}$.
+
+We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$, and (iv) KL terms removed (\texttt{use\_kl\_loss}=False, \texttt{kl\_loss\_coef}=0, \texttt{algorithm.kl\_ctrl.kl\_coef}=0).
+
+\subsection{DAPO + RSP Implementation}\label{app:dapo_rsp_impl}
+
+For DAPO + RSP, we additionally inject a group-specific RSP $\mathbf{H}_g \in \mathbb{R}^{L \times d}$ ($L=20$) into each rollout. $\mathbf{H}_g$ is generated deterministically from a per-step group seed and injected via a forward hook; it is not a trainable parameter, so the learning signal is the policy adapting to arbitrary $\mathbf{H}_g$ rather than a learned prompt. Including $\mathbf{H}_g$ in the log-probabilities at both rollout and update time keeps the update on-policy with respect to the RSP-conditioned distribution (avoiding off-policy mismatch). With $G=8$ and $n=8$, each group contains a single response, so each rollout effectively sees a different $\mathbf{H}_g$.
+
+\subsection{Data, Batch, and Hyperparameters}
+
+\begin{table}[H]
+\centering
+\caption{DAPO~/~DAPO~+~RSP training setup on Qwen2.5-Math-7B.}
+\label{tab:dapo_hp}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{ll}
+\toprule
+\textbf{Field} & \textbf{Value} \\
+\midrule
+Train data & MATH Level 3--5 subset (\texttt{simplelr\_math\_35}, \textasciitilde 8{,}500 prompts) \\
+Prompt template & \texttt{qwen-boxed} \\
+Train batch size & 1024 \\
+PPO mini-batch size & 256 (4 PPO updates per rollout) \\
+Rollouts per prompt $G$ & 8 \\
+Max prompt / response length & 2{,}028 / 2{,}048 \\
+Rollout sampling & temperature $1.0$, top-$p$ $1.0$, top-$k$ $50$ \\
+\midrule
+$(\varepsilon_{\text{low}},\varepsilon_{\text{high}})$ & $(0.2,\,0.28)$ \\
+Dual clip $c$ & $10.0$ \\
+Loss aggregation & token-mean ($1/\sum_i|o_i|$) \\
+KL terms & disabled \\
+Entropy coefficient & $0$ \\
+\midrule
+Optimizer & AdamW, learning rate $5\times10^{-7}$ (constant), no warmup \\
+Total training & \textasciitilde 10 epochs, $\geq 80$ optimization steps \\
+Save / eval frequency & every 10 steps \\
+\midrule
+RSP (DAPO + RSP only) & suffix injection, $L=20$, freshly drawn per rollout \\
+\midrule
+Hardware & $4 \times$ NVIDIA B200 GPUs \\
+Wall-clock training time & $\sim$$12$ hours per run \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluation Protocol}
+
+Each saved checkpoint is converted to HuggingFace format and evaluated using the SimpleRL-Zoo \texttt{eval\_math\_nodes.sh} pipeline, which selects sampling parameters per benchmark to reduce variance on the smaller competition sets:
+
+\begin{table}[H]
+\centering
+\caption{Per-benchmark evaluation protocol used by SimpleRL-Zoo \texttt{sh/eval.sh}.}
+\label{tab:dapo_eval_protocol}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{lcccl}
+\toprule
+\textbf{Benchmark} & \textbf{\# Problems} & \textbf{Temperature} & \textbf{$n_{\text{sampling}}$} & \textbf{Metric} \\
+\midrule
+AIME 2024       & 30    & 1.0 & 32 & Avg@32 \\
+AMC 2023        & 40    & 1.0 & 32 & Avg@32 \\
+MATH-500        & 500   & 0.0 & 1  & accuracy (mean@1) \\
+GSM8K           & 1{,}319 & 0.0 & 1  & accuracy \\
+OlympiadBench   & 675   & 0.0 & 1  & accuracy \\
+Minerva Math    & 272   & 0.0 & 1  & accuracy \\
+GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The maximum number of generated tokens is $16{,}000$ across all benchmarks. The reported average is the unweighted mean over the seven benchmarks.
+
+\subsection{Per-Step Average Accuracy}
+
+\begin{table}[H]
+\centering
+\caption{Seven-benchmark average accuracy (\%) at every checkpoint. \textbf{Bold} marks each method's peak.}
+\label{tab:dapo_per_step}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{c c c}
+\toprule
+\textbf{Step} & \textbf{DAPO} & \textbf{DAPO~+~RSP} \\
+\midrule
+0   & 30.13 & 30.13 \\
+10  & 48.63 & 47.70 \\
+20  & 51.09 & 51.69 \\
+30  & 51.66 & 52.51 \\
+40  & 51.96 & 53.97 \\
+50  & 52.57 & 54.29 \\
+60  & 53.90 & 54.96 \\
+70  & 54.97 & 55.71 \\
+80  & \textbf{55.41} & 56.09 \\
+90  & 54.29 & \textbf{56.13} \\
+100 & 52.56 & 55.81 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Limitations and Future Work}\label{app:dapo_limitations}
+
+We do not claim DAPO + RSP as a complete recipe. The present comparison uses a reduced DAPO configuration that omits Dynamic Sampling and overlong reward shaping, and the evaluation runs are based on a single training seed. Confirming the gains under the full DAPO configuration, with multi-seed evaluation on small competition sets (AIME 2024, AMC 2023) where variance is highest, is left for future work.
 
 \clearpage
 % ================================================================
