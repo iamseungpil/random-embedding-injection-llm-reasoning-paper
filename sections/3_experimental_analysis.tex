@@ -53,7 +53,7 @@ We first examine how injecting random embeddings affects the model's reasoning p
 
 For instruct models and base models with their native prompt formats, RSP injection maintains or slightly shifts baseline performance within a few percentage points. Most strikingly, under prompt-format mismatch --- where base models receive ChatML templates they were not trained on --- RSP yields pronounced improvements of up to $+29$ pp. These gains are difficult to attribute to simple perturbation effects, as noise that merely raises model uncertainty would further degrade performance.
 
-\begin{table}[!t]
+\begin{table}[!ht]
 \centering
 \caption{Comparison with existing soft prompt methods (TTSV, SoftCoT, LTPO) under unified evaluation. Baseline and RSP values are from Table~\ref{tab:performance}. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
 \label{tab:prior_comparison}
