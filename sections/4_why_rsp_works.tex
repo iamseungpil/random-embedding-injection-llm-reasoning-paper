@@ -18,9 +18,7 @@ We start with the object being analyzed. Let $\mathbf{W}_E \in \mathbb{R}^{V\tim
 \begin{equation}\label{eq:rsp_def}
 h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,\dots,L.
 \end{equation}
-The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The prompt can be injected as a prefix $[\mathbf{H};\mathbf{X}]$, infix, or suffix $[\mathbf{X};\mathbf{H}]$ \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}. For repeated-sampling protocols, prompt draws and any decoding randomness across compared trials are assumed independent.
-
-The role of randomness is not to imitate the empirical embedding distribution. It is to make repeated rollouts from the same text prompt receive \emph{independent} perturbations. That independence is what exploration requires.
+The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The RSP can be concatenated with the input embeddings $\mathbf{X}$ at one of three positions: \textit{prefix} ($[\mathbf{H};\mathbf{X}]$), \textit{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), or \textit{suffix} ($[\mathbf{X};\mathbf{H}]$). These positions reflect the injection strategies in prior work: TTSV \citep{kang2025model} prepends as \textit{prefix}, SoftCoT \citep{xu2025softcot} and LTPO \citep{ye2025thinking} insert as \textit{infix} between user and assistant turns, and MemGen \citep{zhang2025memgen} appends as \textit{suffix}. For repeated-sampling protocols, RSP draws and decoding randomness are independent across trials. The role of this randomness is not to imitate the embedding distribution but to give repeated rollouts \emph{independent} perturbations, which is what exploration requires.
 
 % ================================================================
 \subsection{Exploration: how RSP enters the hidden state}\label{sec:improve}
@@ -28,7 +26,7 @@ The role of randomness is not to imitate the empirical embedding distribution. I
 
 We first ask how a single RSP injection perturbs the hidden state. RSP does not add to the hidden state directly; it enters only through attention weights, so its entire instantaneous influence at one layer can collect into a single quantity: the attention mass assigned to RSP tokens.
 
-Concretely, consider self-attention layer $\ell$ with $n$ real tokens and $L$ RSP tokens, attention weights $\alpha_{ij}^{(\ell)}$, and value vectors $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$ on the real and RSP sides. Define the RSP attention mass $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$. The attention output decomposes \emph{exactly} as
+Concretely, consider self-attention layer $\ell$ with $n$ real tokens and $L$ RSP tokens, query/key/value vectors $\mathbf{q}_i^{(\ell)}, \mathbf{k}_j^{(\ell)}, \mathbf{v}_j^{(\ell)}$ on the real side and $\mathbf{k}_{r_j}^{(\ell)}, \mathbf{v}_{r_j}^{(\ell)}$ on the RSP side, with attention weights $\alpha_{ij}^{(\ell)}$. Define the RSP attention mass $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$. The attention output decomposes \emph{exactly} as
 \begin{equation}\label{eq:decomp}
 \mathbf{x}_i^{(\ell+1)}
 \;=\;
@@ -48,7 +46,7 @@ Split the attention output $\sum_{j=1}^{n+L}\alpha_{ij}^{(\ell)}\mathbf{v}_{ij}^
 The same scalar $w_{r,i}^{(\ell)}$ controls two things at once. The attenuation ratio $1-w_{r,i}^{(\ell)}$ on the real-token signal and the upper bound $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$ on the random contribution are both tied to it. The RSP-induced variation reduces to tracking a single number in $[0,1]$. Early in decoding the cache is short and $w_{r,i}^{(\ell)}$ can be nontrivial, so the same identity that bounds the random contribution also lets one sampled RSP perturb early next-token decisions.
 
 % ================================================================
-\subsection{Annealing: cache growth dilutes RSP attention}\label{sec:converge}
+\subsection{Annealing: KV cache growth dilutes RSP attention}\label{sec:converge}
 % ================================================================
 
 The natural next question: how does this scalar behave as decoding proceeds? In autoregressive generation, the KV cache grows by one real token each step, so the softmax denominator on the real side keeps growing while the RSP side stays fixed. The intuition becomes an inequality.
