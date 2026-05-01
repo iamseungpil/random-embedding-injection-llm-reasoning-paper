@@ -100,27 +100,28 @@ Although existing soft prompt methods are optimized for different objectives, th
 Section~\ref{sec:entropy} empirically established that RSP reshapes the early-stage output distribution. We now examine whether this shift translates into reasoning diversity at three complementary levels of analysis: token rankings, semantic content of trajectories, and task-level outcomes. The three analyses converge on a directional picture: RSP's first-token perturbation propagates into semantically more diverse reasoning trajectories, which in turn yields greater output diversity at the task level. All three analyses share the setting: Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix injection, and $L=10$.
 
 \paragraph{Token-level: distribution beyond temperature.}
-\begin{wraptable}{r}{0.42\textwidth}
+\begin{wraptable}{r}{0.55\textwidth}
   \vspace{-1.2em}
   \centering
-  \caption{First-token distribution metrics measured against the baseline at $\tau{=}1.0$, comparing the baseline at $\tau{=}2.0$ with RSP at $\tau{=}1.0$.}
+  \caption{First-token distribution metrics measured against the baseline at $\tau{=}1.0$, comparing baselines at higher temperatures ($\tau{=}2.0, 3.0$) with RSP at $\tau{=}1.0$. RSP metrics are averaged over 16 random seeds; Acc reports mean $\pm$ std across 16 samples per problem.}
   \label{tab:rsp_vs_temp}
   \footnotesize
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{0.9}
-  \begin{tabular}{lcc}
+  \begin{tabular}{lccc}
     \toprule
-    \textbf{Metric} & \textbf{$\tau{=}2.0$} & \cellcolor{blue!10}\textbf{RSP} \\
+    \textbf{Metric} & \textbf{$\tau{=}2.0$} & \textbf{$\tau{=}3.0$} & \cellcolor{blue!10}\textbf{RSP} \\
     \midrule
-    Spearman $\rho$ & 1.0 & \cellcolor{blue!10}\textbf{0.651} \\
-    Mass outside top-10 & 5.15\% & \cellcolor{blue!10}\textbf{27.64\%} \\
-    JS divergence & 0.086 & \cellcolor{blue!10}\textbf{0.231} \\
+    Spearman $\rho$ & 1.000 & 1.000 & \cellcolor{blue!10}\textbf{0.709} \\
+    Mass outside top-10 & 5.18\% & 29.11\% & \cellcolor{blue!10}\textbf{21.86\%} \\
+    JS divergence & 0.060 & 0.218 & \cellcolor{blue!10}\textbf{0.131} \\
+    Acc (\%) & 20.77 $\pm$ 1.47 & 1.42 $\pm$ 0.35 & \cellcolor{blue!10}\textbf{73.30 $\pm$ 1.07} \\
     \bottomrule
   \end{tabular}
 \end{wraptable}
-We test whether RSP modifies the first-token distribution in a qualitatively different way from temperature scaling, which preserves token rankings while only flattening probabilities. Under autoregressive decoding, any trajectory-level divergence between RSP and the baseline must originate from the first generation step, a critical forking point for reasoning trajectories \citep{wang2025beyond}. Using the baseline at $\tau{=}1.0$ as reference, we compare RSP at $\tau{=}1.0$ against the baseline at $\tau{=}2.0$ (the high-temperature ceiling of what flattening alone can achieve) on three complementary metrics: Spearman rank correlation $\rho$ to detect rank reorganization, the probability mass placed outside the baseline's top-10 to measure support expansion, and Jensen--Shannon divergence to quantify the overall magnitude of distributional change (formal definitions in Appendix~\ref{app:token_metrics}).
+We quantify how much RSP shifts the first-token distribution, using temperature sampling as a baseline. Under autoregressive decoding, any trajectory-level divergence between RSP and the baseline must originate from the first generation step, a critical forking point for reasoning trajectories \citep{wang2025beyond}. With the baseline at $\tau{=}1.0$ as reference, we compare baselines at $\tau{=}2.0$ and $\tau{=}3.0$ (16 samples per problem) against RSP at $\tau{=}1.0$ (averaged over 16 seeds) on four metrics: Spearman rank correlation $\rho$ measuring whether the relative ranking of tokens is preserved, probability mass outside the baseline's top-10 measuring support expansion to low-probability tokens, Jensen--Shannon divergence as the overall distributional distance, and Pass@1 accuracy (formal definitions in Appendix~\ref{app:token_metrics}).
 
-Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.15\% of probability mass falls outside the baseline's top-10. RSP at $\tau{=}1.0$ reaches 27.64\%. The Spearman rank correlation tells the story: because temperature scaling $p_i^{(\tau)} \propto p_i^{1/\tau}$ is a monotone transform that preserves token ranking ($p_i > p_j \iff p_i^{(\tau)} > p_j^{(\tau)}$) for any $\tau > 0$, $\rho$ relative to the baseline is exactly $1$. RSP, by contrast, reranks the token distribution itself, reducing $\rho$ to $0.651$---an effect temperature cannot produce at any $\tau$. The Jensen--Shannon divergence ($0.231$) quantifies the overall magnitude of this distributional change. Since $\rho < 1$ rules out rank-preserving flattening as the sole cause, the high divergence reflects a structural reshape of the distribution rather than a uniform flattening of the same ranking.
+Table~\ref{tab:rsp_vs_temp} reports the contrast. RSP's distributional shift falls between $\tau{=}2.0$ and $\tau{=}3.0$ in magnitude (mass outside top-10 and JS divergence), yet its mechanism and cost differ sharply. Temperature scaling is a monotone transform that preserves token ranking, so $\rho$ relative to the baseline is exactly $1$ at any $\tau$. RSP partially preserves the ranking but induces reranking, yielding $\rho=0.709$. The Pass@1 row exposes the cost: approaching RSP's magnitude requires raising $\tau$ toward 3.0, but accuracy collapses to $1.42\%$, while RSP preserves accuracy at $73.30\%$. Rather than uniformly flattening the distribution as temperature scaling does, RSP produces a fundamentally different kind of perturbation.
 
 % =====================================================================
 % Reranking-by-position analysis (commented out for now; may be added back).
@@ -171,7 +172,7 @@ Table~\ref{tab:rsp_vs_temp} reports the contrast. Even at $\tau{=}2.0$, only 5.1
 \end{wraptable}
 Token-level reranking raises a second question: do first-token perturbations produce semantically diverse reasoning trajectories, or do independently perturbed trajectories converge to semantically similar ones? We randomly sample 64 problems from MATH-500 and generate 300 independent trajectories per problem under Baseline and RSP at temperature $\tau = 1.0$. Each trajectory is encoded into a dense semantic vector by BGE-M3 \citep{chen2024bge}, a sentence-level multilingual embedding model, and we compute three complementary metrics over these embeddings: \textit{pairwise cosine distance} between trajectories captures the overall semantic spread of the trajectory set; \textit{inter-cluster distance} between centroids identified by DBSCAN \citep{ester1996density}, a density-based clustering algorithm that groups nearby trajectories without prespecifying the number of clusters, captures the separation between distinct trajectory groups; and \textit{intra-cluster distance} captures semantic coherence within each group.
 
-Table~\ref{tab:semantic_metrics} reveals three concurrent patterns. Pairwise cosine distance rises by about $1.4\times$, indicating that the trajectory set as a whole becomes more semantically diverse. Inter-cluster distance jumps by about $5.4\times$, showing that the trajectories split into substantially more separated groups. Intra-cluster distance is essentially unchanged, indicating that semantic coherence within each group remains comparable to the baseline. RSP also yields larger pairwise distance than baseline on 56 of 64 problems (87.5\%).
+Table~\ref{tab:semantic_metrics} reveals three concurrent patterns. Pairwise cosine distance rises by $1.4\times$, indicating that the trajectory set as a whole becomes more semantically diverse. Inter-cluster distance jumps by $5.4\times$, showing that the trajectories split into substantially more separated groups. Intra-cluster distance is essentially unchanged, indicating that semantic coherence within each group remains comparable to the baseline. RSP also yields larger pairwise distance than baseline on 56 of 64 problems (87.5\%).
 
 \paragraph{Outcome-level: Pass@$n$ scaling.}
 Finally, we evaluate whether the token- and trajectory-level diversity translates into task-level outcome diversity through Pass@$n$ \citep{chen2021codex}, the probability that at least one of $n$ sampled solutions is correct. We compare four conditions with $n=16$ samples per problem on MATH-500 and AIME24: \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling only; \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: a single RSP shared across all samples; \textit{(iii)~RSP (indep.\ seed), greedy}: a different RSP per sample without temperature; and \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: a different RSP per sample combined with temperature sampling.
