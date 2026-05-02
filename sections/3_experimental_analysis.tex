@@ -5,7 +5,7 @@
 
 \section{Empirical Validation}\label{sec:experimental_analysis}
 
-We now examine how the explanation in §\ref{sec:why_rsp_works} appears in actual LLM generation through three scenes. First, we ask whether RSP preserves baseline accuracy without breaking it, and recovers it in some settings (\S\ref{sec:performance}). Second, we check whether the early diversification followed by late stabilization---predicted by the two-sided envelope---is observed empirically (\S\ref{sec:entropy}). Finally, we contrast Pass@$N$ between sharing one RSP across samples versus drawing a fresh RSP per sample, directly probing whether \emph{independence} is the key (\S\ref{sec:diversity}).
+We now examine how the explanation in §\ref{sec:why_rsp_works} appears in actual LLM generation through three scenes. First, we ask whether RSP preserves baseline accuracy without breaking it, and recovers it in some settings (\S\ref{sec:performance}). Second, we check whether early diversification followed by late stabilization---the empirical signature suggested by the attention decomposition and cache-growth envelope---is observed (\S\ref{sec:entropy}). Finally, we contrast Pass@$N$ between sharing one RSP across samples versus drawing a fresh RSP per sample, directly probing whether \emph{independence} is the key (\S\ref{sec:diversity}).
 
 % ================================================================
 \subsection{Experimental Setup}\label{sec:setup}
@@ -53,7 +53,7 @@ We first examine how injecting random embeddings affects the model's reasoning p
 
 For instruct models and base models with their native prompt formats, RSP injection maintains or slightly shifts baseline performance within a few percentage points. Most strikingly, under prompt-format mismatch --- where base models receive ChatML templates they were not trained on --- RSP yields pronounced improvements of up to $+29$ pp. These gains are difficult to attribute to simple perturbation effects, as noise that merely raises model uncertainty would further degrade performance.
 
-\begin{table}[!ht]
+\begin{table}[!t]
 \centering
 \caption{Comparison with existing soft prompt methods (TTSV, SoftCoT, LTPO) under unified evaluation. Baseline and RSP values are from Table~\ref{tab:performance}. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
 \label{tab:prior_comparison}
@@ -106,7 +106,7 @@ Section~\ref{sec:entropy} empirically established that RSP reshapes the early-st
   \caption{First-token distribution metrics measured against the baseline at $\tau{=}1.0$, comparing baselines at higher temperatures ($\tau{=}2.0, 3.0$) with RSP at $\tau{=}1.0$. RSP metrics are averaged over 16 random seeds; Acc reports mean $\pm$ std across 16 samples per problem.}
   \label{tab:rsp_vs_temp}
   \footnotesize
-  \setlength{\tabcolsep}{4pt}
+  \setlength{\tabcolsep}{3.5pt}
   \renewcommand{\arraystretch}{0.9}
   \begin{tabular}{lccc}
     \toprule
@@ -174,15 +174,14 @@ Token-level reranking raises a second question: do first-token perturbations pro
 
 Table~\ref{tab:semantic_metrics} reveals three concurrent patterns. Pairwise cosine distance rises by $1.4\times$, indicating that the trajectory set as a whole becomes more semantically diverse. Inter-cluster distance jumps by $5.4\times$, showing that the trajectories split into substantially more separated groups. Intra-cluster distance is essentially unchanged, indicating that semantic coherence within each group remains comparable to the baseline. RSP also yields larger pairwise distance than baseline on 56 of 64 problems (87.5\%).
 
-\paragraph{Outcome-level: Pass@$n$ scaling.}
-Finally, we evaluate whether the token- and trajectory-level diversity translates into task-level outcome diversity through Pass@$n$ \citep{chen2021codex}, the probability that at least one of $n$ sampled solutions is correct. We compare four conditions with $n=16$ samples per problem on MATH-500 and AIME24: \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling only; \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: a single RSP shared across all samples; \textit{(iii)~RSP (indep.\ seed), greedy}: a different RSP per sample without temperature; and \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: a different RSP per sample combined with temperature sampling.
+\paragraph{Outcome-level: Pass@$N$ scaling.}
+Finally, we evaluate whether the token- and trajectory-level diversity translates into task-level outcome diversity through Pass@$N$ \citep{chen2021codex}, the probability that at least one of $N$ sampled solutions is correct. We compare four conditions with $N=16$ samples per problem on MATH-500 and AIME24: \textit{(i)~Baseline, $\tau\!=\!1.0$}: temperature sampling only; \textit{(ii)~RSP (fixed seed), $\tau\!=\!1.0$}: a single RSP shared across all samples; \textit{(iii)~RSP (indep.\ seed), greedy}: a different RSP per sample without temperature; and \textit{(iv)~RSP (indep.\ seed), $\tau\!=\!1.0$}: a different RSP per sample combined with temperature sampling.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/diversity/pass_at_n_combined.pdf}
-  \caption{Pass@$n$ scaling on (a) MATH-500 and (b) AIME24 with Qwen2.5-Math-1.5B-Instruct, $n=16$ samples per problem.}
+  \caption{Pass@$N$ scaling on (a) MATH-500 and (b) AIME24 with Qwen2.5-Math-1.5B-Instruct, $N=16$ samples per problem. Baseline: temperature sampling only. Fixed seed: single RSP shared across samples combined with temperature. Indep.\ seed: a different RSP per sample, with or without temperature.}
   \label{fig:pass_at_n}
 \end{figure}
 
-Condition \textit{(iv)} achieves the highest Pass@$n$ on both benchmarks, reaching 92.80\% on MATH-500 and 36.67\% on AIME24 at $n=16$. Condition \textit{(ii)} shows no improvement over the baseline, suggesting that the diversity gain likely depends on varying the random embeddings across samples rather than a single fixed perturbation. Pass@1 remains comparable to the baseline on MATH-500, and on the more challenging AIME24, \textit{(iv)} achieves higher Pass@1 than the baseline. Together these observations suggest that combining independent RSPs with temperature sampling may yield greater trajectory diversity while preserving single-sample accuracy.
-
+Condition \textit{(iv)} achieves the highest Pass@$N$ on both benchmarks, reaching 92.80\% on MATH-500 and 36.67\% on AIME24 at $N=16$. Condition \textit{(ii)} shows no improvement over the baseline, suggesting that the diversity gain likely depends on varying the random embeddings across samples rather than a single fixed perturbation. Pass@1 remains comparable to the baseline on MATH-500, and on the more challenging AIME24, \textit{(iv)} achieves higher Pass@1 than the baseline. Together these observations suggest that combining independent RSPs with temperature sampling may yield greater trajectory diversity while preserving single-sample accuracy.

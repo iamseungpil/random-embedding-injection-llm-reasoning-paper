@@ -393,7 +393,7 @@ $\sigma>0$이고 $\bar h \sim \mathcal{N}(0,\sigma^2\mathbf{I}_d)$라 하자. �
 \subsection{Exploration: attention decomposition과 perturbation 크기}\label{app:rsp_noise}
 
 \begin{proposition}[Attention decomposition]\label{prop:attention_decomposition}
-Query 위치 $i$, layer $\ell$에서 실제 토큰 $n$개와 RSP 토큰 $L$개에 대한 attention weight를 $\alpha_{ij}^{(\ell)}$라 하자. RSP attention mass를
+Layer $\ell$의 한 attention head가 query 위치 $i$에서 마스크되지 않은 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하며, attention logit은 모두 유한하다고 하자. Attention weight를 $\alpha_{ij}^{(\ell)}$로 두고, RSP attention mass를
 \[
 w_{r,i}^{(\ell)} := \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}
 \]
@@ -403,36 +403,36 @@ w_{r,i}^{(\ell)} := \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}
 \]
 라 정의하면,
 \[
-\mathbf{x}_i^{(\ell+1)}
+\mathbf{o}_i^{(\ell)}
 =
-(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{o}}_i^{(\ell)}
 +
 \boldsymbol{\eta}_i^{(\ell)}
 \]
 이고
 \[
-\tilde{\mathbf{x}}_i^{(\ell+1)} := \sum_{j=1}^{n}\tilde{\alpha}_{ij}^{(\ell)}\mathbf{v}_j^{(\ell)},
+\tilde{\mathbf{o}}_i^{(\ell)} := \sum_{j=1}^{n}\tilde{\alpha}_{ij}^{(\ell)}\mathbf{v}_j^{(\ell)},
 \qquad
 \boldsymbol{\eta}_i^{(\ell)} := \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}.
 \]
 \end{proposition}
 
 \begin{proof}
-Attention 출력은 실제 토큰 항과 RSP 토큰 항으로 정확히 나뉜다.
+Head output은 실제 토큰 항과 RSP 토큰 항으로 정확히 나뉜다.
 \[
-\mathbf{x}_i^{(\ell+1)}
+\mathbf{o}_i^{(\ell)}
 =
 \sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_j^{(\ell)}
 +
 \sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}.
 \]
-정의상 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}=1-w_{r,i}^{(\ell)}$이므로 실제 토큰 항은
+마스크되지 않은 실제 토큰이 있고 softmax 가중치가 양수이므로 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}=1-w_{r,i}^{(\ell)}>0$이다. 따라서 실제 토큰 항은
 \[
 \sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_j^{(\ell)}
 =
 (1-w_{r,i}^{(\ell)})\sum_{j=1}^{n}\frac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}}\mathbf{v}_j^{(\ell)}
 =
-(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{o}}_i^{(\ell)}
 \]
 가 된다. 이를 대입하면 분해가 바로 따른다.
 \end{proof}
@@ -464,13 +464,13 @@ Corollary~\ref{cor:perturbation_magnitude}가 본문에 필요한 유일한 정�
 \subsection{Theorem~\ref{thm:decay}의 따름정리}
 
 \begin{corollary}[fixed-gap envelope의 시퀀스 방향 단조 감소]\label{cor:sequence_annealing}
-$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$는 $n$에 대해 엄격히 감소한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
+$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$는 $n$에 대해 엄격히 감소하고 $n\to\infty$에서 0으로 수렴한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
 \end{corollary}
 
 \noindent 자기회귀 디코딩에서는 새 토큰이 생성될 때마다 query·key·hidden state가 함께 갱신되어 $\Delta_i^{(\ell)}$도 step별로 변하므로, ``실현된 mass가 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대 mass의 envelope이 단조 감소한다''가 정확한 진술이다.
 
 \begin{proof}
-$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 엄격히 감소한다.
+$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 엄격히 감소한다. 또한 분자는 고정되어 있고 분모는 $n$에 대해 선형으로 발산하므로 $f(n)\to0$이다.
 \end{proof}
 
 \begin{corollary}[고정 gap envelope 아래의 RSP 기여 감쇠]\label{cor:vanishing_perturbation}
@@ -625,18 +625,123 @@ Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.
 
 \clearpage
 % ================================================================
-\section{GRPO 정식화}\label{app:grpo}
+\section{DAPO 구현}\label{app:dapo}
 % ================================================================
 
-주어진 프롬프트 $q$에 대해, behavior policy $\pi_{\theta_{\text{old}}}$는 보상 $\{R_i\}_{i=1}^G$를 갖는 응답 집합 $\{o_i\}_{i=1}^G$를 샘플링한다. 각 응답의 advantage는 그룹 수준 보상을 정규화해 계산한다.
-\begin{equation}
-  \hat{A}_{i,t} = \frac{R_i - \text{mean}(\{R_i\}_{i=1}^G)}{\text{std}(\{R_i\}_{i=1}^G)}.
+이 부록은 \S\ref{sec:application}을 보충하여 GRPO 대비 DAPO 손실 변경, DAPO~+~RSP 구현, 그리고 step별 전체 결과를 정리한다.
+
+\subsection{GRPO에서 DAPO로}\label{app:grpo}
+
+원본 GRPO \citep{shao2024deepseekmath}는 보상 $\{R_i\}_{i=1}^G$를 갖는 $G$개 rollout $\{o_i\}_{i=1}^G$에 대해 다음 목적함수를 사용한다.
+\begin{equation}\label{eq:grpo}
+\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
 \end{equation}
-정책은 KL penalty가 포함된 clipped objective로 업데이트한다.
-\begin{equation}
-  \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E} \left[ \frac{1}{G} \sum_{i=1}^{G} \frac{1}{|o_i|} \sum_{t=1}^{|o_i|} \left( \min\left( r_{i,t} \hat{A}_{i,t},\; \text{clip}(r_{i,t}, 1\!-\!\varepsilon, 1\!+\!\varepsilon)\, \hat{A}_{i,t} \right) - \beta D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}}) \right) \right],
-\end{equation}
-여기서 $r_{i,t} = \pi_\theta(o_{i,t} \mid q, o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t} \mid q, o_{i,<t})$는 importance sampling ratio이고, $\varepsilon$는 clipping 범위, $\beta$는 reference policy $\pi_{\text{ref}}$에 대한 KL penalty 세기를 조절한다.
+여기서 importance ratio는 $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, 그룹 상대 advantage는 $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, $\varepsilon$는 clipping 범위, $\beta\,D_{\text{KL}}$은 reference $\pi_{\text{ref}}$에 대한 KL 페널티다.
+
+학습 파이프라인은 SimpleRL-Zoo \citep{zeng2025simplerl}를 기반으로 하고 DAPO를 VeRL \citep{sheng2024hybridflow} 위에서 구현한다. DAPO는 Eq.~\eqref{eq:grpo}를 네 가지 측면에서 수정한다. (i) 토큰 단위 손실 집계 $1/\sum_i|o_i|$ ($1/|o_i|$ 대신), (ii) 비대칭 clipping $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ ($c=10$), (iv) KL 항 제거 (\texttt{use\_kl\_loss}=False, \texttt{kl\_loss\_coef}=0, \texttt{algorithm.kl\_ctrl.kl\_coef}=0).
+
+\subsection{DAPO + RSP 구현}\label{app:dapo_rsp_impl}
+
+DAPO + RSP에서는 추가로 그룹별 RSP $\mathbf{H}_g \in \mathbb{R}^{L \times d}$ ($L=20$)를 각 rollout에 주입한다. $\mathbf{H}_g$는 step별 group seed로 결정적으로 생성하고 forward hook으로 주입하므로 학습 가능 파라미터가 아니다. 따라서 학습 신호는 학습된 prompt에서 오는 것이 아니라, policy가 임의의 $\mathbf{H}_g$에 적응하는 데서 온다. rollout 시점과 update 시점 모두에서 $\mathbf{H}_g$를 log-prob에 포함해 RSP-conditioned 분포에 대한 on-policy 업데이트를 유지한다(off-policy mismatch 회피). $G=8$, $n=8$이라 각 그룹에 응답이 하나뿐이므로 rollout마다 사실상 다른 $\mathbf{H}_g$를 본다.
+
+\subsection{데이터, 배치, 하이퍼파라미터}
+
+\begin{table}[H]
+\centering
+\caption{Qwen2.5-Math-7B에서의 DAPO~/~DAPO~+~RSP 학습 설정.}
+\label{tab:dapo_hp}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{ll}
+\toprule
+\textbf{항목} & \textbf{값} \\
+\midrule
+학습 데이터 & MATH Level 3--5 subset (\texttt{simplelr\_math\_35}, 약 8{,}500 prompt) \\
+Prompt template & \texttt{qwen-boxed} \\
+학습 배치 크기 & 1024 \\
+PPO mini-batch 크기 & 256 (rollout당 4회 PPO 업데이트) \\
+prompt당 rollout 수 $G$ & 8 \\
+최대 prompt / response 길이 & 2{,}028 / 2{,}048 \\
+Rollout sampling & temperature $1.0$, top-$p$ $1.0$, top-$k$ $50$ \\
+\midrule
+$(\varepsilon_{\text{low}},\varepsilon_{\text{high}})$ & $(0.2,\,0.28)$ \\
+Dual clip $c$ & $10.0$ \\
+손실 집계 & token-mean ($1/\sum_i|o_i|$) \\
+KL 항 & 사용 안 함 \\
+Entropy 계수 & $0$ \\
+\midrule
+Optimizer & AdamW, learning rate $5\times10^{-7}$ (constant), warmup 없음 \\
+총 학습 & 약 10 epoch, $\geq 80$ 최적화 step \\
+저장 / 평가 주기 & 매 10 step \\
+\midrule
+RSP (DAPO + RSP에만) & suffix 주입, $L=20$, rollout마다 새로 추첨 \\
+\midrule
+하드웨어 & $4 \times$ NVIDIA B200 GPU \\
+실측 학습 시간 & run당 약 12시간 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{평가 프로토콜}
+
+저장된 각 체크포인트는 HuggingFace 형식으로 변환한 뒤 SimpleRL-Zoo \texttt{eval\_math\_nodes.sh} 파이프라인으로 평가한다. 작은 경시대회 셋의 분산을 줄이기 위해 벤치마크별로 sampling 파라미터를 다르게 둔다.
+
+\begin{table}[H]
+\centering
+\caption{SimpleRL-Zoo \texttt{sh/eval.sh}의 벤치마크별 평가 프로토콜.}
+\label{tab:dapo_eval_protocol}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{lcccl}
+\toprule
+\textbf{벤치마크} & \textbf{문제 수} & \textbf{Temperature} & \textbf{$n_{\text{sampling}}$} & \textbf{Metric} \\
+\midrule
+AIME 2024       & 30    & 1.0 & 32 & Avg@32 \\
+AMC 2023        & 40    & 1.0 & 32 & Avg@32 \\
+MATH-500        & 500   & 0.0 & 1  & accuracy (mean@1) \\
+GSM8K           & 1{,}319 & 0.0 & 1  & accuracy \\
+OlympiadBench   & 675   & 0.0 & 1  & accuracy \\
+Minerva Math    & 272   & 0.0 & 1  & accuracy \\
+GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+모든 벤치마크에서 최대 생성 토큰 수는 $16{,}000$이다. 보고하는 평균은 7개 벤치마크의 가중치 없는 평균이다.
+
+\subsection{Step별 평균 정확도}
+
+\begin{table}[H]
+\centering
+\caption{체크포인트별 7-벤치마크 평균 정확도(\%). \textbf{굵게}는 각 방법의 peak.}
+\label{tab:dapo_per_step}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{c c c}
+\toprule
+\textbf{Step} & \textbf{DAPO} & \textbf{DAPO~+~RSP} \\
+\midrule
+0   & 30.13 & 30.13 \\
+10  & 48.63 & 47.70 \\
+20  & 51.09 & 51.69 \\
+30  & 51.66 & 52.51 \\
+40  & 51.96 & 53.97 \\
+50  & 52.57 & 54.29 \\
+60  & 53.90 & 54.96 \\
+70  & 54.97 & 55.71 \\
+80  & \textbf{55.41} & 56.09 \\
+90  & 54.29 & \textbf{56.13} \\
+100 & 52.56 & 55.81 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{한계와 향후 과제}\label{app:dapo_limitations}
+
+DAPO + RSP를 완성된 레시피로 주장하지는 않는다. 본 비교는 Dynamic Sampling과 overlong reward shaping을 생략한 축소된 DAPO 설정을 사용했고, 평가 run은 단일 학습 seed에 기반한다. 분산이 큰 작은 경시대회 셋(AIME 2024, AMC 2023)에서 multi-seed 평가와 함께 전체 DAPO 설정 아래에서 이득을 재확인하는 작업은 향후 과제로 남는다.
 
 \clearpage
 % ================================================================
