@@ -47,12 +47,12 @@ head output을 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{
 이 한 양 $w_{r,i}^{(\ell)}$이 두 가지를 동시에 통제한다는 점에 주목하자. 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$이 모두 같은 스칼라에 매여 있다. RSP가 만드는 변동은 다차원 섭동이 아니라 0과 1 사이 한 값을 추적하는 문제로 환원된다. 디코딩 초반에는 캐시가 짧아 $w_{r,i}^{(\ell)}$이 무시할 수 없는 값을 가질 수 있으므로, 무작위 기여를 묶어 두는 같은 항등식이 동시에 한 번의 RSP가 초반 next-token 결정을 흔들 수 있는 조건도 마련한다.
 
 % ================================================================
-\subsection{Annealing: 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
+\subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
 % ================================================================
 
 다음 자연스러운 질문은 디코딩이 진행되면 이 값이 어떻게 변하는가이다. 자기회귀 생성에서 KV 캐시는 매 step 실제 토큰 항을 하나씩 추가하지만 RSP 항의 개수는 고정되어 있다. 실제 토큰과 RSP 토큰 사이의 logit gap을 고정해 보면, 이 cache growth는 다음 상계로 나타난다.
 
-\begin{theorem}[캐시 성장에 의한 fixed-gap 상계 감소]\label{thm:decay}
+\begin{theorem}[캐시 성장에 의한 어텐션 질량 감쇠]\label{thm:decay}
 Query가 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하고 모든 logit이 유한하다고 하자. 사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서
 \[
 w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
@@ -93,7 +93,7 @@ Theorem~\ref{thm:decay}는 한 rollout 안에서 RSP가 얼마나 움직일 수 
 $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{theorem}
 
-등호의 핵심은 가우시안 자체가 아니라 등방 공분산이다. 같은 분산 예산 아래에서 ``가장 덜 탐색되는 방향''을 가장 크게 만드는 분포는 등방 공분산을 가진 분포다. RSP는 \emph{스케일은 임베딩에서 빌려 오되 방향 기하는 의도적으로 버리는} 설계가 된다. 등방 가우시안은 추가로 $\mathbb{R}^d$ 전역에서 양의 밀도(full support)를 가지므로 어떤 방향에 대해서도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}). 학습된 고정 prompt($\Sigma_D=0$), PCA 정렬 노이즈, 어휘 토큰 추첨, 임베딩 공분산 정합은 모두 등방이 아니므로 적어도 한 방향에서 덜 탐색하게 된다.
+등호는 등방 공분산을 가진 임의의 분포에서 성립한다 — 가우시안만이 답은 아니다. 가우시안 RSP 설계는 \emph{스케일은 임베딩 분포에서 빌려 오되 방향 기하는 의도적으로 버리는} 형태가 된다. 등방 가우시안은 추가로 $\mathbb{R}^d$ 전역에서 양의 밀도(full support)를 가지므로 어떤 방향에 대해서도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}). 학습된 고정 prompt($\Sigma_D=0$), PCA 정렬 노이즈, 어휘 토큰 추첨, 임베딩 공분산 정합은 모두 등방이 아니므로 적어도 한 방향에서 덜 탐색하게 된다.
 
 이제 surrogate 위에서 branch opening을 형식화한다. 중심화된 prompt $\bar h$ 근방에서 logit을 1차로 근사한 surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$, $a_i := \nabla_{\bar h}z_i(0)$를 둔다. baseline 외 토큰 $i$의 top-$K$ 진입 영역을 $\mathcal{G}_{i,K} := \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}$로 둔다(이는 실제 top-$K$ 정의와 정확히 맞는다).
 
