@@ -429,7 +429,7 @@ This appendix follows the same order as the main theory section: exploration, an
 \subsection{Exploration: attention decomposition and perturbation size}\label{app:rsp_noise}
 
 \begin{proposition}[Attention decomposition]\label{prop:attention_decomposition}
-Let $\alpha_{ij}^{(\ell)}$ be the attention weights for query position $i$ at layer $\ell$, with $n$ real tokens and $L$ random tokens. Define
+For one attention head at query position $i$ in layer $\ell$, let $\alpha_{ij}^{(\ell)}$ be the attention weights over $n\ge1$ unmasked real tokens and $L\ge1$ random tokens, with finite attention logits. Define
 \[
 w_{r,i}^{(\ell)} := \sum_{j=1}^{L} \alpha_{i,n+j}^{(\ell)}
 \]
@@ -439,36 +439,36 @@ and, for $j \in [n]$,
 \]
 Then
 \[
-\mathbf{x}_i^{(\ell+1)}
+\mathbf{o}_i^{(\ell)}
 =
-(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{o}}_i^{(\ell)}
 +
 \boldsymbol{\eta}_i^{(\ell)},
 \]
 where
 \[
-\tilde{\mathbf{x}}_i^{(\ell+1)} := \sum_{j=1}^{n} \tilde{\alpha}_{ij}^{(\ell)} \mathbf{v}_j^{(\ell)}
+\tilde{\mathbf{o}}_i^{(\ell)} := \sum_{j=1}^{n} \tilde{\alpha}_{ij}^{(\ell)} \mathbf{v}_j^{(\ell)}
 \qquad\text{and}\qquad
 \boldsymbol{\eta}_i^{(\ell)} := \sum_{j=1}^{L} \alpha_{i,n+j}^{(\ell)} \mathbf{v}_{r_j}^{(\ell)}.
 \]
 \end{proposition}
 
 \begin{proof}
-The attention output is
+The head output is
 \[
-\mathbf{x}_i^{(\ell+1)}
+\mathbf{o}_i^{(\ell)}
 =
 \sum_{j=1}^{n} \alpha_{ij}^{(\ell)} \mathbf{v}_j^{(\ell)}
 +
 \sum_{j=1}^{L} \alpha_{i,n+j}^{(\ell)} \mathbf{v}_{r_j}^{(\ell)}.
 \]
-By definition, $\sum_{j=1}^{n} \alpha_{ij}^{(\ell)} = 1-w_{r,i}^{(\ell)}$, so
+By the softmax positivity and the existence of at least one unmasked real token, $\sum_{j=1}^{n} \alpha_{ij}^{(\ell)} = 1-w_{r,i}^{(\ell)} > 0$, so
 \[
 \sum_{j=1}^{n} \alpha_{ij}^{(\ell)} \mathbf{v}_j^{(\ell)}
 =
 (1-w_{r,i}^{(\ell)}) \sum_{j=1}^{n} \frac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}} \mathbf{v}_j^{(\ell)}
 =
-(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{x}}_i^{(\ell+1)}.
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{o}}_i^{(\ell)}.
 \]
 Substituting this identity gives the decomposition.
 \end{proof}
@@ -501,14 +501,14 @@ Corollary~\ref{cor:perturbation_magnitude} is the only quantitative fact needed 
 
 \subsection{Corollaries of Theorem~\ref{thm:decay} on cache growth}
 
-The two envelopes yield the corollaries below.
+The fixed-gap decay bound yields the corollaries below.
 
 \begin{corollary}[Sequence-wise annealing of the fixed-gap envelope]\label{cor:sequence_annealing}
 For fixed $L$ and $\Delta_i^{(\ell)}$, the upper bound
 \[
 f(n)=\frac{L}{L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})}
 \]
-is strictly decreasing in $n$. Cache growth alone therefore narrows the largest RSP attention mass compatible with that gap.
+is strictly decreasing in $n$ and tends to $0$ as $n\to\infty$. Cache growth alone therefore narrows the largest RSP attention mass compatible with that gap.
 \end{corollary}
 
 \noindent During autoregressive decoding $\Delta_i^{(\ell)}$ also moves because queries, keys, and hidden states co-evolve. The accurate reading is not ``the realized mass decreases at every step'' but ``the envelope compatible with a fixed gap shrinks as the cache grows.''
@@ -522,7 +522,7 @@ f'(n)
 <
 0.
 \]
-Thus $f(n)$ is strictly decreasing.
+Thus $f(n)$ is strictly decreasing, and its denominator diverges linearly in $n$ while its numerator is fixed, so $f(n)\to0$.
 \end{proof}
 
 \begin{corollary}[Vanishing random contribution under annealing]\label{cor:vanishing_perturbation}
