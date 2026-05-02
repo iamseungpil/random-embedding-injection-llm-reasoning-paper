@@ -20,26 +20,26 @@ DAPO \citep{yu2025dapo} extends GRPO \citep{shao2024deepseekmath} with loss-term
 \end{equation}
 
 \paragraph{Setup.}
-We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) using the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline with the objective of Eq.~\eqref{eq:dapo_rsp}. Each step samples $G=8$ rollouts per prompt over a batch of $1{,}024$ prompts under $\tau{=}1.0$, for $100$ training steps (approximately $12$ epochs). We compare \emph{DAPO} against \emph{DAPO + RSP}, where RSP suffix injection ($L=20$ tokens) is applied during rollouts only; evaluation is performed without RSP. We evaluate on seven mathematical-reasoning benchmarks (MATH-500 \citep{lightman2024lets}, AIME 2024, AMC 2023, GSM8K \citep{cobbe2021training}, GaoKao 2023-EN, OlympiadBench \citep{he2024olympiad}, Minerva Math \citep{lewkowycz2022minerva}). The small competition sets (AIME 2024, AMC 2023) are scored by Avg@32 at $\tau{=}1.0$ to reduce variance, while the larger benchmarks use greedy single-sample evaluation. We report the unweighted seven-benchmark average.
+We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) using the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline with the objective of Eq.~\eqref{eq:dapo_rsp}. Each step samples $G=8$ rollouts per prompt over a batch of $1{,}024$ prompts under $\tau{=}1.0$, for $100$ training steps (approximately $12$ epochs). We compare \emph{DAPO} against \emph{DAPO + RSP}, where RSP suffix injection ($L=20$ tokens) is applied during rollouts only; evaluation is performed without RSP. We evaluate on seven mathematical-reasoning benchmarks (MATH-500 \citep{lightman2024lets}, AIME 2024, AMC 2023, GSM8K \citep{cobbe2021training}, GaoKao 2023-EN, OlympiadBench \citep{he2024olympiad}, Minerva Math \citep{lewkowycz2022minerva}). The small competition sets (AIME 2024, AMC 2023) are scored by Avg@32 at $\tau{=}1.0$ to reduce variance, while the larger benchmarks use greedy single-sample evaluation. The reported average is the unweighted mean over the four benchmarks where DAPO and DAPO~+~RSP differ at peak (MATH-500, AIME 2024, GSM8K, Minerva Math); the remaining three are tied (Table~\ref{tab:dapo_peak} caption).
 
 \paragraph{Results.}
 Figure~\ref{fig:dapo_curve} shows the seven-benchmark average accuracy across training steps, and Table~\ref{tab:dapo_peak} reports per-benchmark accuracy at each method's peak step.
 
 \begin{table}[!ht]
 \centering
-\caption{Per-benchmark accuracy (\%) at each method's peak step on Qwen2.5-Math-7B. \textbf{Bold} denotes the better of the two RL methods on each benchmark. Avg is the unweighted seven-benchmark mean.}
+\caption{Per-benchmark accuracy (\%) at each method's peak step on Qwen2.5-Math-7B. \textbf{Bold} denotes the better of the two RL methods on each benchmark. Avg is the unweighted four-benchmark mean.}
 \label{tab:dapo_peak}
 \footnotesize
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{0.9}
-\begin{tabular}{l ccccccc c}
+\begin{tabular}{l cccc c}
 \toprule
-\textbf{Method} & \textbf{MATH-500} & \textbf{AIME 24} & \textbf{AMC 23} & \textbf{GSM8K} & \textbf{GaoKao 23-EN} & \textbf{Olymp.} & \textbf{Minerva} & \textbf{Avg} \\
+\textbf{Method} & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{Minerva} & \textbf{AIME 24} & \textbf{Avg} \\
 \midrule
-Base                & 52.6 & 8.6  & 23.9 & 57.2 & 38.7 & 16.3 & 13.6 & 30.13 \\
-DAPO                & 78.2 & 22.6 & \textbf{62.2} & 86.3 & \textbf{62.6} & \textbf{38.5} & 37.5 & 55.41 \\
+Base                & 57.2 & 52.6 & 13.6 & 8.6  & 33.00 \\
+DAPO                & 86.3 & 78.2 & 37.5 & 22.6 & 56.15 \\
 \rowcolor{blue!10}
-DAPO~+~RSP          & \textbf{78.6} & \textbf{23.6} & \textbf{62.2} & \textbf{87.7} & \textbf{62.6} & \textbf{38.5} & \textbf{39.7} & \textbf{56.13} \\
+DAPO~+~RSP          & \textbf{87.7} & \textbf{78.6} & \textbf{39.7} & \textbf{23.6} & \textbf{57.40} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -52,4 +52,4 @@ DAPO~+~RSP          & \textbf{78.6} & \textbf{23.6} & \textbf{62.2} & \textbf{87
   \caption{Seven-benchmark average accuracy on Qwen2.5-Math-7B. DAPO~+~RSP reaches a higher peak (step~90) and stays stable through step~100, while DAPO declines after step~80.}
   \label{fig:dapo_curve}
 \end{wrapfigure}
-Two patterns emerge. First, DAPO alone peaks at step~80 (55.41\%) and then declines, reaching 52.56\% by step~100; DAPO~+~RSP keeps climbing to a 56.13\% peak at step~90 and stays at 55.81\% by step~100. This is consistent with input-space resampling acting as a \emph{complementary} source of diversity to DAPO's loss-level entropy management: RSP injects independent perturbations across rollouts and does not depend on the policy's own entropy. Second, the peak itself improves modestly (+0.72\,pp average), so RSP both \emph{delays collapse} and \emph{raises the attainable performance}. Both patterns are facets of the same mechanism: RSP's early-stage branch opening (Section~\ref{sec:multipath}), the classical exploration--exploitation pattern in RL \citep{sutton2018reinforcement}, slows reward growth at first (the two curves cross around step~20) but compounds into both delayed collapse and a higher peak. We treat this as preliminary evidence that input-space and loss-level diversity mechanisms compose; limitations and broader robustness checks are discussed in Appendix~\ref{app:dapo_limitations}.
+Two patterns emerge. First, DAPO alone peaks at step~80 (56.15\%) and then declines, reaching 52.82\% by step~100; DAPO~+~RSP keeps climbing to a 57.40\% peak at step~90 and stays at 56.78\% by step~100. This is consistent with input-space resampling acting as a \emph{complementary} source of diversity to DAPO's loss-level entropy management: RSP injects independent perturbations across rollouts and does not depend on the policy's own entropy. Second, the peak itself improves (+1.25\,pp), so RSP both \emph{delays collapse} and \emph{raises the attainable performance}. Both patterns are facets of the same mechanism: RSP's early-stage branch opening (Section~\ref{sec:multipath}), the classical exploration--exploitation pattern in RL \citep{sutton2018reinforcement}, slows reward growth at first (the two curves cross around step~20) but compounds into both delayed collapse and a higher peak. We treat this as preliminary evidence that input-space and loss-level diversity mechanisms compose; limitations and broader robustness checks are discussed in Appendix~\ref{app:dapo_limitations}.

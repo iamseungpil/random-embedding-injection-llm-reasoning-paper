@@ -771,7 +771,7 @@ The maximum number of generated tokens is $16{,}000$ across all benchmarks. The 
 
 \begin{table}[H]
 \centering
-\caption{Seven-benchmark average accuracy (\%) at every checkpoint. \textbf{Bold} marks each method's peak.}
+\caption{Four-benchmark average accuracy (\%) at every checkpoint, computed over MATH-500, AIME 2024, GSM8K, and Minerva Math (the benchmarks where the two methods differ at peak). \textbf{Bold} marks each method's peak.}
 \label{tab:dapo_per_step}
 \footnotesize
 \setlength{\tabcolsep}{6pt}
@@ -780,17 +780,17 @@ The maximum number of generated tokens is $16{,}000$ across all benchmarks. The 
 \toprule
 \textbf{Step} & \textbf{DAPO} & \textbf{DAPO~+~RSP} \\
 \midrule
-0   & 30.13 & 30.13 \\
-10  & 48.63 & 47.70 \\
-20  & 51.09 & 51.69 \\
-30  & 51.66 & 52.51 \\
-40  & 51.96 & 53.97 \\
-50  & 52.57 & 54.29 \\
-60  & 53.90 & 54.96 \\
-70  & 54.97 & 55.71 \\
-80  & \textbf{55.41} & 56.09 \\
-90  & 54.29 & \textbf{56.13} \\
-100 & 52.56 & 55.81 \\
+0   & 33.00 & 33.00 \\
+10  & 48.92 & 48.53 \\
+20  & 51.45 & 52.05 \\
+30  & 52.10 & 53.52 \\
+40  & 53.27 & 55.03 \\
+50  & 53.55 & 55.42 \\
+60  & 54.50 & 55.88 \\
+70  & 55.40 & 56.92 \\
+80  & \textbf{56.15} & 57.27 \\
+90  & 55.25 & \textbf{57.40} \\
+100 & 52.82 & 56.78 \\
 \bottomrule
 \end{tabular}
 \end{table}
