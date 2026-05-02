@@ -50,7 +50,7 @@ The same scalar $w_{r,i}^{(\ell)}$ controls two things at once. The attenuation 
 
 The natural next question is how this scalar behaves as decoding proceeds. In autoregressive generation, the KV cache adds one real-token term at each step while the number of RSP terms stays fixed. Under a fixed real-vs-random logit gap, this cache growth gives an upper envelope.
 
-\begin{theorem}[Attention-mass decay under cache growth]\label{thm:decay}
+\begin{theorem}[Fixed-gap upper-envelope decay under cache growth]\label{thm:decay}
 For a query attending $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, let $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
 \[
 w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)},
