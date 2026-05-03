@@ -11,7 +11,7 @@
 \subsection{실험 설정}\label{sec:setup}
 % ================================================================
 
-평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct, base, 그리고 chat template이 맞지 않는 base 설정까지 합쳐 총 일곱 가지를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하고, fallback 기반 answer extraction pipeline으로 최종 답만 채점한다. RSP는 §\ref{sec:rsp_definition}의 정의를 따르며 prefix/infix/suffix 세 주입 위치 중 하나에 매 배치마다 새로 추첨된 $\mathbf{H}$를 결합한다. 전체 실험 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
+평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct, base, 그리고 chat template이 맞지 않는 base 설정까지 합쳐 총 일곱 가지를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하고, fallback 기반 answer extraction pipeline으로 최종 답만 채점한다. RSP는 \S\ref{sec:rsp_definition}의 정의를 따르며 prefix/infix/suffix 세 주입 위치 중 하나에 매 배치마다 새로 추첨된 $\mathbf{H}$를 결합한다. 전체 실험 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
 
 % ================================================================
 \subsection{RSP는 추론 성능을 개선할까?}\label{sec:performance}
@@ -105,15 +105,15 @@ Varentropy & 0.2181 & \cellcolor{blue!10}0.2207 & \cellcolor{blue!10}0.2463 & \c
 \end{tabular}
 \end{table}
 
-결과는 RSP가 생성 초반 출력 분포를 분명히 바꾼다는 점을 보여준다. 세 주입 위치 모두에서 entropy는 증가하고, top-1 probability는 감소하며, varentropy는 증가한다. 이는 분포가 평평해지고, 단일 우세 토큰에 대한 확신은 약해지며, 다봉형 분포가 더 자주 나타남을 뜻한다 \citep{ahmed2026logitscope}. 높은 entropy 구간은 추론 궤적이 갈라지는 핵심 분기점으로 알려져 있으므로 \citep{wang2025beyond}, 이 변화는 여러 추론 경로가 공존할 수 있는 상태로 모델을 밀어 넣는다. 중요한 점은 변화가 생성 초반에 국한된다는 것이다. 생성 중반과 후반에서는 세 지표 모두 baseline 수준으로 다시 수렴한다.
+RSP를 포함한 latent prompt 방법들은 공통적으로 \emph{생성 초반 entropy 상승 → 후반 baseline 수렴}이라는 동일한 시그니처를 보인다. 세 RSP 주입 위치 모두에서 초반 entropy↑, top-1 probability↓, varentropy↑로 분포가 평평해지고 단일 우세 토큰에 대한 확신이 약해지며 다봉형 분포가 더 자주 나타난다 \citep{ahmed2026logitscope}. 높은 entropy 구간이 추론 궤적이 갈라지는 분기점으로 알려져 있으므로 \citep{wang2025beyond}, 이 양상은 여러 추론 경로가 공존할 수 있는 상태로 모델을 밀어 넣는다. 변화가 생성 초반에 국한되고 중·후반에는 세 지표 모두 baseline 수준으로 stabilize된다는 점이 중요한데, 이는 \S\ref{sec:converge}의 cache-growth attenuation이 예측한 \emph{초반 영향력 → 캐시 성장에 따른 자동 감쇠} 패턴과 정합한다.
 
-서로 다른 목적 함수로 학습된 기존 방법들도 같은 패턴을 공유한다. 평균 entropy를 줄이는 보상을 쓰는 TTSV조차 초반 구간만큼은 baseline과 비슷하거나 더 높아, 이 entropy 상승은 특정 최적화 목적이 아니라 사전학습되지 않은 연속 임베딩 주입 자체에 가까운 효과로 보인다.
+서로 다른 목적 함수로 학습된 기존 방법(LTPO, SoftCoT, TTSV)도 같은 시그니처를 공유한다. 평균 entropy를 줄이는 보상을 쓰는 TTSV조차 초반 구간만큼은 baseline과 비슷하거나 더 높다. 우리가 강조하는 것은 \emph{RSP가 다른 방법보다 우수하다}는 비교가 아니다 — 어차피 entropy 수치 자체가 방법 사이의 우열을 가르는 지표가 아니다. 강조점은 \emph{공유되는 메커니즘}이다. 학습 목적과 무관하게 사전학습되지 않은 연속 임베딩이 입력에 들어오면 초반 분포가 같은 방식으로 평탄화되고 후반에 같은 방식으로 stabilize된다. 즉 latent reasoning을 가능케 하는 핵심 요소가 학습된 의미가 아니라 \emph{주입 자체}에 있다는 가설을 entropy 시그니처가 직접 뒷받침한다.
 
 % ================================================================
 \subsection{RSP는 실제로 추론 궤적의 다양성을 만드는가?}\label{sec:diversity}
 % ================================================================
 
-Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 사실을 보였다. 이제 이 변화가 실제 추론 다양성으로 이어지는지를 세 수준에서 살펴본다. 분석 수준은 토큰 순위, 궤적의 의미적 내용, 과제 수준 결과다. 세 분석 모두 Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix 주입, $L=10$ 설정을 공유한다.
+\S\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 사실을 보였다. 이제 이 변화가 실제 추론 다양성으로 이어지는지를 세 수준에서 살펴본다. 분석 수준은 토큰 순위, 궤적의 의미적 내용, 과제 수준 결과다. 세 분석 모두 Qwen2.5-Math-1.5B-Instruct, MATH-500, suffix 주입, $L=10$ 설정을 공유한다.
 
 \paragraph{토큰 수준: temperature를 넘어서는 분포 변화.}
 \begin{wraptable}{r}{0.55\textwidth}
@@ -158,12 +158,12 @@ Table~\ref{tab:rsp_vs_temp}의 대비는 명확하다. RSP의 분포 변화 크�
     \bottomrule
   \end{tabular}
 \end{wraptable}
-한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau = 1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 RSP가 intra-cluster distance는 거의 바꾸지 않으면서 inter-cluster distance를 크게 키운다는 점을 보여준다. 즉, 각 전략 내부의 일관성은 유지하면서 전략 간 거리를 벌린다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
+한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau{=}1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 RSP가 intra-cluster distance는 거의 바꾸지 않으면서 inter-cluster distance를 크게 키운다는 점을 보여준다. 즉, 각 전략 내부의 일관성은 유지하면서 전략 간 거리를 벌린다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/diversity/semantic_3panel.pdf}
-  \caption{64개 MATH-500 문제에서의 의미적 다양성 분석(문제당 300개 궤적, Qwen2.5-Math-1.5B-Instruct, $\tau=1.0$, BGE-M3 임베딩). (a) 대표 문제 \texttt{test/prealgebra/951}의 t-SNE 투영: baseline(빨강)은 한 영역에 비교적 집중되지만, RSP suffix(파랑)는 더 넓고 분리된 군집까지 확장된다. 채워진 표식은 정답, 빈 표식은 오답이다. (b) 문제별 평균 pairwise cosine distance. 대각선 위 점은 RSP가 baseline보다 더 다양한 궤적을 만든다는 뜻이다. (c) 문제별 DBSCAN 클러스터 수. 대부분의 문제에서 RSP가 더 많은 클러스터를 만든다.}
+  \caption{64개 MATH-500 문제에서의 의미적 다양성 분석(문제당 300개 궤적, Qwen2.5-Math-1.5B-Instruct, $\tau{=}1.0$, BGE-M3 임베딩). (a) 대표 문제 \texttt{test/prealgebra/951}의 t-SNE 투영: baseline(빨강)은 한 영역에 비교적 집중되지만, RSP suffix(파랑)는 더 넓고 분리된 군집까지 확장된다. 채워진 표식은 정답, 빈 표식은 오답이다. (b) 문제별 평균 pairwise cosine distance. 대각선 위 점은 RSP가 baseline보다 더 다양한 궤적을 만든다는 뜻이다. (c) 문제별 DBSCAN 클러스터 수. 대부분의 문제에서 RSP가 더 많은 클러스터를 만든다.}
   \label{fig:semantic_diversity}
 \end{figure}
 

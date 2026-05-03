@@ -383,7 +383,7 @@ $\sigma>0$이고 $\bar h \sim \mathcal{N}(0,\sigma^2\mathbf{I}_d)$라 하자. �
 는 $\mathbb{R}^d$의 모든 점에서 엄밀히 양수다. 모든 비공집합 열린집합은 양의 르베그 측도를 갖는 ball 하나를 포함하므로, 그 ball 위에서 양의 밀도를 적분하면 양의 확률이 얻어진다.
 \end{proof}
 
-이것이 Proposition~\ref{prop:support_expansion}에 실제로 쓰이는 유일한 support 성질이다.
+이것이 \S\ref{sec:multipath}의 informal 분기 영역 논변과 Appendix~\ref{app:topk_entry}에서 쓰이는 유일한 support 성질이다.
 
 \clearpage
 \section{본문 이론 결과의 증명}\label{app:proofs}
@@ -511,56 +511,28 @@ z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h
 \]
 가 된다. 이는 branch opening을 설명하는 1차 surrogate이지, transformer logits 전체의 정확한 전역 모델은 아니다.
 
-\subsubsection{Proposition~\ref{prop:support_expansion}의 증명}
+\subsubsection{Top-$K$ 진입 영역 (Remark)}\label{app:topk_entry}
 
-진입 영역을
+본문 \S\ref{sec:multipath}의 informal 논변을 보충한다. 진입 영역
 \[
 \mathcal{G}_{i,K}
 \;:=\;
 \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
 \]
-로 두자.
+이 비공집합 열린집합 $U$를 포함하면 (S1)에 의해 $D(U)>0$이고, $U \subseteq \mathcal{G}_{i,K}$이므로 $\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) \ge D(U) > 0$이다. 실용적 충분조건은 어떤 $\bar h_0$에서 토큰 $i$가 많아야 $K-1$개의 토큰만 자신보다 앞서도록 엄격한 마진을 만드는 경우이며, 연속성에 의해 그 근방 비공집합 열린집합이 $\mathcal{G}_{i,K}$에 포함된다. 이는 단조 변환인 temperature sampling으로는 도달할 수 없는 rank-changing 사건이지만, (M1)을 자동으로 도출하지는 않는다.
 
-\begin{proof}
-$\mathcal{G}_{i,K}$가 비공집합 열린집합 $U$를 포함한다고 하자. 그러면 (S1)에 의해 $D(U)>0$이고, $U \subseteq \mathcal{G}_{i,K}$이므로
-\[
-\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) \;\ge\; D(U) \;>\; 0
-\]
-가 성립한다. 이는 정확히 토큰 $i$가 surrogate top-$K$ 집합에 진입하는 사건이다.
+\subsubsection{Pass@$N$ Ensemble 식 (Remark)}\label{app:passN_ensemble}
 
-\smallskip
-\noindent 실용적인 충분조건은 어떤 $\bar h_0$에서 토큰 $i$가 많아야 $K-1$개의 토큰만 자신보다 앞서도록 엄격한 마진을 만드는 경우다. 연속성에 의해 이때 $\bar h_0$의 근방 비공집합 열린집합이 $\mathcal{G}_{i,K}$에 포함된다.
-\end{proof}
-
-\subsubsection{Proposition~\ref{prop:multi_path}의 증명}
-
-이 명제는 메커니즘만으로 $p_{\min}(x)>0$을 도출하지 않는다. 과제 측 하한과 독립성이 주어졌을 때 이를 Pass@$N$ 증가로 바꾸는 역할만 한다.
-
-\begin{proof}
-$A_n$을 문제 $x$에서 $n$번째 독립 RSP 실행이 정답 궤적에 도달하는 사건이라 하고, (M1)에 따라 $p_n(x):=\Pr(A_n)\ge p_{\min}(x)$라 하자. (M2) 아래에서
+본문의 $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1-(1-p_{\min}(x))^N$은 standard 독립 Bernoulli 시행 합집합 식이다. $A_n$을 문제 $x$에서 $n$번째 실행이 정답 궤적에 도달하는 사건이라 하고 (M1)에 따라 $\Pr(A_n) \ge p_{\min}(x)$라 하면, (M2) 아래
 \[
 \Pr\!\Big(\bigcap_{n=1}^N A_n^c\Big)
-=
-\prod_{n=1}^N (1-p_n(x))
-\le
-\prod_{n=1}^N (1-p_{\min}(x))
-=
-(1-p_{\min}(x))^N.
-\]
-여집합을 취하면
-\[
-\Pr\!\big(\mathrm{Pass@}N\text{ on }x\big)
-=
+\le (1-p_{\min}(x))^N,
+\qquad
 \Pr\!\Big(\bigcup_{n=1}^N A_n\Big)
-\ge
-1-(1-p_{\min}(x))^N.
+\ge 1-(1-p_{\min}(x))^N
+\;\ge\; 1-e^{-N p_{\min}(x)}.
 \]
-마지막 부등식 $1-x\le e^{-x}$ ($x\in[0,1]$)을 적용하면
-\[
-1-(1-p_{\min}(x))^N \;\ge\; 1-e^{-N p_{\min}(x)}
-\]
-을 얻는다.
-\end{proof}
+RSP에 특이적이지 않은 generic 사실이며, RSP의 역할은 (M1, M2)를 만족시키는 메커니즘에 한정된다.
 
 \clearpage
 % ================================================================
