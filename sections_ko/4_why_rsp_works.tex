@@ -7,7 +7,7 @@
 
 \section{Random Soft Prompt와 작동 원리}\label{sec:why_rsp_works}
 
-이 절은 논문에서 사용하는 핵심 메커니즘을 정리한다. rollout은 한 번 샘플한 RSP를 고정한 채 끝까지 수행한 자기회귀 디코딩 한 번을 뜻한다. 한 rollout 안에서 RSP는 attention을 통해서만 hidden state에 진입한다. 본문에서 \emph{어텐션 질량}은 한 query 위치의 softmax 어텐션 가중치 중 RSP 토큰들에 배정된 합—즉 어텐션이 RSP에 얼마나 쏠려 있는지를 0과 1 사이 한 숫자로 나타낸 양—을 가리킨다. 초반 영향력을 만들 수 있는 같은 어텐션 질량은 실제 토큰이 누적될수록 cache-growth envelope의 제약을 받는다. rollout 사이에서는 독립 재추첨이, 아래에서 명시하는 task 측 가정 아래, 초반 분기 차이를 Pass@$N$ 이득으로 누적할 수 있다. 본문에는 핵심 명제와 직관만 두고, 추가 도출은 Appendix~\ref{app:proofs}에 있다.
+랜덤한 입력이 추론 성능을 올릴 수 있다는 것은 어떤 의미에선 반직관적이다. 이 절은 RSP의 메커니즘을 이론적으로 정리한다. rollout은 한 번 샘플한 RSP를 고정한 채 끝까지 수행한 자기회귀 디코딩 한 번을 뜻한다. 한 rollout 안에서 RSP는 attention을 통해 hidden state에 진입한다. 초반 영향력을 만들 수 있는 같은 어텐션 질량은 실제 토큰이 누적될수록 cache-growth envelope의 제약을 받는다. 이때, \emph{어텐션 질량}은 한 query 위치의 softmax 어텐션 가중치 중 RSP 토큰들에 배정된 합—즉 어텐션이 RSP에 얼마나 쏠려 있는지를 0과 1 사이 한 숫자로 나타낸 양—을 가리킨다. rollout 사이에서는 독립 재추첨이, 아래에서 명시하는 task 측 가정 아래, 초반 분기 차이를 Pass@$N$ 이득으로 누적할 수 있다. 본문에는 핵심 명제와 직관만 두고, 추가 증명 및 도출은 Appendix~\ref{app:proofs}에 있다.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
@@ -25,7 +25,7 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 \subsection{Exploration: RSP가 hidden state에 들어오는 방식}\label{sec:improve}
 % ================================================================
 
-먼저 한 번의 RSP 주입이 hidden state를 어떻게 흔드는지부터 묻는다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, 한 attention head 안에서의 즉각적 영향은 RSP 토큰에 배정된 어텐션 질량이라는 한 가지 양으로 모인다.
+RSP가 주입되면 이후 hidden state가 흔들리게 된다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, 한 attention head 안에서의 즉각적 영향은 RSP 토큰에 배정된 어텐션 질량이라는 한 가지 양으로 모인다.
 
 self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 함께 attend한다고 하자. 모든 attention logit은 유한하다고 두며, 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두면 실제 토큰 질량은 양수이고, head output은 다음 형태로 \emph{정확히} 정리된다.
 \begin{equation}\label{eq:decomp}
@@ -44,7 +44,7 @@ self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 
 head output을 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$로 나눈 뒤, 실제 토큰 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}>0$를 묶어 내면 된다. softmax 정규화 항등식 외에는 어떤 근사도 쓰이지 않는다.
 \end{proof}
 
-이 한 양 $w_{r,i}^{(\ell)}$이 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$를 동시에 통제하므로, RSP가 만드는 변동은 0과 1 사이 한 스칼라를 추적하는 문제로 환원된다. 캐시가 짧은 디코딩 초반에는 이 값이 무시할 수 없어 한 번의 RSP가 next-token 결정을 흔들 수 있다.
+이 한 양 $w_{r,i}^{(\ell)}$이 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$를 동시에 통제하므로, RSP가 만드는 변동은 0과 1 사이 한 스칼라를 추적하는 문제로 환원된다. 캐시가 짧은 디코딩 초반에는 이 값이 무시할 수 없어 한 번의 RSP가 next-token 결정을 흔들게 돼 탐색을 할 수 있게 보조한다.
 
 % ================================================================
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
@@ -93,7 +93,7 @@ Theorem~\ref{thm:decay}는 한 rollout 안에서 RSP가 얼마나 움직일 수 
 $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{proposition}
 
-가우시안 RSP는 \emph{임베딩에서 스케일만 빌리고 방향 기하는 버리는} 설계로 위 미니맥스의 등호 조건을 정확히 충족하며, $\mathbb{R}^d$ 전역에 양의 밀도(full support)를 가져 어떤 방향에도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}). 사전학습 임베딩의 anisotropic 구조 활용이 더 유리한 task가 있을 수 있으나, 이는 task-specific 정보가 필요한 별도 문제다.
+가우시안 RSP는 \emph{임베딩에서 스케일만 빌리고 방향 기하는 버리는} 설계로 위 미니맥스의 등호 조건을 정확히 충족하며, $\mathbb{R}^d$ 전역에 양의 밀도(full support)를 가져 어떤 방향에도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}).
 
 이 두 성질이 단발 분기를 함의한다. centered prompt $\bar h$ 근방에서 logit이 국소 affine이라면, baseline이 top-1로 두는 토큰을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 영역은 logit 공간의 \emph{열린} 영역이며, full support 가우시안은 어떤 비공집합 열린영역에도 양의 확률을 부여한다(Appendix~\ref{app:why_random}). 단조 변환인 temperature sampling은 토큰 순위를 보존하므로 같은 일을 만들 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다.
 
