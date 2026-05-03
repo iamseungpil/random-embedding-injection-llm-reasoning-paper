@@ -7,7 +7,7 @@
 
 \section{Random Soft Prompt와 작동 원리}\label{sec:why_rsp_works}
 
-이 절은 논문에서 사용하는 핵심 메커니즘을 정리한다. rollout은 한 번 샘플한 RSP를 고정한 채 끝까지 수행한 자기회귀 디코딩 한 번을 뜻한다. 한 rollout 안에서 RSP는 attention을 통해서만 hidden state에 진입한다. 초반 영향력을 만들 수 있는 같은 어텐션 질량은 실제 토큰이 누적될수록 cache-growth envelope의 제약을 받는다. rollout 사이에서는 독립 재추첨이, 아래에서 명시하는 task 측 가정 아래, 초반 분기 차이를 Pass@$N$ 이득으로 누적할 수 있다. 본문에는 핵심 명제와 직관만 두고, 추가 도출은 Appendix~\ref{app:proofs}에 있다.
+이 절은 논문에서 사용하는 핵심 메커니즘을 정리한다. rollout은 한 번 샘플한 RSP를 고정한 채 끝까지 수행한 자기회귀 디코딩 한 번을 뜻한다. 한 rollout 안에서 RSP는 attention을 통해서만 hidden state에 진입한다. 본문에서 \emph{어텐션 질량}은 한 query 위치의 softmax 어텐션 가중치 중 RSP 토큰들에 배정된 합—즉 어텐션이 RSP에 얼마나 쏠려 있는지를 0과 1 사이 한 숫자로 나타낸 양—을 가리킨다. 초반 영향력을 만들 수 있는 같은 어텐션 질량은 실제 토큰이 누적될수록 cache-growth envelope의 제약을 받는다. rollout 사이에서는 독립 재추첨이, 아래에서 명시하는 task 측 가정 아래, 초반 분기 차이를 Pass@$N$ 이득으로 누적할 수 있다. 본문에는 핵심 명제와 직관만 두고, 추가 도출은 Appendix~\ref{app:proofs}에 있다.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
