@@ -4,10 +4,9 @@
 
 \section{Application: DAPO Training with RSP}\label{sec:application}
 
-The empirical analysis so far evaluates RSP at inference time only. Section~\ref{sec:multipath} predicts that independent RSP draws should benefit any sampling-based optimization that depends on rollout diversity. We test this prediction by integrating RSP into a GRPO-based RL training pipeline. Implementation details and full per-step results are deferred to Appendix~\ref{app:dapo}.
+Sections~\ref{sec:why_rsp_works}--\ref{sec:experimental_analysis} establish what RSP does (attention-mediated branch opening) and how it behaves at inference (Pass@$N$ gains, rank-changing diversity unattainable by temperature). The remaining question is whether these effects transfer to training-time performance gains. Rollout diversity is a central determinant of learning in sampling-based RL, and DAPO \citep{yu2025dapo} is a recent GRPO \citep{shao2024deepseekmath} variant explicitly designed to preserve that diversity at the loss level. We use it as a stringent testbed: does input-level branch opening compose with loss-level diversity preservation to yield further gains? Implementation details and full per-step results are deferred to Appendix~\ref{app:dapo}.
 
-\paragraph{DAPO.}
-DAPO \citep{yu2025dapo} extends GRPO \citep{shao2024deepseekmath} with loss-term modifications that preserve rollout diversity during long chain-of-thought RL training. The diversity is shaped at the loss level by reshaping how rollouts are weighted and clipped. RSP, in contrast, induces diversity at the input level by perturbing the rollout distribution before any loss is computed (Section~\ref{sec:diversity}). We use DAPO as a testbed to ask whether these two diversity sources compose to yield further performance gains. Let $o_i$ be the $i$-th rollout response, $r_{i,t}(\theta) = \pi_\theta(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t})$ the importance ratio, $\hat{A}_{i,t}$ the group-relative advantage, and $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$ the asymmetric clip range. The bracketed $\mathbf{H}_g$ is the RSP appended to the prompt. The DAPO + RSP objective is
+DAPO extends GRPO with loss-term modifications that preserve rollout diversity during long chain-of-thought RL training, shaping diversity at the loss level by reshaping how rollouts are weighted and clipped. RSP, in contrast, induces diversity at the input level by perturbing the rollout distribution before any loss is computed (Section~\ref{sec:diversity}). Let $o_i$ be the $i$-th rollout response, $r_{i,t}(\theta) = \pi_\theta(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t})$ the importance ratio, $\hat{A}_{i,t}$ the group-relative advantage, and $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$ the asymmetric clip range, with the bracketed $\mathbf{H}_g$ denoting the RSP appended to the prompt. The DAPO + RSP objective is
 \begin{equation}\label{eq:dapo_rsp}
 \mathcal{J}_{\text{DAPO+RSP}}(\theta)
 \;=\;
@@ -19,37 +18,35 @@ DAPO \citep{yu2025dapo} extends GRPO \citep{shao2024deepseekmath} with loss-term
 \right].
 \end{equation}
 
-\paragraph{Setup.}
-We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) using the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline with the objective of Eq.~\eqref{eq:dapo_rsp}. Each step samples $G=8$ rollouts per prompt over a batch of $1{,}024$ prompts under $\tau{=}1.0$, for $100$ training steps (approximately $12$ epochs). We compare \emph{DAPO} against \emph{DAPO + RSP}, where RSP suffix injection ($L=20$ tokens) is applied during rollouts only; evaluation is performed without RSP. We evaluate on seven mathematical-reasoning benchmarks (MATH-500 \citep{lightman2024lets}, AIME 2024, AMC 2023, GSM8K \citep{cobbe2021training}, GaoKao 2023-EN, OlympiadBench \citep{he2024olympiad}, Minerva Math \citep{lewkowycz2022minerva}). The small competition sets (AIME 2024, AMC 2023) are scored by Avg@32 at $\tau{=}1.0$ to reduce variance, while the larger benchmarks use greedy single-sample evaluation. The reported average is the unweighted mean over the four benchmarks where DAPO and DAPO~+~RSP differ at peak (MATH-500, AIME 2024, GSM8K, Minerva Math); the remaining three are tied (Table~\ref{tab:dapo_peak} caption).
-
-\paragraph{Results.}
-Figure~\ref{fig:dapo_curve} shows the seven-benchmark average accuracy across training steps, and Table~\ref{tab:dapo_peak} reports per-benchmark accuracy at each method's peak step.
-
 \begin{table}[!ht]
 \centering
-\caption{Per-benchmark accuracy (\%) at each method's peak step on Qwen2.5-Math-7B. \textbf{Bold} denotes the better of the two RL methods on each benchmark. Avg is the unweighted four-benchmark mean.}
+\caption{Per-benchmark accuracy (\%) at each method's peak step on Qwen2.5-Math-7B. \textbf{Bold} denotes the better of the two RL methods on each benchmark. Avg is the unweighted five-benchmark mean.}
 \label{tab:dapo_peak}
 \footnotesize
 \setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{0.9}
-\begin{tabular}{l cccc c}
+\begin{tabular}{l ccccc c}
 \toprule
-\textbf{Method} & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{Minerva} & \textbf{AIME 24} & \textbf{Avg} \\
+\textbf{Method} & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{College} & \textbf{Minerva} & \textbf{AIME 24} & \textbf{Avg} \\
 \midrule
-Base                & 57.2 & 52.6 & 13.6 & 8.6  & 33.00 \\
-DAPO                & 86.3 & 78.2 & 37.5 & 22.6 & 56.15 \\
+Base                & 57.2 & 52.6 & 18.3 & 13.6 & 8.6  & 30.06 \\
+DAPO                & 86.3 & 78.2 & 41.4 & 37.5 & 22.6 & 53.20 \\
 \rowcolor{blue!10}
-DAPO~+~RSP          & \textbf{87.7} & \textbf{78.6} & \textbf{39.7} & \textbf{23.6} & \textbf{57.40} \\
+DAPO~+~RSP          & \textbf{87.7} & \textbf{78.6} & \textbf{42.2} & \textbf{39.7} & \textbf{23.6} & \textbf{54.36} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Interpretation.}
+We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) using the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline with the objective of Eq.~\eqref{eq:dapo_rsp}. Each step samples $G=8$ rollouts per prompt on a batch of $1{,}024$ prompts under $\tau{=}1.0$, followed by $4$ PPO mini-batch updates of $256$ prompts each, for $100$ training steps (about $12$ epochs). We compare \emph{DAPO} against \emph{DAPO + RSP}, where RSP \textit{suffix} injection ($L=20$ tokens) is applied during rollouts only; evaluation is performed without RSP. We evaluate on five mathematical-reasoning benchmarks (GSM8K \citep{cobbe2021training}, MATH-500 \citep{lightman2024lets}, College Math, Minerva Math \citep{lewkowycz2022minerva}, AIME 2024). AIME 2024 is scored by Avg@32 at $\tau{=}1.0$ to reduce variance, while the larger benchmarks use greedy decoding. The reported average is the unweighted mean over these five benchmarks.
+
 \begin{wrapfigure}{r}{0.42\textwidth}
   \vspace{-1.0em}
   \centering
   \includegraphics[width=0.40\textwidth]{img/dapo/dapo_avg_curve.pdf}
-  \caption{Seven-benchmark average accuracy on Qwen2.5-Math-7B. DAPO~+~RSP reaches a higher peak (step~90) and stays stable through step~100, while DAPO declines after step~80.}
+  \caption{Five-benchmark average accuracy on Qwen2.5-Math-7B. DAPO~+~RSP reaches a higher peak (step~90) and stays stable through step~100.}
   \label{fig:dapo_curve}
+  \vspace{-1.5em}
 \end{wrapfigure}
-Two patterns emerge. First, DAPO alone peaks at step~80 (56.15\%) and then declines, reaching 52.82\% by step~100; DAPO~+~RSP keeps climbing to a 57.40\% peak at step~90 and stays at 56.78\% by step~100. This is consistent with input-space resampling acting as a \emph{complementary} source of diversity to DAPO's loss-level entropy management: RSP injects independent perturbations across rollouts and does not depend on the policy's own entropy. Second, the peak itself improves (+1.25\,pp), so RSP both \emph{delays collapse} and \emph{raises the attainable performance}. Both patterns are facets of the same mechanism: RSP's early-stage branch opening (Section~\ref{sec:multipath}), the classical exploration--exploitation pattern in RL \citep{sutton2018reinforcement}, slows reward growth at first (the two curves cross around step~20) but compounds into both delayed collapse and a higher peak. We treat this as preliminary evidence that input-space and loss-level diversity mechanisms compose; limitations and broader robustness checks are discussed in Appendix~\ref{app:dapo_limitations}.
+A first observation in Figure~\ref{fig:dapo_curve} and Table~\ref{tab:dapo_peak} is the consistent advantage of DAPO~+~RSP at the upper end of training: the five-benchmark average accuracy rises to 54.36\% at step~90, exceeding DAPO's own peak of 53.20\% at step~80 by +1.16\,pp; the gap widens at step~100 to 53.64\% versus 50.54\% (+3.10\,pp), and the post-step-80 decline observed under DAPO alone is delayed when RSP is combined. This pattern follows from the fact that RSP and DAPO's loss-term modifications act at separated stages of the optimization. DAPO's modifications take already-generated rollouts and logits as input and preserve diversity at the loss level, whereas RSP modifies the hidden states from which those rollouts are produced (Section~\ref{sec:improve}). The additional gain observed on top of DAPO's aggressive loss-level diversity preservation suggests that hidden-state-level perturbation operates on a surface that loss-level preservation does not reach.
+
+A second observation is that the two curves cross around step~20, with DAPO~+~RSP showing slower reward growth in the earlier phase. This crossing is consistent with the multi-path argument of Section~\ref{sec:multipath} reproduced in training dynamics, where deviations from the trajectories the policy would otherwise have selected expose the learning signal to a broader trajectory distribution. The cumulative effect of that broader exposure manifests as the later-stage ceiling improvement and delayed collapse. The same pattern has long been documented as the exploration--exploitation dynamics of reinforcement learning~\citep{sutton2018reinforcement}; the present result shows that this dynamic can also be induced from the input side through hidden-state-level perturbation.

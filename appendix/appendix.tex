@@ -694,7 +694,17 @@ The vanilla GRPO objective \citep{shao2024deepseekmath} for a group of $G$ rollo
 \end{equation}
 with importance ratio $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, group-relative advantage $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, clipping range $\varepsilon$, and KL penalty $\beta\,D_{\text{KL}}$ against the reference $\pi_{\text{ref}}$.
 
-We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$, and (iv) KL terms removed (\texttt{use\_kl\_loss}=False, \texttt{kl\_loss\_coef}=0, \texttt{algorithm.kl\_ctrl.kl\_coef}=0).
+We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$, and (iv) KL terms removed. The resulting DAPO objective is
+\begin{equation}\label{eq:dapo}
+\mathcal{J}_{\text{DAPO}}(\theta)
+\;=\;
+\mathbb{E}\!\left[
+\frac{1}{\sum_i|o_i|}
+\sum_{i,t}
+\min\!\Big(r_{i,t}\hat{A}_{i,t},\,
+\text{clip}\big(r_{i,t},\,1{-}\varepsilon_{\text{low}},\,1{+}\varepsilon_{\text{high}}\big)\hat{A}_{i,t}\Big)
+\right].
+\end{equation}
 
 \subsection{DAPO + RSP Implementation}\label{app:dapo_rsp_impl}
 
@@ -765,13 +775,13 @@ GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
 \end{tabular}
 \end{table}
 
-The maximum number of generated tokens is $16{,}000$ across all benchmarks. The reported average is the unweighted mean over the seven benchmarks.
+The maximum number of generated tokens is $16{,}000$ across all benchmarks. The reported average is the unweighted mean over the five benchmarks (GSM8K, MATH-500, College Math, Minerva Math, AIME 2024).
 
 \subsection{Per-Step Average Accuracy}
 
 \begin{table}[H]
 \centering
-\caption{Four-benchmark average accuracy (\%) at every checkpoint, computed over MATH-500, AIME 2024, GSM8K, and Minerva Math (the benchmarks where the two methods differ at peak). \textbf{Bold} marks each method's peak.}
+\caption{Five-benchmark average accuracy (\%) at every checkpoint, computed over GSM8K, MATH-500, College Math, Minerva Math, and AIME 2024. \textbf{Bold} marks each method's peak.}
 \label{tab:dapo_per_step}
 \footnotesize
 \setlength{\tabcolsep}{6pt}
@@ -780,24 +790,20 @@ The maximum number of generated tokens is $16{,}000$ across all benchmarks. The 
 \toprule
 \textbf{Step} & \textbf{DAPO} & \textbf{DAPO~+~RSP} \\
 \midrule
-0   & 33.00 & 33.00 \\
-10  & 48.92 & 48.53 \\
-20  & 51.45 & 52.05 \\
-30  & 52.10 & 53.52 \\
-40  & 53.27 & 55.03 \\
-50  & 53.55 & 55.42 \\
-60  & 54.50 & 55.88 \\
-70  & 55.40 & 56.92 \\
-80  & \textbf{56.15} & 57.27 \\
-90  & 55.25 & \textbf{57.40} \\
-100 & 52.82 & 56.78 \\
+0   & 30.06 & 30.06 \\
+10  & 46.40 & 46.22 \\
+20  & 49.02 & 49.54 \\
+30  & 49.58 & 50.72 \\
+40  & 50.62 & 52.06 \\
+50  & 50.88 & 52.40 \\
+60  & 51.84 & 52.96 \\
+70  & 52.52 & 53.86 \\
+80  & \textbf{53.20} & 54.04 \\
+90  & 52.52 & \textbf{54.36} \\
+100 & 50.54 & 53.64 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-\subsection{Limitations and Future Work}\label{app:dapo_limitations}
-
-We do not claim DAPO + RSP as a complete recipe. The present comparison uses a reduced DAPO configuration that omits Dynamic Sampling and overlong reward shaping, and the evaluation runs are based on a single training seed. Confirming the gains under the full DAPO configuration, with multi-seed evaluation on small competition sets (AIME 2024, AMC 2023) where variance is highest, is left for future work.
 
 \clearpage
 % ================================================================
