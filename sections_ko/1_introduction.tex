@@ -12,7 +12,7 @@
 
 그러나 이 효과에 최적화가 필수는 아니다. 학습되지 않은 무작위 연속 임베딩을 그대로 주입해도 출력 분포는 바뀐다. 예를 들어 chat 형식으로 학습되지 않은 base model에 chat template을 적용하면 형식 불일치로 추론 성능이 크게 떨어지는데, 여기에 무작위 임베딩을 덧붙이면 그 손실이 도리어 회복된다. 단순 노이즈가 모델을 흔드는 데 그친다면 정확도는 더 나빠져야 한다. 즉 학습된 의미와 무관하게 \emph{주입} 자체가 모델 행동을 비자명하게 바꾼다. 기존 연구는 최종 정확도에만 집중해 주입과 최적화의 효과를 분리하지 못했고, 임베딩 주입이 출력 분포를 어떻게 바꾸는지는 충분히 탐구되지 않았다.
 
-본 연구는 이 문제를 학습 없이 주입되는 Random Soft Prompt(RSP)로 분석한다. RSP는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안에서 추첨한 연속 벡터로, rollout마다 \emph{독립}된 섭동을 공급해 탐색을 가능케 한다. RSP의 기여는 어텐션 레이어마다 단일 스칼라로 포착되고 그 fixed-gap 상한 envelope은 캐시 성장에 따라 좁아지며, 국소 affine 분석에서 등방 재추첨은 temperature가 도달할 수 없는 top-$K$ 진입 영역에 양의 확률을 부여한다. 실증적으로 RSP는 초반 entropy를 높이고 temperature와 결합해 Pass@$N$ 다양성을 확장한다. \emph{학습 없는 무작위 주입}만으로 latent reasoning이 작동한다는 사실은 기존 soft prompt 효과의 상당 부분이 학습된 의미가 아니라 \emph{주입 자체}에서 올 수 있음을 시사하며, 그 다양성을 GRPO \citep{shao2024deepseekmath} 학습으로 확장한 결과까지 논의한다.
+본 연구는 이 문제를 학습 없이 주입되는 Random Soft Prompt(RSP)로 분석한다. RSP는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안에서 추첨한 연속 벡터로, rollout마다 \emph{독립}된 섭동을 공급해 탐색을 가능케 한다. 한 번의 RSP 주입은 어텐션을 통해 hidden state에 분기를 만들고 캐시 성장과 함께 안정화된다(Figure~\ref{fig:main}). RSP의 기여는 어텐션 레이어마다 단일 스칼라로 포착되고 그 fixed-gap 상한 envelope은 캐시 성장에 따라 좁아지며, 국소 affine 분석에서 등방 재추첨은 temperature가 도달할 수 없는 top-$K$ 진입 영역에 양의 확률을 부여한다. 실증적으로 RSP는 초반 entropy를 높이고 temperature와 결합해 Pass@$N$ 다양성을 확장한다. \emph{학습 없는 무작위 주입}만으로 latent reasoning이 작동한다는 사실은 기존 soft prompt 효과의 상당 부분이 학습된 의미가 아니라 \emph{주입 자체}에서 올 수 있음을 시사하며, 그 다양성을 GRPO \citep{shao2024deepseekmath} 학습으로 확장한 결과까지 논의한다.
 
 \iffalse
 본 논문의 기여는 다음과 같다.
