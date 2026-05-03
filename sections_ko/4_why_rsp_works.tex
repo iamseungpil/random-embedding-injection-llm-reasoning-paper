@@ -85,26 +85,18 @@ w_{r,i}^{(\ell)}
 \subsection{Performance gain: 왜 독립 재실행이 도움이 되는가}\label{sec:multipath}
 % ================================================================
 
-Theorem~\ref{thm:decay}는 한 rollout 안에서 RSP가 얼마나 움직일 수 있는지를 설명한다. 남는 질문은 성능이다. 왜 \emph{새로운} RSP로 다시 실행할 때 하나의 고정된 prompt를 반복하는 것보다 이득이 커질 수 있는가? 여기에는 prompt 분포에 대한 사실 하나와, 열린 branch가 정답에 도움이 되는지에 대한 별도의 task-side 사실 하나가 필요하다.
+Theorem~\ref{thm:decay}는 한 rollout 안에서 RSP가 얼마나 움직일 수 있는지를 설명한다. 남는 질문은 성능이다. 왜 \emph{새로운} RSP로 다시 실행할 때 하나의 고정된 prompt를 반복하는 것보다 이득이 누적되는가? 분포 측의 정당화와 task 측의 가정을 분리해 본다.
 
-먼저 분포 쪽 사실. 어텐션 항등식은 등방성을 요구하지 않지만, branch opening은 현재 prompt에 중요한 방향을 미리 편들지 않는 분포를 선호한다. 길이 $L$ prompt 안의 centered RSP 벡터 하나를 분리한 국소 surrogate에 대해 미니맥스로 형식화하면 다음 명제를 얻는다.
+먼저 분포 측. 어떤 방향이 의미 있는지 사전에 모를 때, 같은 분산 예산 안에서 worst-case 방향 분산을 최대화하는 것이 자연스러운 안전 선택이다.
 
 \begin{proposition}[방향 무관 미니맥스 커버리지]\label{thm:minimax_directional_coverage}
 $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
 \end{proposition}
 
-가우시안 RSP는 \emph{임베딩에서 스케일만 빌리고 방향 기하는 버리는} 설계로, 어떤 방향이 의미 있는지 사전에 모를 때 worst-case 방향 분산을 최대화하는 안전한 선택이다. 가우시안은 추가로 $\mathbb{R}^d$ 전역에서 양의 밀도(full support)를 가져 어떤 방향에도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}). 사전학습 임베딩의 anisotropic 구조 활용이 더 유리한 task가 있을 수 있으나, 이는 task-specific 정보가 필요한 별도 문제다.
+가우시안 RSP는 \emph{임베딩에서 스케일만 빌리고 방향 기하는 버리는} 설계로 위 미니맥스의 등호 조건을 정확히 충족하며, $\mathbb{R}^d$ 전역에 양의 밀도(full support)를 가져 어떤 방향에도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}). 사전학습 임베딩의 anisotropic 구조 활용이 더 유리한 task가 있을 수 있으나, 이는 task-specific 정보가 필요한 별도 문제다.
 
-이제 surrogate 위에서 branch opening을 형식화한다. centered prompt $\bar h$ 근방의 1차 surrogate $z_i^{\mathrm{lin}}(\bar h):= z_i + a_i^\top\bar h$ ($a_i := \nabla_{\bar h}z_i(0)$)와 baseline 외 토큰 $i$의 top-$K$ 진입 영역 $\mathcal{G}_{i,K} := \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}$을 둔다.
+이 두 성질이 단발 분기를 함의한다. centered prompt $\bar h$ 근방에서 logit이 국소 affine이라면, baseline이 top-1로 두는 토큰을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 영역은 logit 공간의 \emph{열린} 영역이며, full support 가우시안은 어떤 비공집합 열린영역에도 양의 확률을 부여한다(Appendix~\ref{app:why_random}). 단조 변환인 temperature sampling은 토큰 순위를 보존하므로 같은 일을 만들 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다.
 
-\begin{theorem}[조건부 top-$K$ 진입]\label{prop:support_expansion}
-$\mathcal{G}_{i,K}$가 비공집합 열린집합을 포함하면 등방 가우시안의 full support가 그 영역에 양의 확률을 부여하므로 $\mu_i := \Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) > 0$이다. 이 결과는 단조 변환인 temperature sampling으로는 도달할 수 없는 rank-changing 사건에 대한 양의 확률 보장을 준다.
-\end{theorem}
+이제 task 측. 단발 분기를 task accuracy로 끌어올리려면 (M1) 한 번의 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이고 (M2) $N$번의 실행이 상호 독립이라는 두 가정이 필요하다. (M2)는 §\ref{sec:rsp_definition}의 매 rollout 독립 추첨이 직접 보장하고, (M1)은 위 분기 영역이 정답 근처를 포함할 때 유효하다 — 메커니즘으로 자동 보장되지 않는 task-side 사실이다. 두 가정 아래에서는 standard ensemble 논변이 $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1 - (1-p_{\min}(x))^N$을 주며, 이는 (M1, M2)를 만족하는 어떤 sampling 방법에도 적용되는 generic 사실이다. RSP의 contribution은 정리 자체가 아니라 (M1)에서 \emph{temperature가 못 만드는} rank-changing 진입에 양의 확률을 부여하고, (M2)를 매 rollout 독립 추첨으로 확보한 점에 있다.
 
-영역 자체의 존재는 task 측 조건이지 메커니즘만으로 자동 보장되지 않는다. 단발 진입 확률을 task accuracy로 끌어올리려면 (M1) 단발 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이고 (M2) $N$번의 실행이 상호 독립이라는 두 가정이 필요하다.
-
-\begin{proposition}[다중 경로 Pass@$N$]\label{prop:multi_path}
-(M1)--(M2) 아래에서, $N$개의 독립 RSP 실행은 $\Pr\!\big(\mathrm{Pass@}N\text{ on }x\big) \;\ge\; 1-(1-p_{\min}(x))^N \;\ge\; 1-\exp(-N\,p_{\min}(x))$를 만족한다.
-\end{proposition}
-
-이 역할 분담이 이 절의 핵심 해석이다. 해당 진입 영역이 존재할 때 메커니즘은 baseline 외 토큰을 후보권 \emph{안으로 들일 수} 있지만, 들인 branch가 \emph{생산적}이라는 점은 task의 성질이다. 같은 RSP를 모든 sample이 공유하면 이 누적이 사라지므로 \emph{독립}이 핵심이다. §\ref{sec:experimental_analysis}는 바로 이 서명을 실험적으로 확인한다.
+같은 RSP를 모든 sample이 공유하면 이 누적이 사라지므로 \emph{독립}이 핵심이다. §\ref{sec:experimental_analysis}는 바로 이 서명을 실험적으로 확인한다.
