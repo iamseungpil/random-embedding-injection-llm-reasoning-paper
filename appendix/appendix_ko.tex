@@ -247,7 +247,7 @@ lr & 1e-2 & 5e-3 & 5e-2 \\
 \paragraph{SoftCoT.} Projection module은 10 epoch 동안 학습했다. Thought token 수는 학습 시 32, 평가 시 4다. 배치 크기는 GSM8K에서 4, MATH에서는 1이며 gradient accumulation 4를 사용했다. 작은 모델(assistant)은 두 설정 모두 Qwen2.5-Math-1.5B-Instruct이고, 큰 모델은 Qwen2.5-Math-1.5B-Instruct(learning rate 2e-5) 또는 Qwen2.5-Math-7B-Instruct(learning rate 5e-6)이다. MATH-500과 AIME24 평가는 GSM8K에서 학습한 projection module을 사용했는데, MATH에서 학습한 버전보다 더 높은 정확도를 보였기 때문이다.
 
 % ================================================================
-\subsection{전체 엔트로피 곡선}
+\subsection{전체 엔트로피 곡선}\label{app:entropy_full}
 % ================================================================
 
 Figure~\ref{fig:app_full_entropy}는 entropy, top-1 probability, varentropy의 전체 정규화 생성 궤적(0--100\%)을 보여준다. 모든 방법은 생성 초반 단계를 지나면 비슷한 수준으로 수렴하며, 이는 RSP가 유도하는 분포 변화가 초기 추론 단계에 국소화되어 있음을 다시 확인해 준다.

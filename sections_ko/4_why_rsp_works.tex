@@ -44,7 +44,7 @@ self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 
 head output을 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$로 나눈 뒤, 실제 토큰 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}>0$를 묶어 내면 된다. softmax 정규화 항등식 외에는 어떤 근사도 쓰이지 않는다.
 \end{proof}
 
-이 한 양 $w_{r,i}^{(\ell)}$이 두 가지를 동시에 통제한다는 점에 주목하자. 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$이 모두 같은 스칼라에 매여 있다. RSP가 만드는 변동은 다차원 섭동이 아니라 0과 1 사이 한 값을 추적하는 문제로 환원된다. 디코딩 초반에는 캐시가 짧아 $w_{r,i}^{(\ell)}$이 무시할 수 없는 값을 가질 수 있으므로, 무작위 기여를 묶어 두는 같은 항등식이 동시에 한 번의 RSP가 초반 next-token 결정을 흔들 수 있는 조건도 마련한다.
+이 한 양 $w_{r,i}^{(\ell)}$이 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$를 동시에 통제하므로, RSP가 만드는 변동은 0과 1 사이 한 스칼라를 추적하는 문제로 환원된다. 캐시가 짧은 디코딩 초반에는 이 값이 무시할 수 없어 한 번의 RSP가 next-token 결정을 흔들 수 있다.
 
 % ================================================================
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
@@ -76,7 +76,7 @@ w_{r,i}^{(\ell)}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.72\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
   \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소하며, 이는 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상으로, 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 logit gap이 더 날카로워지는 경향을 시사하지만 Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass로, RSP 길이 $L$로 나눈 \emph{평균} 값이며 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
   \label{fig:attention_mass}
 \end{figure}
