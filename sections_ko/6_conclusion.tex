@@ -1,7 +1,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Chapter 5. Conclusion
+% Chapter 6. Conclusion
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{결론}\label{sec:conclusion}
 
-본 연구는 사전학습된 임베딩 행렬의 항별 평균과 분산에 맞춘 등방 가우시안 벡터를 학습 없이 주입하는 Random Soft Prompt(RSP)의 역할을 분석했다. RSP에서 무작위성은 임베딩 분포를 모사하는 장치가 아니라 rollout 사이의 독립적 섭동을 공급하는 성질이며, 탐색은 바로 이 독립성을 요구한다. 이론적으로 각 어텐션 레이어에서 RSP의 기여는 단일 스칼라 어텐션 질량으로 정확히 포착되고, 그 fixed-gap 상한 envelope은 캐시 성장에 따라 좁아진다. 또한 국소 affine 분석 아래에서 등방 재추첨은 temperature 스케일링으로 만들 수 없는 top-$K$ 진입 영역에 양의 확률을 부여할 수 있다(\S\ref{sec:why_rsp_works}). 실험적으로 RSP는 생성 초반의 엔트로피를 높이고 후반에는 다시 안정화시키며, 같은 RSP를 모든 sample에 공유하면 누적 이득이 사라진다(\S\ref{sec:experimental_analysis}). RSP는 순위를 \emph{바꾸는} 섭동인 반면 temperature는 순위를 \emph{보존}하는 섭동이므로 두 방법은 상보적이며, 이는 GRPO \citep{shao2024deepseekmath}의 entropy collapse를 DAPO \citep{yu2025dapo}, CE-GPPO \citep{su2025cegppo} 너머에서 샘플링 단계로 보완하는 가능성을 시사한다. 학습 시점 비교, 수학 추론을 넘어선 도메인 확장, RSP 길이와 주입 위치의 원리적 결정은 Proposition~\ref{prop:multi_path}의 task 측 가정 $p_{\min}(x){>}0$과 함께 향후 과제로 남는다.
+본 연구는 사전학습 임베딩의 항별 평균과 분산에 맞춘 등방 가우시안 벡터를 학습 없이 주입하는 RSP를 분석했다. 무작위성은 임베딩 모사가 아니라 rollout 사이 독립 섭동을 공급해 탐색을 가능케 하는 성질이다. 이론적으로 RSP의 기여는 어텐션 레이어마다 단일 스칼라로 포착되고 fixed-gap 상한 envelope은 캐시 성장에 따라 좁아지며, 국소 affine 분석에서 등방 재추첨은 temperature 스케일링이 만들 수 없는 top-$K$ 진입 영역에 양의 확률을 부여한다(\S\ref{sec:why_rsp_works}). 실험적으로 RSP는 초반 엔트로피를 높이고 후반에 안정화하며, 같은 RSP를 sample 간 공유하면 누적 이득이 사라진다(\S\ref{sec:experimental_analysis}). RSP는 순위를 \emph{바꾸는} 섭동, temperature는 \emph{보존}하는 섭동이므로 두 방법은 상보적이며, GRPO \citep{shao2024deepseekmath}의 entropy collapse를 DAPO \citep{yu2025dapo}, CE-GPPO \citep{su2025cegppo} 너머에서 샘플링 단계로 보완할 가능성을 시사한다. 학습 시점 비교, 도메인 확장, RSP 길이·주입 위치 원리적 결정은 Proposition~\ref{prop:multi_path}의 $p_{\min}(x){>}0$ 가정과 함께 향후 과제다.

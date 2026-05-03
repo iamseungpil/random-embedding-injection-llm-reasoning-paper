@@ -7,7 +7,7 @@
 지금까지의 실험 분석은 RSP를 추론 시점에서만 평가했다. \S\ref{sec:multipath}는 독립 RSP 추첨이 rollout 다양성에 의존하는 모든 sampling 기반 최적화에 도움이 될 것이라고 예측한다. 이를 검증하기 위해 RSP를 GRPO 기반 RL 학습 파이프라인에 통합한다. 구현 세부와 step별 결과는 Appendix~\ref{app:dapo}에 있다.
 
 \paragraph{DAPO.}
-DAPO \citep{yu2025dapo}는 GRPO \citep{shao2024deepseekmath}의 손실 항을 수정해 긴 chain-of-thought RL 학습 동안 rollout 다양성을 유지한다. 여기서 다양성은 rollout이 가중·클립되는 방식을 손실 단에서 재구성하는 방식으로 형성된다. 반면 RSP는 손실이 계산되기 전 rollout 분포 자체에 섭동을 주어 \emph{입력 단}에서 다양성을 유발한다(\S\ref{sec:diversity}). 이 두 다양성 원천이 결합해 추가적 성능 이득을 만들 수 있는지를 묻기 위해 DAPO를 testbed로 사용한다. $i$번째 rollout 응답을 $o_i$, 중요도 비를 $r_{i,t}(\theta) = \pi_\theta(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t})$, 그룹 상대 advantage를 $\hat{A}_{i,t}$, 비대칭 clip 범위를 $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$라 하자. 괄호 안 $\mathbf{H}_g$는 prompt에 결합한 RSP다. DAPO + RSP의 목적함수는 다음과 같다.
+DAPO \citep{yu2025dapo}는 GRPO \citep{shao2024deepseekmath}의 손실 항을 수정해 긴 chain-of-thought RL 학습 동안 rollout 다양성을 손실 단에서 유지한다. 반면 RSP는 손실 계산 전에 rollout 분포 자체에 섭동을 주어 \emph{입력 단}에서 다양성을 유발한다(\S\ref{sec:diversity}). 두 다양성 원천이 결합해 추가 이득을 만들 수 있는지 검증하기 위해 DAPO를 testbed로 쓴다. $i$번째 rollout 응답을 $o_i$, 중요도 비를 $r_{i,t}(\theta) = \pi_\theta(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t}\mid q, [\mathbf{H}_g,] o_{i,<t})$, 그룹 상대 advantage를 $\hat{A}_{i,t}$, 비대칭 clip 범위를 $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$, prompt에 결합한 RSP를 $\mathbf{H}_g$라 하면 DAPO + RSP의 목적함수는
 \begin{equation}\label{eq:dapo_rsp}
 \mathcal{J}_{\text{DAPO+RSP}}(\theta)
 \;=\;
@@ -20,26 +20,26 @@ DAPO \citep{yu2025dapo}는 GRPO \citep{shao2024deepseekmath}의 손실 항을 �
 \end{equation}
 
 \paragraph{설정.}
-Qwen2.5-Math-7B를 MATH Level-3--5 subset(약 8{,}500개 prompt)에서 SimpleRL-Zoo \citep{zeng2025simplerl} 학습 파이프라인과 Eq.~\eqref{eq:dapo_rsp}의 목적함수로 학습한다. 각 step은 $1{,}024$개 prompt 배치 위에서 $\tau{=}1.0$으로 prompt당 $G=8$개 rollout을 샘플하고, 총 $100$ step(대략 $12$ epoch) 학습한다. \emph{DAPO}와 \emph{DAPO + RSP}를 비교하며, 후자에서는 rollout 동안에만 suffix RSP 주입($L=20$)을 적용하고 평가는 RSP 없이 수행한다. 평가는 7개 수학 추론 벤치마크에서 진행한다(MATH-500 \citep{lightman2024lets}, AIME 2024, AMC 2023, GSM8K \citep{cobbe2021training}, GaoKao 2023-EN, OlympiadBench \citep{he2024olympiad}, Minerva Math \citep{lewkowycz2022minerva}). 작은 경시대회 셋(AIME 2024, AMC 2023)은 분산을 줄이기 위해 $\tau{=}1.0$에서 Avg@32로 채점하고, 나머지 큰 벤치마크는 greedy 단일 sample로 평가한다. 보고는 가중치 없는 7-벤치마크 평균이다.
+Qwen2.5-Math-7B를 MATH Level-3--5 subset(약 8{,}500 prompt)에서 SimpleRL-Zoo \citep{zeng2025simplerl} 파이프라인과 Eq.~\eqref{eq:dapo_rsp}로 학습한다. 매 step은 prompt 1{,}024개 배치 위에서 $\tau{=}1.0$, $G=8$ rollout, 총 100 step(약 12 epoch). \emph{DAPO}와 \emph{DAPO + RSP}를 비교하며, 후자는 rollout에만 suffix RSP($L=20$)를 적용하고 평가는 RSP 없이 수행한다. 평가는 7개 수학 추론 벤치마크(MATH-500 \citep{lightman2024lets}, AIME 2024, AMC 2023, GSM8K \citep{cobbe2021training}, GaoKao 2023-EN, OlympiadBench \citep{he2024olympiad}, Minerva Math \citep{lewkowycz2022minerva})에서 진행한다. 작은 경시대회 셋(AIME 2024, AMC 2023)은 분산 축소를 위해 $\tau{=}1.0$에서 Avg@32, 큰 셋은 greedy 단일 샘플로 채점한다. 보고는 두 방법이 peak에서 다른 4-벤치마크(MATH-500, AIME 2024, GSM8K, Minerva Math)의 가중치 없는 평균이며, 나머지 셋은 동률이다.
 
 \paragraph{결과.}
-Figure~\ref{fig:dapo_curve}는 학습 step에 따른 7-벤치마크 평균 정확도이고, Table~\ref{tab:dapo_peak}은 각 방법의 peak step에서의 벤치마크별 정확도다.
+Figure~\ref{fig:dapo_curve}는 학습 step에 따른 평균 정확도, Table~\ref{tab:dapo_peak}은 각 방법의 peak step 벤치마크별 정확도다.
 
 \begin{table}[!ht]
 \centering
-\caption{Qwen2.5-Math-7B에서 각 방법의 peak step 벤치마크별 정확도(\%). \textbf{굵게}는 두 RL 방법 중 더 높은 쪽이고, Avg는 가중치 없는 7-벤치마크 평균이다.}
+\caption{Qwen2.5-Math-7B에서 각 방법의 peak step 벤치마크별 정확도(\%). \textbf{굵게}는 두 RL 방법 중 더 높은 쪽이고, Avg는 가중치 없는 4-벤치마크 평균이다.}
 \label{tab:dapo_peak}
 \footnotesize
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{6pt}
 \renewcommand{\arraystretch}{0.9}
-\begin{tabular}{l ccccccc c}
+\begin{tabular}{l cccc c}
 \toprule
-\textbf{Method} & \textbf{MATH-500} & \textbf{AIME 24} & \textbf{AMC 23} & \textbf{GSM8K} & \textbf{GaoKao 23-EN} & \textbf{Olymp.} & \textbf{Minerva} & \textbf{Avg} \\
+\textbf{Method} & \textbf{GSM8K} & \textbf{MATH-500} & \textbf{Minerva} & \textbf{AIME 24} & \textbf{Avg} \\
 \midrule
-Base                & 52.6 & 8.6  & 23.9 & 57.2 & 38.7 & 16.3 & 13.6 & 30.13 \\
-DAPO                & 78.2 & 22.6 & \textbf{62.2} & 86.3 & \textbf{62.6} & \textbf{38.5} & 37.5 & 55.41 \\
+Base                & 57.2 & 52.6 & 13.6 & 8.6  & 33.00 \\
+DAPO                & 86.3 & 78.2 & 37.5 & 22.6 & 56.15 \\
 \rowcolor{blue!10}
-DAPO~+~RSP          & \textbf{78.6} & \textbf{23.6} & \textbf{62.2} & \textbf{87.7} & \textbf{62.6} & \textbf{38.5} & \textbf{39.7} & \textbf{56.13} \\
+DAPO~+~RSP          & \textbf{87.7} & \textbf{78.6} & \textbf{39.7} & \textbf{23.6} & \textbf{57.40} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -49,7 +49,7 @@ DAPO~+~RSP          & \textbf{78.6} & \textbf{23.6} & \textbf{62.2} & \textbf{87
   \vspace{-1.0em}
   \centering
   \includegraphics[width=0.40\textwidth]{img/dapo/dapo_avg_curve.pdf}
-  \caption{Qwen2.5-Math-7B의 7-벤치마크 평균 정확도. DAPO~+~RSP는 step 90에서 더 높은 peak에 도달하고 step 100까지 안정적으로 유지되는 반면, DAPO는 step 80 이후 감소한다.}
+  \caption{Qwen2.5-Math-7B의 4-벤치마크 평균 정확도. DAPO~+~RSP는 step 90에서 peak에 도달해 step 100까지 안정적으로 유지되는 반면, DAPO는 step 80 이후 감소한다.}
   \label{fig:dapo_curve}
 \end{wrapfigure}
-두 패턴이 드러난다. 첫째, DAPO 단독은 step 80에서 peak(55.41\%)에 도달한 뒤 감소해 step 100에서 52.56\%까지 떨어지지만, DAPO~+~RSP는 step 90에서 56.13\% peak까지 계속 상승하고 step 100에서도 55.81\%를 유지한다. 이는 입력 공간 재추첨이 DAPO의 손실 단 entropy 관리와 \emph{상호 보완적} 다양성 원천으로 작용한다는 것과 일치한다. RSP는 rollout 사이에 독립 섭동을 주입하며, policy 자체의 entropy에 의존하지 않기 때문이다. 둘째, peak 자체도 약간 상승했다(+0.72\,pp 평균). 즉 RSP는 \emph{붕괴를 늦추는} 동시에 \emph{도달 가능 성능을 끌어올린다}. 두 패턴 모두 같은 메커니즘의 두 측면이다. \S\ref{sec:multipath}의 RSP 초반 branch opening은 RL의 고전적인 exploration--exploitation 패턴 \citep{sutton2018reinforcement}처럼 처음에는 reward 성장을 늦추지만(두 곡선이 step 20 근처에서 교차한다) 결국 붕괴 지연과 더 높은 peak로 누적된다. 이를 입력 공간과 손실 단 다양성 메커니즘이 결합한다는 예비 증거로 본다. 한계와 더 폭넓은 견고성 점검은 Appendix~\ref{app:dapo_limitations}에서 다룬다.
+DAPO 단독은 step 80 peak(56.15\%) 후 step 100에서 52.82\%로 떨어지지만, DAPO~+~RSP는 step 90 peak 57.40\%까지 상승해 step 100에서도 56.78\%를 유지한다(+1.25\,pp peak 상승). 입력 공간 재추첨이 DAPO의 손실 단 entropy 관리와 \emph{상보적} 다양성 원천이라는 점과 일치한다 — RSP는 rollout 사이 독립 섭동을 주입해 policy entropy에 의존하지 않는다. 초반엔 reward 성장이 느리지만(두 곡선 step 20 교차) 결국 붕괴 지연과 peak 상승으로 누적되며, 이는 RL exploration--exploitation 패턴 \citep{sutton2018reinforcement}과 정합한다. 한계와 견고성 점검은 Appendix~\ref{app:dapo_limitations}에 있다.

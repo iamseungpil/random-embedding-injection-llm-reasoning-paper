@@ -1,15 +1,15 @@
 \section{서론}
 \label{sec:introduction}
 
-대형 언어 모델(LLM)이 수십억 개 이상의 파라미터로 커지면서 전체 파라미터를 모두 미세조정하는 비용도 빠르게 증가했다. 이에 따라 고정된 모델에 소수의 추가 파라미터만 도입해 적응시키는 parameter-efficient 방법이 주목받고 있다 \citep{hu2022lora, houlsby2019adapter}. 그중 \textit{soft prompt}는 학습 가능한 연속 임베딩을 입력 시퀀스 앞이나 중간에 삽입해 attention 메커니즘을 통해 모델 행동을 조정하는 대표적 접근이다 \citep{li2021prefix, lester2021power}. 이러한 패러다임은 수학 추론을 강화하는 데에도 활발히 활용되고 있다 \citep{kang2025model, xu2025softcot, ye2025thinking, hao2024training, zhang2025memgen}. 세부 설계는 다르지만, 이들 방법은 모두 사전학습 어휘 바깥의 연속 임베딩을 주입하고 그것을 최적화해 downstream 성능을 끌어올린다는 공통 구조를 갖는다.
+대형 언어 모델(LLM)이 수십억 파라미터로 커지면서 전체 미세조정 비용은 빠르게 증가했고, 소수의 추가 파라미터만 도입해 적응시키는 parameter-efficient 방법이 주목받고 있다 \citep{hu2022lora, houlsby2019adapter}. 그중 \textit{soft prompt}는 학습 가능한 연속 임베딩을 입력에 삽입해 attention을 통해 모델 행동을 조정한다 \citep{li2021prefix, lester2021power}. 이 패러다임은 수학 추론 강화에도 활발히 쓰이며 \citep{kang2025model, xu2025softcot, ye2025thinking, hao2024training, zhang2025memgen}, 세부 설계는 달라도 모두 어휘 바깥 연속 임베딩을 \emph{최적화}해 downstream 성능을 올린다는 공통 구조를 갖는다.
 
-하지만 우리는 이러한 효과에 최적화가 반드시 필요한 것은 아님을 관찰했다. 무작위로 초기화된, 학습되지 않은 연속 임베딩을 주입하는 것만으로도 출력 분포가 바뀔 수 있다. 예를 들어 채팅 형식으로 학습되지 않은 base model에 chat template을 적용하면 프롬프트 형식 불일치 때문에 추론 성능이 크게 떨어지는데, 여기에 무작위 임베딩을 덧붙이면 이 성능 저하가 완화된다. 단순한 노이즈가 모델을 흔드는 데 그친다면 정확도는 더 나빠져야 한다. 이는 학습된 의미 내용과 무관하게, 어휘 바깥의 연속 임베딩을 입력에 주입하는 행위 자체가 모델 행동을 비자명하게 바꿀 수 있음을 시사한다. 기존 연구는 대체로 \textit{soft prompt} 방법을 최종 정확도로만 평가했기 때문에, 주입 자체의 효과와 최적화의 효과가 분리되어 있지 않으며, 이런 연속 임베딩 주입이 출력 분포를 어떻게 바꾸는지는 여전히 충분히 탐구되지 않았다.
+그러나 이 효과에 최적화가 필수는 아니다. 학습되지 않은 무작위 연속 임베딩을 그대로 주입해도 출력 분포는 바뀐다. 예를 들어 chat 형식으로 학습되지 않은 base model에 chat template을 적용하면 형식 불일치로 추론 성능이 크게 떨어지는데, 여기에 무작위 임베딩을 덧붙이면 그 손실이 도리어 회복된다. 단순 노이즈가 모델을 흔드는 데 그친다면 정확도는 더 나빠져야 한다. 즉 학습된 의미와 무관하게 \emph{주입} 자체가 모델 행동을 비자명하게 바꾼다. 기존 연구는 최종 정확도에만 집중해 주입과 최적화의 효과를 분리하지 못했고, 임베딩 주입이 출력 분포를 어떻게 바꾸는지는 충분히 탐구되지 않았다.
 
-본 연구는 학습 없이 주입되는 Random Soft Prompt(RSP)의 역할을 분석한다. RSP는 사전학습된 임베딩 행렬의 항별 평균과 분산을 맞춘 등방 가우시안에서 샘플링한 연속 벡터다. 여기서 무작위성은 임베딩 분포를 모사하는 장치가 아니라, 같은 프롬프트가 rollout마다 \emph{독립적인} 섭동을 만들도록 해 주는 성질이며, 탐색은 바로 이 독립성을 요구한다. 이론적으로는 어텐션 수준의 메커니즘을 식별한다. 각 어텐션 레이어에서 RSP의 기여는 무작위 토큰 어텐션 질량이라는 단일 스칼라로 정확히 포착되고, 그 양의 fixed-gap 상한 envelope은 자기회귀적 캐시 성장에 따라 좁아진다. 또한 섭동된 logits에 대한 국소 affine 분석 아래에서, 등방 재추첨이 rank-preserving temperature sampling이 만들 수 없는 top-$K$ 진입 영역에 양의 확률을 부여할 수 있음을 보인다. 실험적으로 RSP는 생성 초반의 토큰 엔트로피를 높이지만 후반으로 갈수록 출력은 다시 안정화되며, temperature sampling과 결합할 경우 Pass@$N$의 증가로 드러나는 더 다양한 추론 궤적을 만들어 낸다. 마지막으로 이러한 다양성이 효과적인 학습 신호에 필수적인 Group Relative Policy Optimization(GRPO) \citep{shao2024deepseekmath}와 어떤 관련을 갖는지도 논의한다.
+본 연구는 학습 없이 주입되는 Random Soft Prompt(RSP)를 분석한다. RSP는 사전학습 임베딩 행렬의 항별 평균과 분산을 맞춘 등방 가우시안에서 추첨한 연속 벡터다. 무작위성의 역할은 임베딩 분포 모사가 아니라 rollout마다 \emph{독립}된 섭동을 보장하는 데 있고, 탐색은 바로 이 독립성을 요구한다. 이론적으로 RSP의 기여는 어텐션 레이어마다 단일 스칼라(무작위 토큰 어텐션 질량)로 정확히 포착되며, 그 fixed-gap 상한 envelope은 자기회귀 캐시 성장에 따라 좁아진다. 또한 섭동 logits의 국소 affine 분석에서, 등방 재추첨은 rank-preserving temperature sampling이 만들 수 없는 top-$K$ 진입 영역에 양의 확률을 부여한다. 실험적으로 RSP는 생성 초반의 토큰 entropy를 높이고 후반엔 baseline 수준으로 안정화되며, temperature와 결합하면 Pass@$N$ 증가로 드러나는 더 다양한 궤적을 만든다. 마지막으로 이 다양성을 GRPO \citep{shao2024deepseekmath} 학습에 적용한 결과를 논의한다.
 
 본 논문의 기여는 다음과 같다.
 \begin{itemize}
-  \item 트랜스포머 수준 메커니즘을 제시한다. RSP의 기여는 cache-growth 상한 envelope을 갖는 단일 스칼라 어텐션 질량으로 통제되며, 국소 affine surrogate 위의 분포 분석 아래에서 \emph{고정 섭동이 아닌 등방 재추첨}이 temperature sampling으로 만들 수 없는 top-$K$ 진입 영역에 도달할 수 있음을 보인다.
-  \item RSP가 LLM 생성에 어떤 변화를 주는지 실증적으로 분석하고, RSP가 생성 초반의 토큰 엔트로피를 높이며 temperature sampling과 결합될 때 더 다양한 추론 궤적을 만들고, 같은 RSP를 모든 sample에 공유하면 누적 이득이 사라진다는 점을 보인다.
-  \item RSP가 유도하는 다양성이 GRPO 학습에 어떤 함의를 갖는지 논의하고, RSP는 순위를 \emph{바꾸는} 섭동인 반면 temperature는 순위를 \emph{보존}하는 섭동이라는 점에서, 두 방법이 직교하는 탐색 이득을 제공한다고 주장한다.
+  \item 트랜스포머 수준 메커니즘 제시. RSP의 기여는 cache-growth 상한 envelope을 갖는 단일 스칼라 어텐션 질량으로 통제되고, 국소 affine surrogate 분석에서 \emph{고정 섭동이 아닌 등방 재추첨}이 temperature가 만들 수 없는 top-$K$ 진입 영역에 도달할 수 있음을 보인다.
+  \item 실증 분석. RSP는 초반 토큰 entropy를 높이고 temperature와 결합 시 더 다양한 추론 궤적을 만들며, 같은 RSP를 sample 간 공유하면 누적 이득이 사라진다.
+  \item GRPO 학습 함의 논의. RSP는 순위를 \emph{바꾸는} 섭동, temperature는 \emph{보존}하는 섭동이므로 둘은 직교하는 탐색 이득을 제공한다.
 \end{itemize}

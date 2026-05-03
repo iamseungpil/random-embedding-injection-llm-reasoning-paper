@@ -51,7 +51,7 @@ Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}  
 
 먼저 무작위 임베딩 주입이 모델의 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 각 벤치마크에서 주입 위치(Prefix, Infix, Suffix)와 $L \in \{10, 15, 20\}$ 가운데 가장 좋은 RSP 결과를 보고한다.
 
-instruct model과 원래 프롬프트 형식을 쓰는 base model에서는 RSP가 baseline 성능을 대체로 몇 퍼센트포인트 이내에서 유지하거나 소폭만 이동시킨다. 더 눈에 띄는 것은 프롬프트 형식 불일치 상황이다. 즉, 채팅 형식으로 학습되지 않은 base model에 ChatML template을 주입했을 때, RSP는 최대 $+29$\%p까지의 큰 성능 향상을 보인다. 단순히 불확실성을 높이는 노이즈였다면 오히려 성능 저하가 커졌어야 하므로, 이 결과는 RSP 효과가 단순한 교란을 넘는다는 점을 시사한다.
+instruct model과 원래 형식을 쓰는 base model에서 RSP는 baseline 성능을 대체로 몇 퍼센트포인트 이내에서 유지하거나 소폭만 이동시킨다. 가장 두드러지는 것은 형식 불일치다. chat 형식으로 학습되지 않은 base model에 ChatML template을 주입했을 때 RSP는 최대 $+29$\%p의 큰 향상을 보인다. 단순 노이즈였다면 성능 저하가 더 커졌어야 하므로 이 효과는 단순한 교란을 넘는다. 가설은 다음과 같다 — base model이 익숙하지 않은 chat token 위에서 비정상적으로 confident한 wrong attractor에 갇히는데, RSP가 초반 분포를 평탄화해 그 attractor에서 빠져나오게 한다. \S\ref{sec:entropy}의 entropy 상승 신호와 정합하며, 정량 분석은 향후 과제다.
 
 \begin{table}[!t]
 \centering
@@ -135,9 +135,9 @@ Section~\ref{sec:entropy}는 RSP가 생성 초반 출력 분포를 바꾼다는 
     \bottomrule
   \end{tabular}
 \end{wraptable}
-먼저 토큰 수준에서 보면, 자기회귀 생성에서 baseline과 RSP의 궤적 차이는 첫 생성 step에서 시작되어야 한다. 이 위치가 추론 궤적의 핵심 분기점이기 때문이다 \citep{wang2025beyond}. Baseline $\tau{=}1.0$을 기준으로, 더 높은 temperature의 baseline $\tau{=}2.0,3.0$과 RSP $\tau{=}1.0$을 네 지표로 비교한다. Spearman rank correlation $\rho$는 순위 보존 여부를, baseline top-10 밖 확률 질량은 저확률 토큰으로의 support 확장을, Jensen--Shannon divergence는 전체 분포 거리를, Acc는 Pass@1 정확도를 측정한다(정의는 Appendix~\ref{app:token_metrics}).
+토큰 수준에서 baseline과 RSP의 궤적 차이는 첫 생성 step에서 시작되어야 한다 \citep{wang2025beyond}. Baseline $\tau{=}1.0$을 기준으로 더 높은 temperature($\tau{=}2.0,3.0$)와 RSP $\tau{=}1.0$을 네 지표로 비교한다: Spearman rank correlation $\rho$ (순위 보존), baseline top-10 밖 확률 질량 (저확률 토큰 확장), JS divergence (전체 분포 거리), Acc (Pass@1, 정의는 Appendix~\ref{app:token_metrics}).
 
-Table~\ref{tab:rsp_vs_temp}의 대비는 명확하다. RSP의 분포 변화 크기는 top-10 밖 질량과 JS divergence 기준으로 $\tau{=}2.0$과 $\tau{=}3.0$ 사이에 놓인다. 그러나 temperature scaling은 단조 변환이라 어떤 $\tau$에서도 baseline 대비 token ranking을 보존하므로 $\rho=1$이 강제된다. 반면 RSP는 순위를 부분적으로 보존하면서도 재배치하여 $\rho=0.709$를 만든다. Acc 행은 그 비용 차이를 보여 준다. RSP와 비슷한 크기의 분포 변화를 temperature로 만들려면 $\tau$를 3.0 쪽으로 올려야 하지만, 이 경우 정확도는 1.42\%까지 무너진다. RSP는 같은 설정에서 73.30\%의 정확도를 유지한다. 따라서 RSP는 temperature처럼 분포를 균일하게 평탄화하는 것이 아니라, 순위를 바꾸는 다른 종류의 섭동을 만든다.
+Table~\ref{tab:rsp_vs_temp}의 대비는 명확하다. RSP의 분포 변화 크기는 top-10 밖 질량과 JS divergence 기준으로 $\tau{=}2.0$과 $\tau{=}3.0$ 사이지만, temperature는 단조 변환이라 $\rho=1$이 강제되는 반면 RSP는 $\rho=0.709$로 순위를 재배치한다. RSP와 비슷한 크기의 분포 변화를 temperature로 만들려면 $\tau{=}3.0$ 쪽이 필요한데 이때 정확도는 1.42\%까지 무너지고, RSP는 같은 설정에서 73.30\%를 유지한다. 즉 RSP는 분포를 균일하게 평탄화하는 게 아니라 순위를 바꾸는 다른 종류의 섭동을 만든다.
 
 \paragraph{궤적 수준: 의미적 다양성.}
 \begin{wraptable}{r}{0.34\textwidth}
