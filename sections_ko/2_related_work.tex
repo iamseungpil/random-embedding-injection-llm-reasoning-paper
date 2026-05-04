@@ -15,6 +15,6 @@
 \subsection{신경망에서의 노이즈 주입}\label{sec:rw_perturbation}
 % ----------------------------------------------------------------
 
-신경망에 노이즈를 주입하는 방법은 학습, 추론, 아키텍쳐 수준 등 다양한 층위에서 연구돼 왔다. 이를테면, 학습 시점에서는 dropout \citep{srivastava2014dropout}이 은닉 유닛을 무작위 비활성화하고, NEFTune \citep{jain2024neftune}은 instruction fine-tuning 중 임베딩 노이즈로 instruction following을 개선한다. 추론 시점에서는 randomized smoothing \citep{cohen2019certified}이 가우시안 노이즈로 certified robustness를 얻고, SmoothLLM \citep{robey2023smoothllm}은 문자 단위 변형으로 jailbreak를 방어한다. RL에서는 NoisyNet \citep{fortunato2018noisy}이 가중치에 학습 가능한 노이즈를 넣어 탐색을 돕는다.
+신경망에 노이즈를 주입하는 방법은 학습·추론 시점뿐 아니라 \textit{주입 위치}까지 다양한 층위에서 연구돼 왔다. 학습 시점에서는 dropout \citep{srivastava2014dropout}이 \textit{은닉 활성값}을 무작위 비활성화하고, NEFTune \citep{jain2024neftune}은 instruction fine-tuning 중 \textit{입력 임베딩}에 가우시안 노이즈를 \textit{더해} instruction following을 개선한다. 추론 시점에서는 randomized smoothing \citep{cohen2019certified}이 \textit{원시 입력}에 가우시안 노이즈를 주입해 certified robustness를 얻고, SmoothLLM \citep{robey2023smoothllm}은 \textit{이산 문자} 수준의 변형으로 jailbreak를 방어한다. RL에서는 NoisyNet \citep{fortunato2018noisy}이 \textit{네트워크 가중치}에 학습되는 노이즈를 \textit{더해} 탐색을 돕는다.
 
-RSP는 세 가지 점에서 이러한 노이즈 주입 연구들과 구별된다. \textbf{(1)} 학습 없이 추론 시점에만 동작해 모델 파라미터를 건드리지 않는다(dropout/NEFTune/NoisyNet과 다름). \textbf{(2)} 원래 입력을 보존한 채 한 번의 forward pass에 임베딩만 덧붙이며, 강건성 방법의 ``여러 noisy pass + 집계''가 필요 없다. \textbf{(3)} 학습된 파라미터 없이 사전학습 임베딩 통계에서 직접 추첨한 벡터를 그대로 쓴다(NoisyNet은 노이즈 파라미터를 학습).
+RSP는 \textit{임베딩}에 노이즈를 \textit{덧붙이며}, 세 가지 점에서 이러한 노이즈 주입 연구들과 구별된다. \textbf{(1)} 학습 없이 추론 시점에만 동작해 모델 파라미터를 건드리지 않는다(dropout/NEFTune/NoisyNet과 다름). \textbf{(2)} 원래 입력을 보존한 채 한 번의 forward pass에 임베딩만 덧붙이며, 강건성 방법의 ``여러 noisy pass + 집계''가 필요 없다. \textbf{(3)} 학습된 파라미터 없이 사전학습 임베딩 통계에서 직접 추첨한 벡터를 그대로 쓴다(NoisyNet은 노이즈 파라미터를 학습).
