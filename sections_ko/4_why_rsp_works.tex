@@ -23,7 +23,7 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 \subsection{Exploration: RSP가 초반 탐색을 강화한다}\label{sec:improve}\label{sec:multipath}
 % ================================================================
 
-랜덤 프롬프트를 삽입할 경우, 어텐션이 랜덤 프롬프트에 몰리면서 탐색을 강화한다. 한 번의 RSP 주입이 hidden state에 미치는 영향은 \emph{얼마나}와 \emph{어디로}, 두 양에 모인다. 전자는 한 attention head 안의 한 스칼라 $w$가, 후자는 $\mathbf{H}$의 분포가 결정하며, 등방 가우시안이라는 RSP의 설계가 두 측면을 동시에 풀어 낸다.
+랜덤 프롬프트를 삽입할 경우, 어텐션이 랜덤 프롬프트에 몰리면서 탐색을 강화한다. 한 번의 RSP 주입이 hidden state에 미치는 영향은 \emph{얼마나}와 \emph{어디로}, 두 가지로 살펴볼 수 있다. 전자는 한 attention head 안의 한 스칼라 $w$가, 후자는 $\mathbf{H}$의 분포가 결정하며, 등방 가우시안이라는 RSP의 설계가 두 측면을 동시에 풀어 낸다.
 
 self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 함께 attend한다고 하자. 모든 attention logit은 유한하다고 두며, 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두면 실제 토큰 질량은 양수이고, head output은 다음 형태로 \emph{정확히} 정리된다.
 \begin{equation}\label{eq:decomp}
@@ -57,7 +57,7 @@ $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\l
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
 % ================================================================
 
-RSP의 효과는, 그러나 응답을 깨뜨릴 정도로 발산하지 않는다. 초반의 분기는 디코딩이 진행되며 자동으로 사그라든다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
+RSP가 다양화하는 초반의 분기는 디코딩이 진행되며 자동으로 안정적이 된다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
 
 \begin{theorem}[캐시 성장에 의한 어텐션 질량 감쇠]\label{thm:decay}
 Query가 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하고 모든 logit이 유한하다고 하자. 사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서

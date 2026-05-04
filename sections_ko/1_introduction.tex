@@ -1,18 +1,18 @@
 \section{서론}
 \label{sec:introduction}
 
-대형 언어 모델(LLM)이 수십억 파라미터로 커지면서 전체 미세조정 비용은 빠르게 증가했고, 소수의 추가 파라미터만 도입해 적응시키는 parameter-efficient 방법이 주목받고 있다 \citep{hu2022lora, houlsby2019adapter}. 그중 \textit{soft prompt}는 학습 가능한 연속 임베딩을 입력에 삽입해 attention을 통해 모델 행동을 조정한다 \citep{li2021prefix, lester2021power}. 이 패러다임은 수학 추론 강화에도 활발히 쓰이며 \citep{kang2025model, xu2025softcot, ye2025thinking, hao2024training, zhang2025memgen}, 세부 설계는 달라도 모두 어휘 바깥 연속 임베딩을 \emph{최적화}해 downstream 성능을 올린다는 공통 구조를 갖는다.
+대형 언어 모델(LLM)이 수십억 파라미터로 커지면서 전체 미세조정 비용은 빠르게 증가했고, 소수의 추가 파라미터만 도입해 적응시키는 parameter-efficient 방법이 주목받고 있다 \citep{hu2022lora, houlsby2019adapter}. 그중 \textit{soft prompt}는 학습 가능한 연속 임베딩을 입력에 삽입해 attention을 통해 모델 행동을 조정한다 \citep{li2021prefix, lester2021power}. 이 패러다임은 수학 추론 강화에도 활발히 쓰이며 \citep{kang2025model, xu2025softcot, ye2025thinking, hao2024training, zhang2025memgen}, 세부 설계는 달라도 모두 어휘 바깥 연속 임베딩을 \emph{최적화}해 downstream 성능을 올린다는 공통 구조를 갖는다. 이러한 최적화는 과제별·데이터셋별로 이뤄지며, 기존 연구는 그 성능 이득을 임베딩의 \emph{학습된 값}이 만들어 낸 결과로 해석해 왔다.
 
 \begin{figure}[!t]
   \centering
   \includegraphics[width=\textwidth]{img/main/main.pdf}
-  \caption{RSP가 유도하는 추론 궤적 다양성 개념도(\textit{suffix} 주입). (a) 디코딩 초반: RSP가 분기되는 hidden state(빨강)를 만들어 다양한 출력 분포를 연다. (b) 디코딩 후반: 캐시 성장이 RSP 어텐션 질량을 희석시켜 hidden state(파랑)가 안정화된다. (c) 생성이 진행될수록 초반 RSP 섭동이 연 여러 궤적이 목표를 향한 완성형 응답으로 점진적으로 수렴한다.}
+  \caption{RSP가 유도하는 추론 궤적 다양성 개념도. 본 그림의 hidden state는 next-token 분포를 결정하는 마지막 layer의 출력이다. (a) 디코딩 초반: RSP가 \textit{분기되는 hidden state}(빨강)를 만들어 다양한 출력 분포를 연다. (b) 디코딩 후반: 캐시 성장이 RSP 어텐션 질량을 희석시켜 \textit{안정화된 hidden state}(파랑)에 이른다. (c) 생성이 진행될수록 초반 RSP 섭동이 연 여러 궤적이 목표를 향한 완성형 응답으로 점진적으로 수렴한다.}
   \label{fig:main}
 \end{figure}
 
-그러나 이 효과에 최적화가 필수는 아니다. 우리는 학습되지 않은 무작위 연속 임베딩을 그대로 주입해도 일부 downstream task에서 성능 향상을 확인할 수 있었다. 예를 들어 chat 형식으로 학습되지 않은 base model에 chat template을 적용하면 형식 불일치로 추론 성능이 크게 떨어지는데, 이때 무작위 임베딩을 덧붙이면 그 손실이 회복됐다. 단순 노이즈가 모델을 흔드는 데 그친다면 정확도는 더 나빠져야 한다. 즉 학습된 의미와 무관하게 \emph{주입} 자체가 모델 행동을 비자명하게 바꾼다. 기존 연구는 최종 정확도에만 집중해 주입과 최적화의 효과를 분리하지 못했고, 임베딩 주입이 출력 분포를 어떻게 바꾸는지는 충분히 탐구되지 않았다.
+그러나 우리는 이 효과에 최적화가 필수가 아님을 관찰했다 — 학습되지 않은 무작위 임베딩을 그대로 주입해도 일부 downstream task에서 성능 향상이 나타난다. 예를 들어 chat 형식으로 학습되지 않은 base model에 chat template을 적용하면 형식 불일치로 추론 성능이 크게 떨어지는데, 이때 무작위 임베딩을 덧붙이면 그 손실이 회복됐다. 단순 노이즈가 모델을 흔드는 데 그친다면 정확도는 더 나빠져야 한다. 따라서 학습된 의미와 무관하게 \emph{주입} 자체가 모델 행동을 비자명하게 바꾼다. 기존 연구는 최종 정확도에만 집중해 주입과 최적화의 효과를 분리하지 못했고, 임베딩 주입이 출력 분포를 어떻게 바꾸는지는 충분히 탐구되지 않았다.
 
-본 연구는 학습 없이 주입되는 Random Soft Prompt(RSP)가 LLM의 추론에 가지는 효과를 분석한다. RSP는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안에서 추첨한 연속 벡터로, rollout마다 \emph{독립}된 섭동을 공급해 더 넓은 탐색을 가능케 한다. 랜덤 입력의 탐색 개선 효과는 특히 넓은 탐색이 필요한 추론 초반에 강하게 작용해 hidden state를 다양하게 branching 하게 하다가, 추론 단계가 깊어질 수록 goal로 수렴하도록 돕는 효과를 주었다. 실험 결과 RSP는 초반 entropy를 높이고 temperature와 결합해 Pass@$N$ 다양성을 확장한다는 사실을 확인할 수 있었다. RSP의 탐색 성능 향상 효과를 추론에만이 아닌 GRPO \citep{shao2024deepseekmath} 학습으로 확장할 수 있다는 것까지 보인다. 이 지점에서 본 연구는 세 가지 기여를 가진다. 먼저, \emph{학습 없는 무작위 주입}만으로 latent reasoning이 작동한다는 새로운 발견을 통해 기존 soft prompt 효과의 일정 부분이 학습된 의미가 아니라 \emph{주입 자체}에서 올 수 있음을 확인하였다. 다음으로, 이론적 기반과 다양한 실험을 통해 RSP의 효과를 검증하였다. 마지막으로, 이러한 효과를 추론만이 아닌 학습 과정에도 도입해 실용적 적용 가능성을 확인하였다.
+본 연구는 학습 없이 주입되는 Random Soft Prompt(RSP)가 LLM의 추론에 가지는 효과를 분석한다. RSP는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안에서 추첨한 연속 벡터로, rollout마다 \emph{독립}된 섭동을 공급해 더 넓은 탐색을 가능케 한다. 랜덤 입력의 탐색 개선 효과는 특히 넓은 탐색이 필요한 추론 초반에 강하게 작용해 hidden state를 다양하게 \textit{branching}시키다가, 추론 단계가 깊어질수록 \textit{안정화}되어 목표를 향한 응답으로 수렴한다. 실험 결과 RSP는 초반 entropy를 높이고 temperature와 결합해 Pass@$N$ 다양성을 확장한다는 사실을 확인할 수 있었다. RSP의 탐색 성능 향상 효과를 추론에만이 아닌 DAPO \citep{yu2025dapo} 학습으로 확장할 수 있다는 것까지 보인다. 이 지점에서 본 연구는 세 가지 기여를 가진다. 먼저, \emph{학습 없는 무작위 임베딩 주입}만으로 latent reasoning 능력이 발현된다는 새로운 발견을 통해 기존 soft prompt 효과의 일정 부분이 학습된 의미가 아니라 \emph{주입 자체}에서 올 수 있음을 확인하였다. 다음으로, 이론적 기반과 다양한 실험을 통해 그 메커니즘을 검증하였다. 마지막으로, 이러한 효과를 추론만이 아닌 학습 과정에도 도입해 실용적 적용 가능성을 확인하였다.
 
 \iffalse
 본 연구는 학습 없이 주입되는 Random Soft Prompt(RSP)가 LLM의 추론에 가지는 효과를 분석한다. RSP는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안에서 추첨한 연속 벡터로, rollout마다 \emph{독립}된 섭동을 공급해 더 넓은 탐색을 가능케 한다. RSP는 초반 entropy를 높이고 temperature와 결합해 Pass@$N$ 다양성을 확장한다.  \emph{학습 없는 무작위 주입}만으로 latent reasoning이 작동한다는 사실은 기존 soft prompt 효과의 일정 부분이 학습된 의미가 아니라 \emph{주입 자체}에서 올 수 있음을 시사한다. 이 지점에서 본 연구는 RSP의 탐색 성능 향상 효과를 GRPO \citep{shao2024deepseekmath} 학습으로 확장한다. 이 지점에서 본 연구는 세 가지 기여를 가진다. 먼저, 
