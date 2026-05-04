@@ -64,26 +64,26 @@ $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\l
 RSP가 다양화하는 초반의 분기는 디코딩이 진행되며 자동으로 안정적이 된다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
 
 \begin{theorem}[캐시 성장에 의한 어텐션 질량 감쇠]\label{thm:decay}
-Query가 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하고 모든 logit이 유한하다고 하자. 사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서
+한 attention head에서 query가 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하고 모든 logit이 유한하다고 하자. 사전 스케일 logit gap을 $\Delta_i := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서
 \[
-w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
+w_{r,i} \;\le\; \frac{L}{L + n\,\exp(\Delta_i/\sqrt d)}
 \]
-가 성립하며, 우변은 $L$과 $\Delta_i^{(\ell)}$를 고정한 채 $n$에 대해 엄격히 감소하고 0으로 수렴한다.
+가 성립하며, 우변은 $L$과 $\Delta_i$를 고정한 채 $n$에 대해 엄격히 감소하고 0으로 수렴한다.
 \end{theorem}
 
 \begin{proof}
-$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$로 두자. gap 정의에서 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$이고, max는 average보다 크므로 $\exp(s_{r,\max}) \ge R/L$이다. 두 사실을 결합해 $n$개 실제 키를 합하면 $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R$이다. 이를 $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R)$에 대입하면
+$s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$로 두자. gap 정의에서 모든 실제 토큰 $j$에 대해 $s_j \ge \Delta_i/\sqrt d + s_{r,\max}$이고, max는 average보다 크므로 $\exp(s_{r,\max}) \ge R/L$이다. 두 사실을 결합해 $n$개 실제 키를 합하면 $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i/\sqrt d)\,R$이다. 이를 $w_{r,i} = R/(\sum_j\exp(s_j) + R)$에 대입하면
 \[
-w_{r,i}^{(\ell)}
+w_{r,i}
 \;\le\;
-\frac{R}{(n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R + R}
+\frac{R}{(n/L)\exp(\Delta_i/\sqrt d)\,R + R}
 \;=\;
-\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}
+\frac{L}{L + n\,\exp(\Delta_i/\sqrt d)}
 \]
-가 따른다. 우변의 미분은 $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
+가 따른다. 우변의 미분은 $-L\exp(\Delta_i/\sqrt d)/(L + n\exp(\Delta_i/\sqrt d))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
 \end{proof}
 
-이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자로 들어가 \emph{최대} 영향력을 정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력 상계는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer·query 위치·logit gap}에서 RSP attention 상계가 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$는 디코딩 동안 query·key·hidden state와 함께 변하지만 깊은 layer와 긴 sequence에서 실제 토큰 간 상관관계가 누적되며 sharpen되는 경향을 보이고, Figure~\ref{fig:attention_mass}(a)의 layer 축 추가 감쇠가 그 간접 증거다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 \S\ref{sec:rsp_definition}의 branching event 가능 확률 역시 같은 envelope에 통제되며, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit된다 — 생성 초반에 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit이다.
+각 layer $\ell$에 적용하면 동일한 상계가 \S\ref{sec:improve}의 per-layer scalar $w_{r,i}^{(\ell)}$와 대응하는 gap $\Delta_i^{(\ell)}$를 통제한다. 이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자로 들어가 \emph{최대} 영향력을 정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력 상계는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer·query 위치·logit gap}에서 RSP attention 상계가 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$는 디코딩 동안 query·key·hidden state와 함께 변하지만 깊은 layer와 긴 sequence에서 실제 토큰 간 상관관계가 누적되며 sharpen되는 경향을 보이고, Figure~\ref{fig:attention_mass}(a)의 layer 축 추가 감쇠가 그 간접 증거다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 \S\ref{sec:rsp_definition}의 branching event 가능 확률 역시 같은 envelope에 통제되며, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit된다 — 생성 초반에 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit이다.
 
 Figure~\ref{fig:attention_mass}는 이 envelope이 실제 모델에서 어떻게 발현되는지를 보여 준다 — 가로(sequence) 축의 감소는 Theorem~\ref{thm:decay}이 직접 예측한 패턴이고, 세로(layer) 축의 추가 감쇠는 본문 정리만으로는 따라오지 않는 경험적 보너스다(상세 조건은 caption 참조).
 

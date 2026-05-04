@@ -51,26 +51,26 @@ Gaussian RSP satisfies the equality with $\Sigma = \sigma_E^2 \mathbf{I}_d$ and 
 The early branching that RSP introduces stabilizes naturally as decoding proceeds: the upper bound on the same scalar $w_{r,i}^{(\ell)}$ defined in \S\ref{sec:improve} narrows along the sequence axis with autoregressive KV cache growth. Each step appends one real-token term while the number of RSP terms is fixed; freezing the logit gap between real and RSP tokens, this asymmetry yields the following exact bound.
 
 \begin{theorem}[Attention-mass decay under KV cache growth]\label{thm:decay}
-For a query attending $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, let $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
+Consider a single attention head where a query attends $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, and let $\Delta_i := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
 \[
-w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)},
+w_{r,i} \;\le\; \frac{L}{L + n\,\exp(\Delta_i/\sqrt d)},
 \]
-and the right-hand side is strictly decreasing in $n$ and tends to $0$ at fixed $L$ and $\Delta_i^{(\ell)}$.
+and the right-hand side is strictly decreasing in $n$ and tends to $0$ at fixed $L$ and $\Delta_i$.
 \end{theorem}
 
 \begin{proof}
-Let $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, and $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$. The gap definition gives $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$ for every real $j$, and $\exp(s_{r,\max}) \ge R/L$ holds because the max dominates the average; combining the two and summing over the $n$ real keys yields $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R$. Substituting into $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R)$ gives
+Let $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, and $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$. The gap definition gives $s_j \ge \Delta_i/\sqrt d + s_{r,\max}$ for every real $j$, and $\exp(s_{r,\max}) \ge R/L$ holds because the max dominates the average; combining the two and summing over the $n$ real keys yields $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i/\sqrt d)\,R$. Substituting into $w_{r,i} = R/(\sum_j\exp(s_j) + R)$ gives
 \[
-w_{r,i}^{(\ell)}
+w_{r,i}
 \;\le\;
-\frac{R}{(n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R + R}
+\frac{R}{(n/L)\exp(\Delta_i/\sqrt d)\,R + R}
 \;=\;
-\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
+\frac{L}{L + n\,\exp(\Delta_i/\sqrt d)}.
 \]
-The derivative of the right-hand side in $n$ is $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$, so the bound is strictly decreasing and tends to $0$ as $n\to\infty$.
+The derivative of the right-hand side in $n$ is $-L\exp(\Delta_i/\sqrt d)/(L + n\exp(\Delta_i/\sqrt d))^2 < 0$, so the bound is strictly decreasing and tends to $0$ as $n\to\infty$.
 \end{proof}
 
-Two mechanisms sit in this line: $L$ in the numerator caps maximum influence, while $n$ in the denominator grows automatically each step, narrowing the upper bound at fixed $L$. The theorem guarantees only sequence-axis attenuation at a fixed (layer, query, logit gap); it does not assert layer-axis monotone decay. The gap $\Delta_i^{(\ell)}$ does evolve during decoding but tends to sharpen at deeper layers and longer sequences as correlations among real tokens accumulate, with Figure~\ref{fig:attention_mass}(a)'s layer-axis attenuation as indirect evidence. The accurate reading is therefore ``the attainable upper bound at a fixed gap decreases monotonically,'' not ``realized mass decreases per step.'' Since Eq.~\eqref{eq:decomp} ties the random contribution to the same scalar, branching-event reachability (\S\ref{sec:rsp_definition}) inherits the envelope: as the cache grows, new branching events become rarer and the response commits to the branch already opened --- an implicit explore-then-exploit. Figure~\ref{fig:attention_mass} confirms how this envelope manifests in the actual model; the sequence-axis decrease is the pattern Theorem~\ref{thm:decay} predicts directly, while the additional layer-axis attenuation is an empirical bonus the theorem alone does not derive.
+Applied at each layer $\ell$ to the scalar $w_{r,i}^{(\ell)}$ of \S\ref{sec:improve}: $L$ caps maximum influence while $n$ grows automatically each step, narrowing the upper bound. The theorem guarantees only sequence-axis attenuation at a fixed (layer, query, gap); it does not assert layer-axis monotone decay. The gap does evolve during decoding but tends to sharpen at deeper layers and longer sequences, with Figure~\ref{fig:attention_mass}(a)'s layer-axis attenuation as indirect evidence. The accurate reading is therefore ``the attainable upper bound at a fixed gap decreases monotonically,'' not ``realized mass decreases per step.'' Since Eq.~\eqref{eq:decomp} ties the random contribution to the same scalar, branching-event reachability (\S\ref{sec:rsp_definition}) inherits the envelope: as the cache grows, new branching events become rarer and the response commits to the branch already opened --- an implicit explore-then-exploit. Figure~\ref{fig:attention_mass} confirms how this envelope manifests in the actual model; the sequence-axis decrease is the pattern Theorem~\ref{thm:decay} predicts directly, while the additional layer-axis attenuation is an empirical bonus the theorem alone does not derive.
 
 \begin{figure}[ht]
   \centering
