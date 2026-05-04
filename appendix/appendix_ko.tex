@@ -339,20 +339,20 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 logit gap을 $\Delta_{ij}(\bar h)$로 두고, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor surrogate를
+centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 (참) logit gap을 $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$로 두자. transformer의 logit map은 $\bar h$에 대해 비선형이지만, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
 \[
-\Delta_{ij}(\bar h) = \Delta_{ij} + b_{ij}^\top \bar h
+\Delta_{ij}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ij} + b_{ij}^\top \bar h
 \]
-로 쓴다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$이다. $\bar h = 0$은 centered RSP가 평균값을 갖는 상태이며 RSP가 없는 forward pass와는 다르다. 따라서 $\Delta_{ij}(0)$은 선형화 점에서의 gap일 뿐, no-RSP baseline gap이 아니다.
+를 준다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$이다. $\bar h = 0$은 centered RSP가 평균값을 갖는 상태이며 RSP가 없는 forward pass와는 다르다. 따라서 $\Delta_{ij}(0)$은 선형화 점에서의 gap일 뿐, no-RSP baseline gap이 아니다. 아래 명제는 surrogate $\Delta_{ij}^{\mathrm{lin}}$에 대한 진술이다. 참 gap $\Delta_{ij}(\bar h)$에 대해서도 같은 식이 $O(\|\bar h\|^2)$ 잔차까지 성립한다.
 
-\begin{proposition}[체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
+\begin{proposition}[surrogate에서 체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
 $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar h)\big] = \Delta_{ij}
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big] = \Delta_{ij}
 \]
 가 성립한다. 반대로 결정적 prompt $h_0$를 모든 run에 재사용하면
 \[
-\Delta_{ij}(h_0)-\Delta_{ij} = b_{ij}^\top h_0
+\Delta_{ij}^{\mathrm{lin}}(h_0)-\Delta_{ij} = b_{ij}^\top h_0
 \]
 는 고정된 방향 편향이다.
 \end{proposition}
@@ -360,7 +360,7 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \begin{proof}
 중심화된 경우는 기대값의 선형성으로 바로 나온다.
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar h)\big]
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big]
 =
 \Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar h]
 =

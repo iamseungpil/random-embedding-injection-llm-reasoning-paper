@@ -340,20 +340,20 @@ This appendix isolates the only properties of the RSP law used in the main text:
 
 \subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
 
-Let $\Delta_{ij}(\bar h)$ denote the logit gap between vocab tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$, and write the first-order Taylor surrogate around the linearization point $\bar h = 0$ as
+Let $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$ denote the (true) vocab-logit gap between tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$. The transformer's logit map is non-linear in $\bar h$, but a first-order Taylor expansion around the linearization point $\bar h = 0$ yields the local surrogate
 \[
-\Delta_{ij}(\bar{h}) = \Delta_{ij} + b_{ij}^\top \bar{h},
+\Delta_{ij}^{\mathrm{lin}}(\bar{h}) \;:=\; \Delta_{ij} + b_{ij}^\top \bar{h},
 \]
-with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$. Note that $\bar h = 0$ corresponds to the centered RSP at its mean, not to the no-RSP forward pass; $\Delta_{ij}(0)$ is therefore the gap at the linearization point, not the no-RSP baseline gap.
+with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$. Note that $\bar h = 0$ corresponds to the centered RSP at its mean, not to the no-RSP forward pass; $\Delta_{ij}(0)$ is therefore the gap at the linearization point, not the no-RSP baseline gap. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$; the same identity holds for the true gap $\Delta_{ij}(\bar h)$ up to a $O(\|\bar h\|^2)$ remainder absorbed by the Taylor expansion.
 
-\begin{proposition}[No systematic first-order drift]\label{prop:centered_no_drift}
+\begin{proposition}[No systematic first-order drift in the surrogate]\label{prop:centered_no_drift}
 If $\mathbb{E}[\bar{h}] = 0$, then
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar{h})\big] = \Delta_{ij}
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar{h})\big] = \Delta_{ij}
 \]
 for every token pair $(i,j)$. If a deterministic prompt $h_0$ is reused across runs, then
 \[
-\Delta_{ij}(h_0) - \Delta_{ij} = b_{ij}^\top h_0
+\Delta_{ij}^{\mathrm{lin}}(h_0) - \Delta_{ij} = b_{ij}^\top h_0
 \]
 is a fixed directional bias.
 \end{proposition}
@@ -361,7 +361,7 @@ is a fixed directional bias.
 \begin{proof}
 The centered case is immediate from linearity of expectation:
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar{h})\big]
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar{h})\big]
 =
 \Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar{h}]
 =
