@@ -20,10 +20,10 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The RSP can be concatenated with the input embeddings $\mathbf{X}$ at one of three positions: \textit{prefix} ($[\mathbf{H};\mathbf{X}]$), \textit{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), or \textit{suffix} ($[\mathbf{X};\mathbf{H}]$). These positions reflect the injection strategies in prior work: TTSV \citep{kang2025model} prepends as \textit{prefix}, SoftCoT \citep{xu2025softcot} and LTPO \citep{ye2025thinking} insert as \textit{infix} between user and assistant turns, and MemGen \citep{zhang2025memgen} appends as \textit{suffix}. For repeated-sampling protocols, RSP draws and decoding randomness are independent across trials. The role of this randomness is not to imitate the embedding distribution but to give repeated rollouts \emph{independent} perturbations, which is what exploration requires.
 
 % ================================================================
-\subsection{Exploration: how RSP enters the hidden state}\label{sec:improve}
+\subsection{Exploration: RSP strengthens early-stage exploration}\label{sec:improve}
 % ================================================================
 
-We first ask how a single RSP injection perturbs the hidden state. RSP does not add to the hidden state directly; it enters only through attention weights, so its instantaneous influence within one head can collect into a single quantity: the attention mass assigned to RSP tokens.
+When a random prompt is injected, attention concentrates on it, and that concentration is what amplifies exploration. RSP does not add to the hidden state directly but enters only through attention weights, so its instantaneous influence within one head collects into a single quantity: the attention mass assigned to RSP tokens.
 
 Concretely, consider one attention head in self-attention layer $\ell$ with $n\ge1$ unmasked real tokens, $L\ge1$ RSP tokens, finite attention logits, attention weights $\alpha_{ij}^{(\ell)}$, and value vectors $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$ on the real and RSP sides. Define the RSP attention mass $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$. Since the real-token mass is then positive, the head output decomposes \emph{exactly} as
 \begin{equation}\label{eq:decomp}
@@ -48,7 +48,7 @@ The same scalar $w_{r,i}^{(\ell)}$ controls two things at once. The attenuation 
 \subsection{Annealing: KV cache growth dilutes RSP attention}\label{sec:converge}
 % ================================================================
 
-The natural next question is how this scalar behaves as decoding proceeds. In autoregressive generation, the KV cache adds one real-token term at each step while the number of RSP terms stays fixed. Under a fixed real-vs-random logit gap, this cache growth gives an upper envelope.
+The early branching that RSP introduces stabilizes naturally as decoding proceeds: the same scalar's upper envelope shrinks along the sequence axis. The KV cache adds one real-token term at each step while RSP terms stay fixed, and under a fixed real-vs-random logit gap this cache growth gives the upper envelope.
 
 \begin{theorem}[Attention-mass decay under cache growth]\label{thm:decay}
 For a query attending $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, let $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
