@@ -6,7 +6,7 @@
 \begin{figure}[!t]
   \centering
   \includegraphics[width=\textwidth]{img/main/main.pdf}
-  \caption{RSP가 유도하는 추론 궤적 다양성 개념도. 본 그림의 hidden state는 next-token 분포를 결정하는 마지막 layer의 출력이다. (a) 디코딩 초반: RSP가 \textit{분기되는 hidden state}(빨강)를 만들어 다양한 출력 분포를 연다. (b) 디코딩 후반: 캐시 성장이 RSP 어텐션 질량을 희석시켜 \textit{안정화된 hidden state}(파랑)에 이른다. (c) 생성이 진행될수록 초반 RSP 섭동이 연 여러 궤적이 목표를 향한 완성형 응답으로 점진적으로 수렴한다.}
+  \caption{RSP가 유도하는 추론 궤적 다양성 개념도. 본 그림의 hidden state는 next-token 분포를 결정하는 마지막 layer의 출력이다. (a) 디코딩 초반: RSP가 \textit{분기되는 hidden state}(빨강; \S\ref{sec:rsp_definition}의 branching state)를 만들어 다양한 출력 분포를 연다. (b) 디코딩 후반: 캐시 성장이 RSP 어텐션 질량을 희석시켜 \textit{안정화된 hidden state}(파랑)에 이른다. (c) 생성이 진행될수록 초반 RSP 섭동이 연 여러 궤적이 목표를 향한 완성형 응답으로 점진적으로 수렴한다.}
   \label{fig:main}
 \end{figure}
 

@@ -371,7 +371,7 @@ The deterministic case follows by substitution.
 
 This proposition rules out a run-averaged first-order bias. It does not say that individual prompt draws leave the logits unchanged.
 
-\subsection{Proof of Theorem~\ref{thm:minimax_directional_coverage}}
+\subsection{Proof of Proposition~\ref{thm:minimax_directional_coverage}}
 
 For a unit vector $b$, the first-order perturbation energy available along $b$ is $\mathrm{Var}_{h\sim D}(b^\top h)=b^\top \Sigma_D b$. The worst-case directional energy is therefore the minimum Rayleigh quotient of $\Sigma_D$.
 
@@ -412,7 +412,7 @@ The Gaussian density
 is strictly positive at every point of $\mathbb{R}^d$. Every nonempty open set contains a ball of positive Lebesgue measure, and integrating a strictly positive density over that ball gives positive probability.
 \end{proof}
 
-This is the only support property used in Proposition~\ref{prop:support_expansion}.
+This is the only support property used in the informal branching argument of \S\ref{sec:improve} and in Appendix~\ref{app:topk_entry}.
 
 \clearpage
 \section{Proofs for the Transformer-Level Mechanism}\label{app:proofs}
@@ -535,7 +535,7 @@ $w_{r,i}^{(\ell)}\to 0$ by Corollary~\ref{cor:sequence_annealing}. Apply Corolla
 
 \subsection{Performance gain: from local admission to Pass@$N$}
 
-The main text §\ref{sec:multipath} uses a first-order surrogate to state two claims: a baseline-excluded token can enter the local top-$K$ set, and independent reruns can turn such local openings into Pass@$N$ gains. The proofs below use only one support condition on the centered prompt law $D$:
+The main text uses a first-order surrogate to state two claims --- the §\ref{sec:improve} claim that a baseline-excluded token can enter the local top-$K$ set, and the §\ref{sec:converge} closing that independent reruns turn such local openings into Pass@$N$ gains. The proofs below use only one support condition on the centered prompt law $D$:
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]
@@ -561,54 +561,28 @@ z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
 \]
 This approximation is used as a first-order surrogate for branch opening, not as an exact global model of the transformer logits.
 
-\subsubsection{Proof of Proposition~\ref{prop:support_expansion}}
+\subsubsection{Top-$K$ entry region (Remark)}\label{app:topk_entry}
 
-Let
+This complements the informal branching argument in \S\ref{sec:improve}. Define the entry region
 \[
 \mathcal{G}_{i,K}
 \;:=\;
 \bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}.
 \]
+If $\mathcal{G}_{i,K}$ contains a nonempty open set $U$, then by (S1) $D(U)>0$, and $U\subseteq\mathcal{G}_{i,K}$ gives $\Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K})\ge D(U)>0$. A useful sufficient condition is the existence of some $\bar h_0$ at which token $i$ strictly outranks all but at most $K-1$ other tokens in the affine surrogate; by continuity, a neighborhood of $\bar h_0$ is then contained in $\mathcal{G}_{i,K}$. This is a rank-changing event unreachable by the monotone temperature transform, but it does not by itself imply (M1).
 
-\begin{proof}
-Assume $\mathcal{G}_{i,K}$ contains a nonempty open set $U$. By (S1), $D(U)>0$. Since $U \subseteq \mathcal{G}_{i,K}$,
-\[
-\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) \;\ge\; D(U) \;>\; 0.
-\]
-This is exactly the event that token $i$ enters the surrogate top-$K$ set.
+\subsubsection{Pass@$N$ ensemble bound (Remark)}\label{app:passN_ensemble}
 
-\smallskip
-\noindent A useful sufficient condition is the existence of some $\bar h_0$ at which token $i$ strictly outranks all but at most $K-1$ other tokens in the affine surrogate. By continuity, a neighborhood of $\bar h_0$ is then contained in $\mathcal{G}_{i,K}$.
-\end{proof}
-
-\subsubsection{Proof of Proposition~\ref{prop:multi_path}}
-
-This proposition does not derive $p_{\min}(x)>0$ from the mechanism. It only converts a task-side lower bound and independence into Pass@$N$ growth.
-
-\begin{proof}
-Let $A_n$ be the event that the $n$-th independent RSP run reaches a correct trajectory on problem $x$, and write $p_n(x):=\Pr(A_n)\ge p_{\min}(x)$ as in (M1). Under (M2),
+The bound $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1-(1-p_{\min}(x))^N$ in the main text is a standard independent-Bernoulli union argument. Let $A_n$ be the event that the $n$-th run reaches a correct trajectory on $x$; under (M1) $\Pr(A_n)\ge p_{\min}(x)$, and under (M2)
 \[
 \Pr\!\Big(\bigcap_{n=1}^N A_n^c\Big)
-=
-\prod_{n=1}^N (1-p_n(x))
-\le
-\prod_{n=1}^N (1-p_{\min}(x))
-=
-(1-p_{\min}(x))^N.
-\]
-Taking complements gives
-\[
-\Pr\!\big(\mathrm{Pass@}N\text{ on }x\big)
-=
+\le (1-p_{\min}(x))^N,
+\qquad
 \Pr\!\Big(\bigcup_{n=1}^N A_n\Big)
-\ge
-1-(1-p_{\min}(x))^N.
+\ge 1-(1-p_{\min}(x))^N
+\;\ge\; 1-e^{-N p_{\min}(x)}.
 \]
-The bound $1-x\le e^{-x}$ for $x\in[0,1]$ then yields
-\[
-1-(1-p_{\min}(x))^N \;\ge\; 1-e^{-N p_{\min}(x)}.
-\]
-\end{proof}
+This is a generic fact, not specific to RSP; RSP's role is restricted to supplying mechanisms that satisfy (M1) and (M2).
 
 \clearpage
 % ================================================================
