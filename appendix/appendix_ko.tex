@@ -339,11 +339,11 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 (참) vocab-logit gap을 $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$로 두자. transformer의 logit map은 $\bar h$에 대해 비선형이지만, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
+$z^{\text{Base}}_i$를 RSP 없는 forward pass의 vocab 토큰 $i$ logit, $z^{\text{RSP}}_i(\bar h)$를 centered RSP 섭동이 $\bar h$일 때의 logit이라 하자. RSP 하 (참) vocab-logit gap은 $\Delta_{ij}(\bar h) := z^{\text{RSP}}_i(\bar h) - z^{\text{RSP}}_j(\bar h)$이며, no-RSP baseline gap $\Delta^{\text{Base}}_{ij} := z^{\text{Base}}_i - z^{\text{Base}}_j$와 구분된다. $\bar h = 0$은 centered RSP가 entrywise 평균일 때이지 no-RSP forward pass가 아니므로 일반적으로 $\Delta_{ij}(0) \ne \Delta^{\text{Base}}_{ij}$이다. transformer의 logit map은 $\bar h$에 대해 비선형이지만, $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
 \[
 \Delta_{ij}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ij} + b_{ij}^\top \bar h
 \]
-를 준다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$이다. $\bar h = 0$은 centered RSP가 평균값을 갖는 상태이며 RSP가 없는 forward pass와는 다르다. 따라서 $\Delta_{ij}(0)$은 선형화 점에서의 gap일 뿐, no-RSP baseline gap이 아니다. 아래 명제는 surrogate $\Delta_{ij}^{\mathrm{lin}}$에 대한 진술이다. 참 gap $\Delta_{ij}(\bar h)$에 대해서도 같은 식이 $O(\|\bar h\|^2)$ 잔차까지 성립한다.
+를 준다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$이다. 아래 명제는 surrogate $\Delta_{ij}^{\mathrm{lin}}$에 대한 진술이다. 참 gap $\Delta_{ij}(\bar h)$에 대해서도 같은 식이 $O(\|\bar h\|^2)$ 잔차까지 성립한다.
 
 \begin{proposition}[surrogate에서 체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
 $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해

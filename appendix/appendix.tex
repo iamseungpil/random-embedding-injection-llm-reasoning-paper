@@ -340,11 +340,11 @@ This appendix isolates the only properties of the RSP law used in the main text:
 
 \subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
 
-Let $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$ denote the (true) vocab-logit gap between tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$. The transformer's logit map is non-linear in $\bar h$, but a first-order Taylor expansion around the linearization point $\bar h = 0$ yields the local surrogate
+Let $z^{\text{Base}}_i$ denote the no-RSP output logit at vocab token $i$ and $z^{\text{RSP}}_i(\bar h)$ the corresponding logit when the centered RSP perturbation takes value $\bar h$. The (true) vocab-logit gap under RSP is $\Delta_{ij}(\bar h) := z^{\text{RSP}}_i(\bar h) - z^{\text{RSP}}_j(\bar h)$, distinct from the no-RSP baseline gap $\Delta^{\text{Base}}_{ij} := z^{\text{Base}}_i - z^{\text{Base}}_j$. Note that $\bar h = 0$ corresponds to the centered RSP at its entrywise mean rather than to the no-RSP forward pass, so in general $\Delta_{ij}(0) \ne \Delta^{\text{Base}}_{ij}$. The transformer's logit map is non-linear in $\bar h$, but a first-order Taylor expansion around $\bar h = 0$ yields the local surrogate
 \[
 \Delta_{ij}^{\mathrm{lin}}(\bar{h}) \;:=\; \Delta_{ij} + b_{ij}^\top \bar{h},
 \]
-with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$. Note that $\bar h = 0$ corresponds to the centered RSP at its mean, not to the no-RSP forward pass; $\Delta_{ij}(0)$ is therefore the gap at the linearization point, not the no-RSP baseline gap. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$; the same identity holds for the true gap $\Delta_{ij}(\bar h)$ up to a $O(\|\bar h\|^2)$ remainder absorbed by the Taylor expansion.
+with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$; the same identity holds for the true gap $\Delta_{ij}(\bar h)$ up to a $O(\|\bar h\|^2)$ remainder absorbed by the Taylor expansion.
 
 \begin{proposition}[No systematic first-order drift in the surrogate]\label{prop:centered_no_drift}
 If $\mathbb{E}[\bar{h}] = 0$, then
