@@ -6,6 +6,4 @@
 
 본 연구는 사전학습 임베딩의 항별 평균·분산에 맞춘 등방 가우시안 벡터를 학습 없이 주입하는 RSP를 분석했다. 이론적으로 RSP의 기여는 어텐션 레이어마다 단일 스칼라 $w_{r,i}^{(\ell)}$로 포착되고 fixed-gap 상계가 캐시 성장에 따라 좁아지며, 국소 affine 분석에서 등방 재추첨은 temperature가 만들 수 없는 top-$K$ 진입 영역에 양의 확률을 부여한다(\S\ref{sec:why_rsp_works}). 실험적으로 RSP를 포함한 latent prompt 방법들은 같은 entropy 시그니처(초반 상승, 후반 안정화)를 공유하고, 같은 RSP를 sample 간 공유하면 누적 이득이 사라져 핵심이 \emph{독립성}임을 직접 확인했으며(\S\ref{sec:experimental_analysis}), DAPO와 결합하면 학습 후반의 안정성과 평균 정확도에서 완만한 이득을 얻는다(\S\ref{sec:application}).
 
-더 큰 함의는 학습된 의미 없이 입력 단 무작위 섭동만으로 latent reasoning의 핵심 패턴(초반 entropy 상승·trajectory 다양화·Pass@$N$ 누적)이 발현된다는 점이다. soft prompt 효과의 일정 부분이 \emph{주입 구조의 부산물}일 가능성을 가리키며, RSP는 ensemble·self-consistency와 직교 결합 가능한 무비용 다양성 확장기로 쓸 수 있다.
-
-\paragraph{한계와 향후 과제.} 분석은 RoPE 기반 decoder와 수학 추론에 한정되며, ALiBi·MQA 등 다른 architecture와 다른 도메인으로의 일반화, Theorem~\ref{thm:decay} fixed-gap 외부의 deep-layer sharpening dynamics, (M1) 가정 검증, \S\ref{sec:application}의 multi-seed DAPO 분산, held-out hyperparameter selection(\S\ref{sec:setup})이 모두 향후 과제다.
+학습된 의미 없이 입력 단 무작위 섭동만으로 latent reasoning의 핵심 패턴이 발현된다는 점은 \emph{soft prompt 효과의 일정 부분이 주입 구조의 부산물}일 가능성을 가리키며, RSP가 ensemble·self-consistency와 직교 결합 가능한 무비용 다양성 확장기로 활용될 수 있음을 시사한다. 한계: RoPE decoder·수학 추론 한정, 다른 architecture·도메인 일반화, sharpening dynamics, multi-seed DAPO 분산, held-out hyperparameter selection(\S\ref{sec:setup})이 향후 과제다.
