@@ -2,12 +2,12 @@
 % Section 3 (method+theory): definition -> exploration -> annealing -> multipath
 % Sub-section layout follows the 2d0534e form (4-subsection: rsp_definition,
 % improve, converge, multipath). Proofs use attention decomposition and a
-% one-sided cache-growth decay bound with full inline derivations.
+% one-sided KV cache-growth decay bound with full inline derivations.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Random Soft Prompts and Why They Work}\label{sec:why_rsp_works}
 
-This section states the mechanism used in the paper. A \emph{rollout} means one full autoregressive decode under one sampled RSP. Within a rollout, an RSP enters the hidden state only through attention; the same scalar attention mass that enables an early influence is constrained by a cache-growth envelope as real tokens accumulate. Across rollouts, independent resampling can accumulate early branch differences into Pass@$N$ gains under the task-side assumptions stated below. We keep the main statements and intuition here; further derivations are in Appendix~\ref{app:proofs}.
+This section states the mechanism used in the paper. A \emph{rollout} means one full autoregressive decode under one sampled RSP. Within a rollout, an RSP enters the hidden state only through attention; the same scalar attention mass that enables an early influence is constrained by a KV cache-growth envelope as real tokens accumulate. Across rollouts, independent resampling can accumulate early branch differences into Pass@$N$ gains under the task-side assumptions stated below. We keep the main statements and intuition here; further derivations are in Appendix~\ref{app:proofs}.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
@@ -42,15 +42,15 @@ Concretely, consider one attention head in self-attention layer $\ell$ with $n\g
 Write the head output as $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$, then factor $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}>0$ out of the real-token sum. No approximation beyond the softmax-normalization identity is used.
 \end{proof}
 
-The same scalar $w_{r,i}^{(\ell)}$ controls two things at once. The attenuation ratio $1-w_{r,i}^{(\ell)}$ on the real-token signal and the upper bound $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$ on the random contribution are both tied to it. The RSP-induced variation reduces to tracking a single number in $[0,1]$. Early in decoding the cache is short and $w_{r,i}^{(\ell)}$ can be nontrivial, so the same identity that bounds the random contribution also lets one sampled RSP perturb early next-token decisions.
+The same scalar $w_{r,i}^{(\ell)}$ controls two things at once. The attenuation ratio $1-w_{r,i}^{(\ell)}$ on the real-token signal and the upper bound $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$ on the random contribution are both tied to it. The RSP-induced variation reduces to tracking a single number in $[0,1]$. Early in decoding the KV cache is short and $w_{r,i}^{(\ell)}$ can be nontrivial, so the same identity that bounds the random contribution also lets one sampled RSP perturb early next-token decisions.
 
 % ================================================================
 \subsection{Annealing: KV cache growth dilutes RSP attention}\label{sec:converge}
 % ================================================================
 
-The early branching that RSP introduces stabilizes naturally as decoding proceeds: the same scalar's upper envelope shrinks along the sequence axis. The KV cache adds one real-token term at each step while RSP terms stay fixed, and under a fixed real-vs-random logit gap this cache growth gives the upper envelope.
+The early branching that RSP introduces stabilizes naturally as decoding proceeds: the same scalar's upper envelope shrinks along the sequence axis. The KV cache adds one real-token term at each step while RSP terms stay fixed, and under a fixed real-vs-random logit gap this KV cache growth gives the upper envelope.
 
-\begin{theorem}[Attention-mass decay under cache growth]\label{thm:decay}
+\begin{theorem}[Attention-mass decay under KV cache growth]\label{thm:decay}
 For a query attending $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, let $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
 \[
 w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)},
@@ -75,7 +75,7 @@ This single inequality carries two messages. The RSP length $L$ is the design pa
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the KV cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
   \label{fig:attention_mass}
 \end{figure}
 
