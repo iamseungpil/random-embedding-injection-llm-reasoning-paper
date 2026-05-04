@@ -309,7 +309,7 @@ This appendix complements the semantic diversity results reported in Section~\re
 \clearpage
 \section{Token-Level Distribution Metrics}\label{app:token_metrics}
 
-This appendix provides formal definitions for the metrics used in Section~\ref{sec:diversity}. Numerical results are reported in Table~\ref{tab:rsp_vs_temp} of the main text. We extract first-token logits via a single forward pass (no autoregressive generation) and store the top-100 token ids and logit values per problem. Temperature conditions reuse the baseline logits scaled by $1/\tau$, requiring no separate inference. RSP draws 16 independent seeds per problem (MATH-500), and reported metrics are the mean across the 16 seeds. Pass@1 accuracy is computed over 16 samples per problem, with the baseline at $\tau{=}1.0$ reaching $73.92 \pm 0.78\%$. Let $P_{\text{base}}$ denote the baseline next-token distribution at $\tau=1.0$ and $P_{\text{target}}$ the candidate distribution being compared (e.g., baselines at $\tau{=}2.0, 3.0$ or RSP at $\tau=1.0$). All metrics are computed analytically from saved logits at the first generation step.
+This appendix provides formal definitions for the metrics used in Section~\ref{sec:diversity}. Numerical results are reported in Table~\ref{tab:rsp_vs_temp} of the main text. We extract first-token logits via a single forward pass (no autoregressive generation) and store the top-100 token ids and logit values per problem. Temperature conditions reuse the baseline logits scaled by $1/\tau$, requiring no separate inference. RSP draws 16 independent seeds per problem (MATH-500), and reported metrics are the mean across the 16 seeds. Pass@1 accuracy is computed over 16 samples per problem, with the baseline at $\tau{=}1.0$ reaching $73.92 \pm 0.78\%$. Let $P_{\text{base}}$ denote the baseline next-token distribution at $\tau{=}1.0$ and $P_{\text{target}}$ the candidate distribution being compared (e.g., baselines at $\tau{=}2.0, 3.0$ or RSP at $\tau{=}1.0$). All metrics are computed analytically from saved logits at the first generation step.
 
 \paragraph{Spearman rank correlation.}
 Spearman's $\rho$ is the Pearson correlation coefficient between the token ranks of two distributions:
@@ -533,7 +533,7 @@ w_{r,i}^{(\ell)} \max_{j \in [L]} \|\mathbf{v}_{r_j}^{(\ell)}\|
 $w_{r,i}^{(\ell)}\to 0$ by Corollary~\ref{cor:sequence_annealing}. Apply Corollary~\ref{cor:perturbation_magnitude} to bound $\|\boldsymbol{\eta}_i^{(\ell)}\|$. The maximum norm is finite for any realization of finitely many sampled values.
 \end{proof}
 
-\subsection{Performance gain: from local admission to Pass@N}
+\subsection{Performance gain: from local admission to Pass@$N$}
 
 The main text §\ref{sec:multipath} uses a first-order surrogate to state two claims: a baseline-excluded token can enter the local top-$K$ set, and independent reruns can turn such local openings into Pass@$N$ gains. The proofs below use only one support condition on the centered prompt law $D$:
 \[

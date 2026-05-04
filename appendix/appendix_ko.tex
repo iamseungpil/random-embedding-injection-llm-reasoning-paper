@@ -309,7 +309,7 @@ Varentropy (overall)     & 0.1353 & \cellcolor{blue!10}0.1375 & \cellcolor{blue!
 \clearpage
 \section{토큰 수준 분포 지표}\label{app:token_metrics}
 
-이 부록은 Section~\ref{sec:diversity}의 토큰 수준 분석에 사용한 세 지표를 형식적으로 정의한다. $P_{\text{base}}$는 $\tau=1.0$에서의 baseline 다음 토큰 분포, $P_{\text{target}}$은 비교 대상 분포(예: $\tau=2.0$의 baseline, 또는 $\tau=1.0$의 RSP)라 하자. 모든 지표는 첫 생성 단계에서 저장한 logits로부터 해석적으로 계산한다.
+이 부록은 Section~\ref{sec:diversity}의 토큰 수준 분석에 사용한 세 지표를 형식적으로 정의한다. $P_{\text{base}}$는 $\tau{=}1.0$에서의 baseline 다음 토큰 분포, $P_{\text{target}}$은 비교 대상 분포(예: $\tau{=}2.0$의 baseline, 또는 $\tau{=}1.0$의 RSP)라 하자. 모든 지표는 첫 생성 단계에서 저장한 logits로부터 해석적으로 계산한다.
 
 \paragraph{Spearman 순위 상관.}
 Spearman의 $\rho$는 두 분포의 토큰 순위 사이 Pearson 상관계수다.
@@ -371,11 +371,11 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 
 이 명제가 뜻하는 것은 run 평균에서의 1차 편향이 없다는 점이지, 개별 샘플이 logit을 바꾸지 않는다는 뜻은 아니다.
 
-\subsection{Theorem~\ref{thm:minimax_directional_coverage}의 증명}
+\subsection{Proposition~\ref{thm:minimax_directional_coverage}의 증명}
 
 본문의 local linear logit surrogate에 직접 등장하는 양은 단위벡터 $b$에 대한 1차 섭동 에너지 $\mathrm{Var}_{h\sim D}(b^\top h)=b^\top\Sigma_D b$이다. 따라서 최악 방향의 에너지는 $\Sigma_D$의 최소 Rayleigh quotient와 같다.
 
-\begin{proof}[Theorem~\ref{thm:minimax_directional_coverage}의 증명]
+\begin{proof}[Proposition~\ref{thm:minimax_directional_coverage}의 증명]
 $\Sigma_D$의 고윳값을 $\lambda_1,\dots,\lambda_d$라 하면,
 \[
 \lambda_{\min}(\Sigma_D)
@@ -509,7 +509,7 @@ Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, Coro
 
 % [본문 Section 4.2 (Output Distribution Shift and Exploration) 에 대한 증명]
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
-\subsection{성능 향상: local admission에서 Pass@N까지}
+\subsection{성능 향상: local admission에서 Pass@$N$까지}
 
 본문은 1차 surrogate 위에서 두 가지를 주장한다 — §\ref{sec:improve}의 ``baseline 밖 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 §\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
 \[
