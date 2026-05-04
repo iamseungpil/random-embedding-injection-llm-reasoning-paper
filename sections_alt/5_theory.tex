@@ -1,0 +1,82 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Section 5 in the alt (empirical-first) ordering.
+% RSP definition and branching-event/state terminology are introduced in
+% §3.1; this section explains the mechanism behind the empirical patterns
+% of §3-§4 along a single quantity --- the attention mass scalar w.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Why RSP Works}\label{sec:why_rsp_works}
+
+Sections~\ref{sec:experimental_analysis} and~\ref{sec:application} documented the empirical patterns RSP induces --- early-stage entropy rise, trajectory-level diversification, Pass@$N$ accumulation under independent draws, and a late-training advantage in DAPO. We now explain these patterns mechanistically. RSP does not add to the hidden state directly but enters only through attention weights, so within one attention head its instantaneous influence reduces to a single scalar --- the \emph{attention mass} $w$ on RSP tokens --- whose evolution this section tracks. Early on, $w$ is large enough to branch the hidden state into multiple directions (\S\ref{sec:improve}); as the KV cache grows, its upper bound narrows and the response converges (\S\ref{sec:converge}). Randomness supplies \emph{independent} perturbations across rollouts so that each opens a fresh branch. We assume the RSP definition and the \emph{branching event/state} terminology of \S\ref{sec:rsp_definition}; further proofs are in Appendix~\ref{app:proofs}.
+
+% ================================================================
+\subsection{Exploration: RSP strengthens early-stage exploration}\label{sec:improve}\label{sec:multipath}
+% ================================================================
+
+Inserting a random prompt concentrates attention on it, and that concentration is what amplifies exploration. The effect of a single RSP injection on the hidden state can be examined along two questions --- \emph{how much} and \emph{in which direction}. The former is decided by a single scalar $w$ inside one attention head; the latter, by the distribution of $\mathbf{H}$. RSP's design choice --- an isotropic Gaussian --- addresses both at once.
+
+Consider one attention head in self-attention layer $\ell$ that attends $n\ge1$ unmasked real tokens together with $L\ge1$ RSP tokens, with all attention logits finite. Write the attention weights as $\alpha_{ij}^{(\ell)}$ and the value vectors on the real and RSP sides as $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$. Defining the total attention mass on random tokens $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$, the real-token mass is positive and the head output decomposes \emph{exactly} as
+\begin{equation}\label{eq:decomp}
+\mathbf{o}_i^{(\ell)}
+\;=\;
+(1-w_{r,i}^{(\ell)})\,\tilde{\mathbf{o}}_i^{(\ell)}
+\;+\;
+\boldsymbol{\eta}_i^{(\ell)},
+\quad
+\tilde{\mathbf{o}}_i^{(\ell)} := \sum_{j=1}^n \tfrac{\alpha_{ij}^{(\ell)}}{1-w_{r,i}^{(\ell)}}\,\mathbf{v}_j^{(\ell)},
+\quad
+\boldsymbol{\eta}_i^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}.
+\end{equation}
+
+\begin{proof}[Derivation of Eq.~\eqref{eq:decomp}]
+Write the head output as $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$, then factor $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}>0$ out of the real-token sum. No approximation beyond the softmax-normalization identity is used.
+\end{proof}
+
+This single quantity $w_{r,i}^{(\ell)}$ controls both the attenuation ratio $1-w_{r,i}^{(\ell)}$ on the real signal and the upper bound on the random contribution $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$. The \emph{magnitude} of RSP-induced variation thus reduces to one number in $[0,1]$. Early in decoding the KV cache is short and this value is non-negligible, so a single RSP draw can perturb next-token decisions.
+
+The scalar $w$ alone, however, controls only \emph{how much} and not \emph{where} the perturbation lands; the direction is decided by the distribution of $\mathbf{H}$. Under a local affine view, the logit gap between two tokens $i,j$ can be written as $\Delta_{ij}(\bar h) = \Delta_{ij} + b_{ij}^\top \bar h$, where the unit vector $b_{ij}$ is the input-space direction that \emph{flips the ranking} between tokens $i$ and $j$. Since RSP is training-free, we cannot know in advance which $b_{ij}$ opens a useful branch on a given problem --- this missing prior constrains the distribution design. A deterministic token sequence pins $\boldsymbol{\eta}$ to a single direction, leaving its orthogonal complement unperturbed; uniform sampling from the vocabulary is random but inherits the anisotropic geometry of the token-embedding table, leaving some directions systematically under-perturbed. With no prior information available, a sound design rationale is to maximize the worst-case directional variance under a fixed variance budget --- and that solution is uniquely isotropic.
+
+\begin{proposition}[Maximin directional coverage]\label{thm:minimax_directional_coverage}
+Let $D$ be any zero-mean distribution on $\mathbb{R}^d$ with covariance $\Sigma_D$ and trace budget $\mathrm{tr}(\Sigma_D)\le\rho^2$. Then $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$, with equality if and only if $\Sigma_D = (\rho^2/d)\mathbf{I}_d$.
+\end{proposition}
+
+This is a \emph{design criterion} for the prompt law, not a guarantee of correctness; correctness enters through the task-side $p_{\min}(x)$ assumption of \S\ref{sec:converge} and independent resampling.\footnote{The maximin is stated in input space; isotropy is not claimed to be preserved through the transformer. Any local logit direction pulls back via the model Jacobian to an input-space direction $b$, and isotropy guarantees only that no such pulled-back direction has zero projected variance.}
+
+Gaussian RSP satisfies the equality with $\Sigma = \sigma_E^2 \mathbf{I}_d$ and adds \emph{full support} on $\mathbb{R}^d$ (Appendix~\ref{app:why_random}). The two roles separate cleanly: isotropy ensures no direction is systematically excluded, while full support gives positive probability to the open branching-event region (\S\ref{sec:rsp_definition}) whenever it is non-empty (Appendix~\ref{app:topk_entry}). Monotone temperature preserves ranking and cannot reach this region, so RSP's \emph{rank-changing} branching follows from the two properties together --- the mechanism splitting the hidden state into multiple branching states early in reasoning.
+
+% ================================================================
+\subsection{Annealing: KV cache growth dilutes RSP attention}\label{sec:converge}
+% ================================================================
+
+The early branching that RSP introduces stabilizes naturally as decoding proceeds: the upper bound on the same scalar $w_{r,i}^{(\ell)}$ defined in \S\ref{sec:improve} narrows along the sequence axis with autoregressive KV cache growth. Each step appends one real-token term while the number of RSP terms is fixed; freezing the logit gap between real and RSP tokens, this asymmetry yields the following exact bound.
+
+\begin{theorem}[Attention-mass decay under KV cache growth]\label{thm:decay}
+For a query attending $n\ge1$ real tokens and $L\ge1$ RSP tokens with finite logits, let $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$ denote the pre-scale logit gap between real and random tokens. In scaled dot-product attention,
+\[
+w_{r,i}^{(\ell)} \;\le\; \frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)},
+\]
+and the right-hand side is strictly decreasing in $n$ and tends to $0$ at fixed $L$ and $\Delta_i^{(\ell)}$.
+\end{theorem}
+
+\begin{proof}
+Let $s_j := \mathbf{q}_i^\top\mathbf{k}_j/\sqrt d$, $s_{r_{j'}} := \mathbf{q}_i^\top\mathbf{k}_{r_{j'}}/\sqrt d$, $s_{r,\max} := \max_{j'} s_{r_{j'}}$, and $R := \sum_{j'=1}^L \exp(s_{r_{j'}})$. The gap definition gives $s_j \ge \Delta_i^{(\ell)}/\sqrt d + s_{r,\max}$ for every real $j$, and $\exp(s_{r,\max}) \ge R/L$ holds because the max dominates the average; combining the two and summing over the $n$ real keys yields $\sum_{j=1}^n \exp(s_j) \ge (n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R$. Substituting into $w_{r,i}^{(\ell)} = R/(\sum_j\exp(s_j) + R)$ gives
+\[
+w_{r,i}^{(\ell)}
+\;\le\;
+\frac{R}{(n/L)\exp(\Delta_i^{(\ell)}/\sqrt d)\,R + R}
+\;=\;
+\frac{L}{L + n\,\exp(\Delta_i^{(\ell)}/\sqrt d)}.
+\]
+The derivative of the right-hand side in $n$ is $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$, so the bound is strictly decreasing and tends to $0$ as $n\to\infty$.
+\end{proof}
+
+Two mechanisms sit in this line: $L$ in the numerator caps maximum influence, while $n$ in the denominator grows automatically each step, narrowing the upper bound at fixed $L$. The theorem guarantees only sequence-axis attenuation at a fixed (layer, query, logit gap); it does not assert layer-axis monotone decay. The gap $\Delta_i^{(\ell)}$ does evolve during decoding but tends to sharpen at deeper layers and longer sequences as correlations among real tokens accumulate, with Figure~\ref{fig:attention_mass}(a)'s layer-axis attenuation as indirect evidence. The accurate reading is therefore ``the attainable upper bound at a fixed gap decreases monotonically,'' not ``realized mass decreases per step.'' Since Eq.~\eqref{eq:decomp} ties the random contribution to the same scalar, branching-event reachability (\S\ref{sec:rsp_definition}) inherits the envelope: as the cache grows, new branching events become rarer and the response commits to the branch already opened --- an implicit explore-then-exploit. Figure~\ref{fig:attention_mass} confirms how this envelope manifests in the actual model; the sequence-axis decrease is the pattern Theorem~\ref{thm:decay} predicts directly, while the additional layer-axis attenuation is an empirical bonus the theorem alone does not derive.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the KV cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
+  \label{fig:attention_mass}
+\end{figure}
+
+Lifting this single-shot branching to task accuracy via independent re-sampling across rollouts (\S\ref{sec:rsp_definition}) requires two assumptions --- (M1) one execution reaches a correct trajectory with marginal probability $p_{\min}(x)>0$, and (M2) the $N$ executions are mutually independent. Under both, a standard ensemble argument yields $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1 - (1-p_{\min}(x))^N$ (Appendix~\ref{app:passN_ensemble}). Where \S\ref{sec:improve} showed that isotropy and full support together make single-shot branching reachable, \emph{independent resampling} now lifts those single-shot branches into an $N$-fold cumulative gain. Sharing one RSP across samples breaks (M2) and removes the accumulation, so independence is the key --- which is exactly the signature documented empirically in \S\ref{sec:diversity}.

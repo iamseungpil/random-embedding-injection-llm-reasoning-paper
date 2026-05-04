@@ -1,0 +1,67 @@
+\documentclass{article}
+
+% Submission mode: anonymous (default)
+\usepackage{neurips_2026}
+
+% Alternative section ordering: §3 experimental → §4 application → §5 theory.
+% Mirrors the experimental-first flow of older drafts (NeurIPS2026 zip
+% submission) while keeping the current paper's content.
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage[most]{tcolorbox}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+\title{From Noise to Diversity: Random Embedding Injection in LLM Reasoning}
+
+\author{%
+  Anonymous Authors
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Recent \textit{soft prompt} research has tried to improve reasoning by inserting trained vectors into LLM inputs, yet whether the gain comes from the \emph{learned content} or from the \emph{act of injection itself} has not been carefully separated. We study Random Soft Prompts (RSPs), which drop the training step entirely and append a freshly drawn random vector to the input. Each RSP vector is sampled from an isotropic Gaussian fitted to the entrywise mean and variance of the pretrained embedding table; it carries no learned content, and yet reaches a range comparable to trained soft prompts on math reasoning benchmarks. The mechanism unfolds in two stages: because attention has to absorb a never-seen-before random position, the distribution over the first few generated tokens flattens and reasoning trajectories \emph{branch}, and as generation continues this influence dilutes naturally so the response \emph{converges toward the goal}. We show that during inference RSPs lift early-stage token diversity and, combined with temperature sampling, widen Pass@$N$ --- the probability that at least one out of $N$ attempts is correct. Beyond inference, we carry the same effect into DAPO training and demonstrate practical gains. Our contributions are: (i) a new finding that purely training-free random embedding injection alone drives latent reasoning; (ii) an empirical and theoretical validation of the underlying mechanism; and (iii) an extension from inference to training.
+\end{abstract}
+
+\input{sections_alt/1_introduction}
+\input{sections_alt/2_related_work}
+% Empirical-first ordering: §3 experimental, §4 DAPO application, §5 theory.
+\input{sections_alt/3_experimental}
+\input{sections_alt/4_application}
+\input{sections_alt/5_theory}
+\input{sections_alt/6_conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{biblist}
+
+\appendix
+\input{appendix/appendix}
+
+\newpage
+\input{checklist.tex}
+
+\end{document}

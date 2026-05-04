@@ -1,0 +1,11 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Chapter 5. Conclusion
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusion}\label{sec:conclusion}
+
+We studied Random Soft Prompts (RSPs), training-free isotropic Gaussian vectors fitted to pretrained embedding statistics. Empirically, latent-prompt methods share the same entropy signature, the gain vanishes when one RSP is shared across samples (\S\ref{sec:experimental_analysis}), and DAPO + RSP yields a modest late-training advantage (\S\ref{sec:application}). The mechanism behind these patterns is governed by a single attention-mass scalar $w_{r,i}^{(\ell)}$: its fixed-gap upper bound shrinks under KV cache growth, and isotropic resampling reaches top-$K$ entry regions that rank-preserving temperature cannot (\S\ref{sec:why_rsp_works}).
+
+This signature --- early entropy rise, trajectory diversification, Pass@$N$ accumulation under independent draws --- emerges from purely random input-side perturbation, suggesting that part of what trained soft prompts have been credited with is a \emph{structural by-product of injection}, and that RSP composes orthogonally with sampling-based pipelines as a near-zero-cost diversity expander.
+
+\paragraph{Limitations and future work.} Open questions: generalization beyond RoPE decoders and mathematical reasoning, deep-layer sharpening dynamics outside Theorem~\ref{thm:decay}'s envelope, multi-seed DAPO variance, and held-out hyperparameter selection (\S\ref{sec:setup}).
