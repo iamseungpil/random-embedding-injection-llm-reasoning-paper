@@ -61,7 +61,7 @@ $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\l
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
 % ================================================================
 
-RSP가 다양화하는 초반의 분기는 디코딩이 진행되며 자동으로 안정적이 된다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
+RSP가 다양화하는 초반의 분기는 디코딩이 진행되며 자동으로 안정적이 된다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 attention-logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
 
 \begin{theorem}[캐시 성장에 의한 어텐션 질량 감쇠]\label{thm:decay}
 key 차원 $d_{\text{head}}$을 갖는 한 attention head에서 query 벡터 $\mathbf{q}_i$ (위치 $i$)가 실제 key $\mathbf{k}_j$ ($n\ge1$개)와 RSP key $\mathbf{k}_{r_{j'}}$ ($L\ge1$개)를 attend하며 모든 logit이 유한하다고 하자. 사전 스케일 \emph{attention-logit} gap을 $\Delta_i := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 정의하면(\S\ref{sec:improve}의 vocab-logit gap $\Delta_{ij}$와는 다른 양임에 유의) scaled-dot-product 어텐션에서
@@ -83,12 +83,12 @@ w_{r,i}
 가 따른다. 우변의 미분은 $-L\exp(\Delta_i/\sqrt{d_{\text{head}}})/(L + n\exp(\Delta_i/\sqrt{d_{\text{head}}}))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
 \end{proof}
 
-각 layer $\ell$에 적용하면 \S\ref{sec:improve}의 per-layer scalar $w_{r,i}^{(\ell)}$를 gap $\Delta_i^{(\ell)}$와 함께 통제한다. RSP 길이 $L$은 분자로 들어가 \emph{최대} 영향력을 정한다. 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력 상계는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer·query 위치·logit gap}에서 RSP attention 상계가 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$는 디코딩 동안 query·key·hidden state와 함께 변하지만 깊은 layer와 긴 sequence에서 실제 토큰 간 상관관계가 누적되며 sharpen되는 경향을 보이고, Figure~\ref{fig:attention_mass}(a)의 layer 축 추가 감쇠가 그 간접 증거다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 \S\ref{sec:rsp_definition}의 branching event 가능 확률 역시 같은 envelope에 통제되며, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit되어 생성 초반에 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit이 된다. Figure~\ref{fig:attention_mass}는 이 envelope이 실제 모델에서 어떻게 발현되는지 보여 준다: 가로(sequence) 축의 감소는 Theorem~\ref{thm:decay}이 직접 예측한 패턴이고, 세로(layer) 축의 추가 감쇠는 경험적으로 관찰되지만 본문 정리의 범위를 벗어난다.
+각 layer $\ell$에 적용하면 \S\ref{sec:improve}의 per-layer scalar $w_{r,i}^{(\ell)}$를 gap $\Delta_i^{(\ell)}$와 함께 통제한다. RSP 길이 $L$은 분자로 들어가 \emph{최대} 영향력을 정한다. 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력 상계는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer·query 위치·attention-logit gap}에서 RSP attention 상계가 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$는 디코딩 동안 query·key·hidden state와 함께 변하지만 깊은 layer와 긴 sequence에서 실제 토큰 간 상관관계가 누적되며 sharpen되는 경향을 보이고, Figure~\ref{fig:attention_mass}(a)의 layer 축 추가 감쇠가 그 간접 증거다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 \S\ref{sec:rsp_definition}의 branching event 가능 확률 역시 같은 envelope에 통제되며, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit되어 생성 초반에 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit이 된다. Figure~\ref{fig:attention_mass}는 이 envelope이 실제 모델에서 어떻게 발현되는지 보여 준다: 가로(sequence) 축의 감소는 Theorem~\ref{thm:decay}이 직접 예측한 패턴이고, 세로(layer) 축의 추가 감쇠는 경험적으로 관찰되지만 본문 정리의 범위를 벗어난다.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소하며, 이는 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상으로, 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 logit gap이 더 날카로워지는 경향을 시사하지만 Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass로, RSP 길이 $L$로 나눈 \emph{평균} 값이며 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
+  \caption{Qwen2.5-Math-7B에서 측정한 토큰별 어텐션 질량(suffix, MATH-500 500문제, 문제마다 독립 RSP). (a) RSP 토큰 어텐션은 추론 위치 축(가로)에서 감소하며, 이는 Theorem~\ref{thm:decay}의 cache-growth 상계와 일치한다. 레이어 축(세로)의 추가 감소는 별도의 경험적 현상으로, 깊은 레이어에서 실제 토큰과 RSP 토큰 사이의 attention-logit gap이 더 날카로워지는 경향을 시사하지만 Theorem~\ref{thm:decay}만으로 직접 따라오지는 않는다. (b) 질문 토큰 어텐션은 비교적 균일하게 유지된다. 그림에 보고한 양은 Appendix~\ref{app:attention_mass}의 per-token mass로, RSP 길이 $L$로 나눈 \emph{평균} 값이며 본문 $w_{r,i}^{(\ell)}$와는 상수배 관계다.}
   \label{fig:attention_mass}
 \end{figure}
 

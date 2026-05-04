@@ -339,7 +339,7 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 (참) logit gap을 $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$로 두자. transformer의 logit map은 $\bar h$에 대해 비선형이지만, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
+centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 (참) vocab-logit gap을 $\Delta_{ij}(\bar h) := z_i(\bar h) - z_j(\bar h)$로 두자. transformer의 logit map은 $\bar h$에 대해 비선형이지만, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
 \[
 \Delta_{ij}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ij} + b_{ij}^\top \bar h
 \]
