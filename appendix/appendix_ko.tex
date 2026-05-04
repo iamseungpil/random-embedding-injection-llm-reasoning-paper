@@ -250,7 +250,7 @@ lr & 1e-2 & 5e-3 & 5e-2 \\
 \subsection{전체 엔트로피 곡선}\label{app:entropy_full}
 % ================================================================
 
-Figure~\ref{fig:app_full_entropy}는 entropy, top-1 probability, varentropy의 전체 정규화 생성 궤적(0--100\%)을 보여주고, Table~\ref{tab:entropy_full}는 그에 대응하는 스칼라 통계 — 전체 평균, 첫 5\% 평균, 그리고 문제당 평균 생성 토큰 수 — 를 보고한다. 모든 방법은 생성 초반 단계를 지나면 비슷한 수준으로 수렴하며, 이는 RSP가 유도하는 분포 변화가 초기 추론 단계에 국소화되어 있음을 다시 확인해 준다.
+Figure~\ref{fig:app_full_entropy}는 entropy, top-1 probability, varentropy의 전체 정규화 생성 궤적(0--100\%)을 보여주고, Table~\ref{tab:entropy_full}는 그에 대응하는 스칼라 통계(전체 평균, 첫 5\% 평균, 문제당 평균 생성 토큰 수)를 보고한다. 모든 방법은 생성 초반 단계를 지나면 비슷한 수준으로 수렴하며, 이는 RSP가 유도하는 분포 변화가 초기 추론 단계에 국소화되어 있음을 다시 확인해 준다.
 
 \begin{table}[ht]
 \centering
@@ -723,7 +723,7 @@ GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
 
 \begin{table}[H]
 \centering
-\caption{체크포인트별 5-벤치마크 평균 정확도(\%) — GSM8K, MATH-500, College Math, Minerva Math, AIME 2024 기준. \textbf{굵게}는 각 방법의 peak.}
+\caption{체크포인트별 5-벤치마크 평균 정확도(\%): GSM8K, MATH-500, College Math, Minerva Math, AIME 2024 기준. \textbf{굵게}는 각 방법의 peak.}
 \label{tab:dapo_per_step}
 \footnotesize
 \setlength{\tabcolsep}{6pt}
