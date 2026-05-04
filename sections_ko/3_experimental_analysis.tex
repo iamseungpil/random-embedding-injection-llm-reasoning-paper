@@ -75,7 +75,7 @@ instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. �
 \end{tabular}
 \end{table}
 
-또한 RSP를 TTSV, SoftCoT, LTPO처럼 서로 다른 목적 함수로 임베딩을 최적화하는 기존 soft prompt 방법과 비교했다. Table~\ref{tab:prior_comparison}은 공통 answer extraction pipeline 아래에서 다시 평가한 결과를 보여준다. 각 방법은 프롬프트 형식과 채점 규칙이 다르지만, fallback 기반 추출을 사용해 형식에 덜 민감한 비교를 수행했다. 결과적으로 RSP는 추가 학습 없이도 최적화 기반 방법과 맞먹는 수준의 성능을 보인다.
+또한 RSP를 TTSV, SoftCoT, LTPO처럼 서로 다른 목적 함수로 임베딩을 최적화하는 기존 soft prompt 방법과 비교했다. Table~\ref{tab:prior_comparison}은 공통 answer extraction pipeline(Appendix~\ref{app:extraction}) 아래에서 다시 평가한 결과를 보여준다. 각 방법은 프롬프트 형식과 채점 규칙이 다르지만, fallback 기반 추출을 사용해 형식에 덜 민감한 비교를 수행했다. 결과적으로 RSP는 추가 학습 없이도 최적화 기반 방법과 맞먹는 수준의 성능을 보인다.
 
 % ================================================================
 \subsection{RSP는 출력 분포를 어떻게 바꾸는가?}\label{sec:entropy}
@@ -143,7 +143,7 @@ Table~\ref{tab:rsp_vs_temp}의 대비는 명확하다. RSP의 분포 변화 크�
     \bottomrule
   \end{tabular}
 \end{wraptable}
-한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau{=}1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 세 패턴을 동시에 드러낸다 — pairwise cosine distance가 1.4배로 커져 궤적 집합 전체가 의미적으로 더 다양해졌고, inter-cluster distance가 5.4배로 뛰어 궤적이 분리된 군집들로 갈라졌으며, intra-cluster distance는 거의 변하지 않아 군집 내부의 의미적 응집은 유지된다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다. 문제별 t-SNE 투영과 군집 수 분포는 Appendix~\ref{app:semantic}에 있다.
+한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau{=}1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 세 패턴을 동시에 드러낸다 — pairwise cosine distance가 1.4배로 커져 궤적 집합 전체가 의미적으로 더 다양해졌고, inter-cluster distance가 5.4배로 뛰어 궤적이 분리된 군집들로 갈라졌으며, intra-cluster distance는 거의 변하지 않아 군집 내부의 의미적 응집은 유지된다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
 
 \paragraph{결과 수준: Pass@$N$ 스케일링.}
 마지막 결과 수준에서는, 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$N$로 본다($N$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $N=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.
