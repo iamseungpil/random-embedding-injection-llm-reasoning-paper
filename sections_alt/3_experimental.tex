@@ -18,7 +18,7 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 \end{equation}
 The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The main text uses the \emph{suffix} form $[\mathbf{X};\mathbf{H}]$ as the default; other positions (prefix, infix \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}) are reported as ablations in \S\ref{sec:performance} and Appendix~\ref{app:ablation}. RSP is not a learnable parameter, so it receives no gradient and is freshly drawn for each rollout.
 
-For the analysis in \S\ref{sec:why_rsp_works}, we will call decoding step $\ell$ a \emph{branching event}, and the corresponding hidden state $h^{(\ell)}$ a \emph{branching state}, when the next-token top-$K$ set produced by $h^{(\ell)}$ differs from the top-$K$ produced by the no-RSP baseline $\bar h^{(\ell)}$ (the red dots of Figure~\ref{fig:main}).\footnote{$K$ covers any candidate-set definition, including top-$K$ and top-$p$ nucleus.}
+For the analysis in \S\ref{sec:why_rsp_works}, we will call decoding step $t$ a \emph{branching event}, and the corresponding hidden state $h^{(t)}$ a \emph{branching state}, when the next-token top-$K$ set produced by $h^{(t)}$ differs from the top-$K$ produced by the no-RSP baseline $\bar h^{(t)}$ (the red dots of Figure~\ref{fig:main}).\footnote{$K$ covers any candidate-set definition, including top-$K$ and top-$p$ nucleus. We reserve $t$ for decoding step and $\ell$ for self-attention layer throughout.}
 
 % ================================================================
 \subsection{Experimental Setup}\label{sec:setup}
