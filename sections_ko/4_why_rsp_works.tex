@@ -20,10 +20,10 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 중심화한 $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$은 평균 0의 등방 가우시안이다. 본문은 입력 임베딩 시퀀스 $\mathbf{X}$ 뒤에 RSP를 이어 붙이는 \emph{suffix} 주입 $[\mathbf{X};\mathbf{H}]$를 기본 형태로 다룬다. 다른 위치(prefix, infix \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen})는 \S\ref{sec:performance}와 Appendix~\ref{app:ablation}에서 ablation으로 보고한다. RSP는 \emph{학습 가능 파라미터가 아니다} — gradient를 받지 않으며 매 rollout마다 새로 추첨된다. 반복 샘플링 프로토콜에서는 비교하는 rollout들의 prompt 추첨과 디코딩 무작위성을 모두 독립으로 둔다.
 
 % ================================================================
-\subsection{Exploration: RSP가 hidden state에 들어오는 방식}\label{sec:improve}\label{sec:multipath}
+\subsection{Exploration: RSP가 초반 탐색을 강화한다}\label{sec:improve}\label{sec:multipath}
 % ================================================================
 
-한 번의 RSP 주입이 hidden state에 미치는 영향은 \emph{얼마나}와 \emph{어디로}, 두 양에 모인다. 전자는 한 attention head 안의 한 스칼라 $w$가, 후자는 $\mathbf{H}$의 분포가 결정하며, 등방 가우시안이라는 RSP의 설계가 두 측면을 동시에 풀어 낸다.
+랜덤 프롬프트를 삽입할 경우, 어텐션이 랜덤 프롬프트에 몰리면서 탐색을 강화한다. 한 번의 RSP 주입이 hidden state에 미치는 영향은 \emph{얼마나}와 \emph{어디로}, 두 양에 모인다. 전자는 한 attention head 안의 한 스칼라 $w$가, 후자는 $\mathbf{H}$의 분포가 결정하며, 등방 가우시안이라는 RSP의 설계가 두 측면을 동시에 풀어 낸다.
 
 self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 함께 attend한다고 하자. 모든 attention logit은 유한하다고 두며, 어텐션 가중치를 $\alpha_{ij}^{(\ell)}$, value 벡터를 실제 측과 RSP 측에서 각각 $\mathbf{v}_j^{(\ell)},\mathbf{v}_{r_j}^{(\ell)}$로 쓴다. 무작위 토큰에 배정된 총 어텐션 질량을 $w_{r,i}^{(\ell)} := \sum_{j=1}^L \alpha_{i,n+j}^{(\ell)}$로 두면 실제 토큰 질량은 양수이고, head output은 다음 형태로 \emph{정확히} 정리된다.
 \begin{equation}\label{eq:decomp}
@@ -50,15 +50,14 @@ head output을 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{
 $\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이며, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때만 성립한다.
 \end{proposition}
 
-가우시안 RSP는 $\Sigma = \sigma_E^2\mathbf{I}_d$ ($\rho^2 = d\sigma_E^2$)로 \emph{등방 covariance} 조건을 정확히 충족하면서, 가우시안 형태가 $\mathbb{R}^d$ 전역에 양의 밀도(\emph{full support})를 추가로 제공한다(Appendix~\ref{app:why_random}). 두 성질이 합쳐져 단발 분기를 함의한다 — 국소 affine 가정 아래 baseline top-1을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 $\bar h$ 영역은 \emph{열린} 영역이며, full-support 가우시안은 그 영역이 비공집합인 경우 양의 확률을 부여한다. 단조 변환인 temperature는 토큰 순위를 보존하므로 같은 영역에 닿을 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다(Appendix~\ref{app:topk_entry}).
+가우시안 RSP는 $\Sigma = \sigma_E^2\mathbf{I}_d$ ($\rho^2 = d\sigma_E^2$)로 \emph{등방 covariance} 조건을 정확히 충족하면서, 가우시안 형태가 $\mathbb{R}^d$ 전역에 양의 밀도(\emph{full support})를 추가로 제공한다(Appendix~\ref{app:why_random}). 두 성질이 합쳐져 단발 분기를 함의한다 — 국소 affine 가정 아래 baseline top-1을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 $\bar h$ 영역은 \emph{열린} 영역이며, full-support 가우시안은 그 영역이 비공집합인 경우 양의 확률을 부여한다. 단조 변환인 temperature는 토큰 순위를 보존하므로 같은 영역에 닿을 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다(Appendix~\ref{app:topk_entry}). 이러한 RSP의 성질은 추론 초반에 응답을 여러 branch로 다양화 하는 데 기여를 한다.
 
-다음 절은 이 \emph{같은 스칼라 $w$}가 디코딩이 진행될수록 어떻게 좁아지는지를 본다.
 
 % ================================================================
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
 % ================================================================
 
-초반의 분기는 디코딩이 진행되며 자동으로 사그라든다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
+RSP의 효과는, 그러나 응답을 깨뜨릴 정도로 발산하지 않는다. 초반의 분기는 디코딩이 진행되며 자동으로 사그라든다. \S\ref{sec:improve}에서 정의한 한 스칼라 $w_{r,i}^{(\ell)}$의 \emph{상계}가 자기회귀 캐시 성장과 함께 시퀀스 길이 방향으로 좁아지기 때문이다. 실제 토큰 항은 매 step 하나씩 추가되지만 RSP 항의 개수는 고정되어 있으므로, 실제 토큰과 RSP 토큰 사이의 logit gap을 고정한 채로 보면 이 비대칭은 다음 상계로 정확히 나타난다.
 
 \begin{theorem}[캐시 성장에 의한 어텐션 질량 감쇠]\label{thm:decay}
 Query가 실제 토큰 $n\ge1$개와 RSP 토큰 $L\ge1$개를 attend하고 모든 logit이 유한하다고 하자. 사전 스케일 logit gap을 $\Delta_i^{(\ell)} := \min_{j\in[n]}\mathbf{q}_i^\top\mathbf{k}_j - \max_{j'\in[L]}\mathbf{q}_i^\top\mathbf{k}_{r_{j'}}$로 두면 scaled-dot-product 어텐션에서
