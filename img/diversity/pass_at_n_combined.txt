@@ -1,0 +1,18 @@
+                                   (a) MATH-500                                                                      (b) AIME24
+                                                                                             35
+             90
+                                                                                             30
+Pass@n (%)
+
+
+
+
+                                                                                Pass@n (%)
+             85                                                                              25
+             80                                                                              20
+                          Vanilla, =1.0             RSP (indep. seed), greedy                15           Vanilla, =1.0             RSP (indep. seed), greedy
+             75           RSP (single seed), =1.0   RSP (indep. seed), =1.0                               RSP (single seed), =1.0   RSP (indep. seed), =1.0
+                                                                                             10
+                  1   4                 8            12                  16                       1   4                 8            12                  16
+                             Number of Samples (n)                                                           Number of Samples (n)
+

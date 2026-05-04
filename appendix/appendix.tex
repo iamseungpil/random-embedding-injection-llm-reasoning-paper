@@ -340,7 +340,7 @@ This appendix isolates the only properties of the RSP law used in the main text:
 
 \subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
 
-Let $\Delta_{ij}(\bar h)$ denote the logit gap between tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$, and write the first-order Taylor surrogate around the linearization point $\bar h = 0$ as
+Let $\Delta_{ij}(\bar h)$ denote the logit gap between vocab tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$, and write the first-order Taylor surrogate around the linearization point $\bar h = 0$ as
 \[
 \Delta_{ij}(\bar{h}) = \Delta_{ij} + b_{ij}^\top \bar{h},
 \]
@@ -536,7 +536,7 @@ $w_{r,i}^{(\ell)}\to 0$ by Corollary~\ref{cor:sequence_annealing}. Apply Corolla
 
 \subsection{Performance gain: from local admission to Pass@$N$}
 
-The main text uses a first-order surrogate to state two claims --- the §\ref{sec:improve} claim that a baseline-excluded token can enter the local top-$K$ set, and the §\ref{sec:converge} closing that independent reruns turn such local openings into Pass@$N$ gains. The proofs below use only one support condition on the centered prompt law $D$:
+From here we work at the vocab-logit and task levels, dropping the per-layer index $\ell$. The main text uses a first-order surrogate to state two claims: the \S\ref{sec:improve} claim that a baseline-excluded vocab token can enter the local top-$K$ set, and the \S\ref{sec:converge} closing that independent reruns turn such local openings into Pass@$N$ gains. The proofs below use only one support condition on the centered prompt law $D$:
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]

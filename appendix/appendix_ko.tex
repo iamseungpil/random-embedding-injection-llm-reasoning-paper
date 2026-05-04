@@ -339,7 +339,7 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-centered RSP 섭동이 $\bar h$일 때 토큰 $i,j$의 logit gap을 $\Delta_{ij}(\bar h)$로 두고, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor surrogate를
+centered RSP 섭동이 $\bar h$일 때 vocab 토큰 $i,j$의 logit gap을 $\Delta_{ij}(\bar h)$로 두고, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor surrogate를
 \[
 \Delta_{ij}(\bar h) = \Delta_{ij} + b_{ij}^\top \bar h
 \]
@@ -511,7 +511,7 @@ Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, Coro
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
 \subsection{성능 향상: local admission에서 Pass@$N$까지}
 
-본문은 1차 surrogate 위에서 두 가지를 주장한다 — §\ref{sec:improve}의 ``baseline 밖 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 §\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
+이 절부터는 layer-wise 표기 $\ell$을 떼고 vocab logit·task 수준에서 작업한다. 본문은 1차 surrogate 위에서 두 가지를 주장한다: \S\ref{sec:improve}의 ``baseline 밖 vocab 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 \S\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]

@@ -1,0 +1,28 @@
+Theoretical Mechanism of Random Soft Prompts (RSP)
+
+We explain why random continuous prompts induce exploration in language model decoding through three causally linked stages.
+
+STAGE 1 — Why Random, Not a Fixed Token.
+A perturbation needs two properties: semantic neutrality (no pre-commitment to one direction) and directional coverage (every potential branching direction is reachable). A fixed token embedding e_s is maximally aligned with at least one fixed semantic anchor direction (its own), so it commits the model to one specific direction. A random vector h_bar drawn from an isotropic distribution is, with high probability, nearly orthogonal to every fixed finite collection of semantic anchor directions; the bound scales as sqrt(log M / d). Furthermore, under a fixed variance budget rho^2, the isotropic Gaussian uniquely maximizes the worst-case projected variance over all unit directions: lambda_min(Sigma_D) <= rho^2 / d, with equality iff Sigma_D = (rho^2/d) I. Visualize this as a sphere in embedding space: a fixed token = single arrow pointing to one anchor direction; random prompt = uniform spherical coverage.
+
+STAGE 2 — Attention Injects and Anneals the Perturbation.
+At each transformer layer, the attention update with k random keys decomposes as
+  x_i^(l+1) = (1 - w_r) * x_tilde + eta,
+where w_r is the attention mass on random tokens, x_tilde is the real-token-only update, and eta is the random-value contribution. The same scalar w_r controls both injection (large w_r = strong perturbation) and dilution (small w_r = update collapses to real-token-only). w_r satisfies the bound
+  w_r <= k / (k + n * exp(Delta / sqrt(d))),
+which decreases monotonically as the number of real tokens n grows. Visualize this as an annealing schedule: high perturbation early in decoding (left), gradually shrinking attention to random tokens as real context accumulates (right). Layer-wise the same dilution holds empirically.
+
+STAGE 3 — Pre-Softmax Rank Flip Beats Temperature.
+Temperature scaling transforms p_i ∝ p_i^(1/tau) and PRESERVES the token ranking: it can sharpen or flatten confidence but cannot promote a previously low-ranked token. RSP perturbs the logits BEFORE softmax via the hidden state. Under a local linear surrogate z_i(h_bar) ≈ z_i + a_i^T h_bar, two effects emerge:
+- Stochastic ranking: for any token pair (i,j) with a_i ≠ a_j, the perturbed gap (z_i - z_j) + (a_i - a_j)^T h_bar takes both signs with positive probability. Rankings can flip.
+- Support expansion: if there is an open region H_i in prompt space where token i (originally outside top-K) outranks every token in the baseline top-K, then isotropic h_bar reaches H_i with positive probability.
+
+Together, RSP induces early rank flips that admit previously excluded tokens into candidate sets, while attention anneals perturbation strength as decoding progresses. Temperature can never produce this branch-opening effect.
+
+VISUAL ELEMENTS TO INCLUDE:
+- Three horizontally arranged panels labeled (a) Why random, (b) How attention anneals, (c) Why rank flips beat temperature.
+- Panel (a): a unit sphere or 2D circle showing a single arrow (fixed token → one anchor) vs scattered random points uniformly distributed (random prompt → covers all directions).
+- Panel (b): a decoding timeline (x-axis = real token position n) with a curve showing w_r decreasing monotonically; annotation "k / (k + n exp(Delta/sqrt(d)))".
+- Panel (c): two side-by-side bar charts on the same logits: "Temperature" (same ranking, different sharpness) vs "RSP" (rankings reshuffled, new top-K member highlighted).
+- Connect the three panels with arrows showing causal flow: directional coverage → attention-mediated annealing → output rank flips.
+- Use a clean, schematic style suitable for NeurIPS / ICML conference slides.
