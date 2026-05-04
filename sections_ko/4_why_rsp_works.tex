@@ -7,13 +7,13 @@
 
 \section{Random Soft Prompt와 작동 원리}\label{sec:why_rsp_works}
 
-이 절은 RSP의 작동을 \emph{한 가지 양}을 따라 풀어 낸다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, 한 rollout(한 번 샘플한 RSP를 고정한 채 끝까지 수행한 자기회귀 디코딩) 안에서 RSP의 즉각적 영향은 RSP 토큰에 배정된 \emph{어텐션 질량} $w$라는 한 스칼라에 모인다. 디코딩 초반에는 이 양이 충분히 커서 hidden state를 여러 방향으로 분기시키고(§\ref{sec:improve}), 자기회귀 캐시가 자라면 \emph{같은 스칼라}의 상계가 자동으로 좁아져 응답이 목표로 수렴한다(§\ref{sec:converge}). 무작위성의 역할은 임베딩 분포를 모방하는 데 있지 않고, rollout 사이에 \emph{독립}된 섭동을 공급해 worst-case 방향에 사전 가중치를 두지 않은 채 매번 새로운 분기를 여는 데 있다. 본문에는 핵심 명제와 직관만 두고, 추가 증명 및 도출은 Appendix~\ref{app:proofs}에 있다.
+이 절은 RSP의 작동을 \emph{한 가지 양}을 따라 풀어 낸다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, RSP의 즉각적 영향은 RSP 토큰에 배정된 \emph{어텐션 질량} $w$라는 한 스칼라에 모인다. 디코딩 초반에는 이 양이 충분히 커서 hidden state를 여러 방향으로 분기시키고(\S\ref{sec:improve}), 캐시가 자라면 같은 스칼라의 상계가 자동으로 좁아져 응답이 목표로 수렴한다(\S\ref{sec:converge}). 무작위성의 역할은 임베딩 분포 모방이 아니라 rollout 사이에 \emph{독립} 섭동을 공급해 매번 새로운 분기를 여는 데 있다. 본문에는 핵심 명제와 직관만 두고, 추가 증명은 Appendix~\ref{app:proofs}에 있다.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
 % ================================================================
 
-먼저 분석 대상부터 정리한다. 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V\times d}$로 두자($V$는 어휘 크기, $d$는 은닉 차원). 그 항별 평균과 표준편차를 $\mu_E := \tfrac{1}{Vd}\sum_{i,k}[\mathbf{W}_E]_{i,k}$, $\sigma_E := \mathrm{std}(\mathbf{W}_E)$라 하자. 길이 $L$의 RSP는 다음 분포에서 독립 추첨한 연속 벡터 시퀀스 $\mathbf{H} = [h_1,\dots,h_L]\in\mathbb{R}^{L\times d}$이다.
+먼저 분석 대상부터 정리한다. 토큰 임베딩 행렬을 $\mathbf{W}_E \in \mathbb{R}^{V\times d}$로 두자($V$는 어휘 크기, $d$는 은닉 차원). 그 항별 평균과 표준편차를 $\mu_E := \frac{1}{V\cdot d}\sum_{i,k}[\mathbf{W}_E]_{i,k}$ (모든 $V\cdot d$개 entry의 산술 평균), $\sigma_E := \mathrm{std}(\mathbf{W}_E)$라 하자. 길이 $L$의 RSP는 다음 분포에서 독립 추첨한 연속 벡터 시퀀스 $\mathbf{H} = [h_1,\dots,h_L]\in\mathbb{R}^{L\times d}$이다.
 \begin{equation}\label{eq:rsp_def}
 h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,\dots,L.
 \end{equation}
@@ -83,7 +83,7 @@ w_{r,i}^{(\ell)}
 가 따른다. 우변의 미분은 $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
 \end{proof}
 
-이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자에 들어가 \emph{최대} 영향력을 결정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력의 \emph{상계}는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap}에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향의 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$도 디코딩 동안 query·key·hidden state와 함께 변하지만, 기존 토큰 사이의 상관관계가 누적되면서 대체로 증가하는 경향이 있다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 perturbation 크기도 같은 envelope을 따른다 — \S\ref{sec:rsp_definition}에서 정의한 branching event의 가능 확률이 같은 envelope에 통제되므로, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit된다. RSP는 그 결과 생성 초반에 크게 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit 도구가 된다.
+이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자로 들어가 \emph{최대} 영향력을 정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력 상계는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer·query 위치·logit gap}에서 RSP attention 상계가 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$는 디코딩 동안 query·key·hidden state와 함께 변하지만 깊은 layer와 긴 sequence에서 실제 토큰 간 상관관계가 누적되며 sharpen되는 경향을 보이고, Figure~\ref{fig:attention_mass}(a)의 layer 축 추가 감쇠가 그 간접 증거다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 \S\ref{sec:rsp_definition}의 branching event 가능 확률 역시 같은 envelope에 통제되며, 캐시가 자랄수록 새 branching은 드물어지고 응답은 이미 열린 분기로 commit된다 — 생성 초반에 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit이다.
 
 Figure~\ref{fig:attention_mass}는 이 envelope이 실제 모델에서 어떻게 발현되는지를 보여 준다 — 가로(sequence) 축의 감소는 Theorem~\ref{thm:decay}이 직접 예측한 패턴이고, 세로(layer) 축의 추가 감쇠는 본문 정리만으로는 따라오지 않는 경험적 보너스다(상세 조건은 caption 참조).
 
