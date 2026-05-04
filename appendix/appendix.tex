@@ -340,10 +340,11 @@ This appendix isolates the only properties of the RSP law used in the main text:
 
 \subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
 
-Let $\Delta_{ij}$ be the baseline logit gap between tokens $i$ and $j$, and write the first-order surrogate as
+Let $\Delta_{ij}(\bar h)$ denote the logit gap between tokens $i$ and $j$ when the centered RSP perturbation takes value $\bar h$, and write the first-order Taylor surrogate around the linearization point $\bar h = 0$ as
 \[
-\Delta_{ij}(\bar{h}) = \Delta_{ij} + b_{ij}^\top \bar{h}.
+\Delta_{ij}(\bar{h}) = \Delta_{ij} + b_{ij}^\top \bar{h},
 \]
+with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$. Note that $\bar h = 0$ corresponds to the centered RSP at its mean, not to the no-RSP forward pass; $\Delta_{ij}(0)$ is therefore the gap at the linearization point, not the no-RSP baseline gap.
 
 \begin{proposition}[No systematic first-order drift]\label{prop:centered_no_drift}
 If $\mathbb{E}[\bar{h}] = 0$, then
@@ -499,7 +500,7 @@ The fixed-gap decay bound yields the corollaries below.
 \begin{corollary}[Sequence-wise annealing of the fixed-gap envelope]\label{cor:sequence_annealing}
 For fixed $L$ and $\Delta_i^{(\ell)}$, the upper bound
 \[
-f(n)=\frac{L}{L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})}
+f(n)=\frac{L}{L+n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}})}
 \]
 is strictly decreasing in $n$ and tends to $0$ as $n\to\infty$. KV cache growth alone therefore narrows the largest RSP attention mass compatible with that gap.
 \end{corollary}
@@ -511,7 +512,7 @@ Differentiate $f(n)$ with respect to $n$:
 \[
 f'(n)
 =
--\frac{L\exp(\Delta_i^{(\ell)}/\sqrt{d})}{\left(L+n\exp(\Delta_i^{(\ell)}/\sqrt{d})\right)^2}
+-\frac{L\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}})}{\left(L+n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}})\right)^2}
 <
 0.
 \]

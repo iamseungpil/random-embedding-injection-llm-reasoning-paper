@@ -339,11 +339,11 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-토큰 $i,j$의 baseline logit gap을 $\Delta_{ij}$라 하고 1차 surrogate를
+centered RSP 섭동이 $\bar h$일 때 토큰 $i,j$의 logit gap을 $\Delta_{ij}(\bar h)$로 두고, 선형화 점 $\bar h = 0$ 주변의 1차 Taylor surrogate를
 \[
 \Delta_{ij}(\bar h) = \Delta_{ij} + b_{ij}^\top \bar h
 \]
-로 두자.
+로 쓴다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(\Delta_{ij})|_{\bar h = 0}$이다. $\bar h = 0$은 centered RSP가 평균값을 갖는 상태이며 RSP가 없는 forward pass와는 다르다. 따라서 $\Delta_{ij}(0)$은 선형화 점에서의 gap일 뿐, no-RSP baseline gap이 아니다.
 
 \begin{proposition}[체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
 $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
@@ -490,13 +490,13 @@ Corollary~\ref{cor:perturbation_magnitude}가 본문에 필요한 유일한 정�
 \subsection{Theorem~\ref{thm:decay}의 따름정리}
 
 \begin{corollary}[fixed-gap envelope의 시퀀스 방향 단조 감소]\label{cor:sequence_annealing}
-$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$는 $n$에 대해 엄격히 감소하고 $n\to\infty$에서 0으로 수렴한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
+$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}}))$는 $n$에 대해 엄격히 감소하고 $n\to\infty$에서 0으로 수렴한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
 \end{corollary}
 
 \noindent 자기회귀 디코딩에서는 새 토큰이 생성될 때마다 query·key·hidden state가 함께 갱신되어 $\Delta_i^{(\ell)}$도 step별로 변하므로, ``실현된 mass가 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대 mass의 envelope이 단조 감소한다''가 정확한 진술이다.
 
 \begin{proof}
-$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 엄격히 감소한다. 또한 분자는 고정되어 있고 분모는 $n$에 대해 선형으로 발산하므로 $f(n)\to0$이다.
+$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}})/(L + n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}}))^2 < 0$이므로 엄격히 감소한다. 또한 분자는 고정되어 있고 분모는 $n$에 대해 선형으로 발산하므로 $f(n)\to0$이다.
 \end{proof}
 
 \begin{corollary}[고정 gap envelope 아래의 RSP 기여 감쇠]\label{cor:vanishing_perturbation}
