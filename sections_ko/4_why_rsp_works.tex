@@ -22,7 +22,7 @@ h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,
 무작위성의 목적은 임베딩 분포를 흉내 내는 데 있지 않다. 같은 텍스트 prompt를 여러 번 실행할 때 각 rollout이 \emph{독립적인} 섭동을 받도록 하는 데 있다. 탐색에 필요한 것은 바로 그 독립성이다.
 
 % ================================================================
-\subsection{Exploration: RSP가 hidden state에 들어오는 방식}\label{sec:improve}
+\subsection{Exploration: RSP가 hidden state에 들어오는 방식}\label{sec:improve}\label{sec:multipath}
 % ================================================================
 
 RSP가 주입되면 이후 hidden state가 흔들리게 된다. RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어가므로, 한 attention head 안에서의 즉각적 영향은 RSP 토큰에 배정된 어텐션 질량이라는 한 가지 양으로 모인다.
@@ -44,7 +44,17 @@ self-attention 레이어 $\ell$의 한 attention head가 마스크되지 않은 
 head output을 $\sum_{j=1}^{n}\alpha_{ij}^{(\ell)}\mathbf{v}_{j}^{(\ell)}+\sum_{j=1}^{L}\alpha_{i,n+j}^{(\ell)}\mathbf{v}_{r_j}^{(\ell)}$로 나눈 뒤, 실제 토큰 항에서 정규화 인자 $1-w_{r,i}^{(\ell)} = \sum_{j=1}^n \alpha_{ij}^{(\ell)}>0$를 묶어 내면 된다. softmax 정규화 항등식 외에는 어떤 근사도 쓰이지 않는다.
 \end{proof}
 
-이 한 양 $w_{r,i}^{(\ell)}$이 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$를 동시에 통제하므로, RSP가 만드는 변동은 0과 1 사이 한 스칼라를 추적하는 문제로 환원된다. 캐시가 짧은 디코딩 초반에는 이 값이 무시할 수 없어 한 번의 RSP가 next-token 결정을 흔들게 돼 탐색을 보조한다. 다음 절은 \emph{같은 스칼라 $w_{r,i}^{(\ell)}$}가 디코딩이 진행될수록 어떻게 좁아지는지를 본다.
+이 한 양 $w_{r,i}^{(\ell)}$이 실제 신호의 감쇠 비율 $1-w_{r,i}^{(\ell)}$과 무작위 기여 항의 진폭 상계 $\|\boldsymbol{\eta}_i^{(\ell)}\| \le w_{r,i}^{(\ell)}\,\max_j \|\mathbf{v}_{r_j}^{(\ell)}\|$를 동시에 통제하므로, RSP가 만드는 변동의 \emph{진폭}은 0과 1 사이 한 스칼라로 환원된다. 캐시가 짧은 디코딩 초반에는 이 값이 무시할 수 없어 한 번의 RSP가 next-token 결정을 흔들 수 있다.
+
+같은 진폭 안에서 \emph{어디로} 흔들지는 $\mathbf{H}$의 분포가 결정한다. deterministic 토큰 시퀀스라면 $\boldsymbol{\eta}$가 한 방향에 고정되어 그 직교 방향에서는 perturbation이 0이고, 어휘에서 무작위 토큰을 추첨하면 random성은 얻지만 어휘 임베딩의 anisotropic 구조를 그대로 물려받는다. 같은 분산 예산 안에서 worst-case 방향 분산을 최대화하는 분포는 등방 가우시안이 유일하다.
+
+\begin{proposition}[방향 무관 미니맥스 커버리지]\label{thm:minimax_directional_coverage}
+$\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이며, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때만 성립한다.
+\end{proposition}
+
+가우시안 RSP는 $\Sigma = \sigma_E^2\mathbf{I}_d$로 등호를 정확히 충족하며 $\mathbb{R}^d$ 전역에 양의 밀도(full support)를 갖는다(Appendix~\ref{app:why_random}). 국소 affine 가정 아래 baseline top-1을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 $\bar h$ 영역은 \emph{열린} 영역이라 RSP는 양의 확률을 부여하지만, 단조 변환인 temperature는 토큰 순위를 보존하므로 같은 영역에 닿을 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다(Appendix~\ref{app:topk_entry}).
+
+다음 절은 이 \emph{같은 스칼라 $w$}가 디코딩이 진행될수록 어떻게 좁아지는지를 본다.
 
 % ================================================================
 \subsection{Annealing: KV 캐시 성장이 RSP 어텐션을 희석한다}\label{sec:converge}
@@ -72,7 +82,7 @@ w_{r,i}^{(\ell)}
 가 따른다. 우변의 미분은 $-L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 $n$에 대해 엄격히 감소하고, $n\to\infty$일 때 0으로 수렴한다.
 \end{proof}
 
-이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자에 들어가 \emph{최대} 영향력을 결정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력의 \emph{상계}는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap}에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향의 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$도 디코딩 동안 query·key·hidden state와 함께 변하지만, 기존 토큰 사이의 상관관계가 누적되면서 대체로 증가하는 경향이 있다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 perturbation 크기도 같은 envelope을 따르며, RSP는 생성 초반에 크게 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit 해석을 갖는다. Figure~\ref{fig:attention_mass}는 sequence와 layer 두 축의 경험적 dual decay를 함께 보여 준다.
+이 한 줄에 두 메커니즘이 담겨 있다. RSP 길이 $L$은 분자에 들어가 \emph{최대} 영향력을 결정하고, 실제 토큰 수 $n$은 매 step 자동으로 늘어 분모를 키우므로 같은 $L$ 아래에서도 영향력의 \emph{상계}는 좁아진다. 정리가 보장하는 것은 \emph{같은 layer, 같은 query 위치, 같은 logit gap}에서 RSP attention의 \emph{상한 envelope}이 시퀀스 길이 방향으로 좁아진다는 점이며, layer 방향의 단조 감쇠는 아니다. $\Delta_i^{(\ell)}$도 디코딩 동안 query·key·hidden state와 함께 변하지만, 기존 토큰 사이의 상관관계가 누적되면서 대체로 증가하는 경향이 있다. 따라서 정확한 진술은 ``실현 mass의 step별 단조 감소''가 아니라 ``같은 gap에서 가능한 상계의 단조 감소''다. Eq.~\eqref{eq:decomp}이 무작위 기여를 같은 스칼라로 묶으므로 perturbation 크기도 같은 envelope을 따르며, RSP는 생성 초반에 크게 열리고 캐시 누적과 함께 좁아지는 암묵적 explore-then-exploit 도구가 된다. Figure~\ref{fig:attention_mass}는 sequence와 layer 두 축의 경험적 dual decay를 함께 보여 준다.
 
 \begin{figure}[ht]
   \centering
@@ -81,22 +91,5 @@ w_{r,i}^{(\ell)}
   \label{fig:attention_mass}
 \end{figure}
 
-% ================================================================
-\subsection{Performance gain: 왜 독립 재실행이 도움이 되는가}\label{sec:multipath}
-% ================================================================
+매 rollout 독립 재추첨(\S\ref{sec:rsp_definition})이 이 단발 분기를 task 정확도로 끌어올리려면 두 가정이 필요하다 — (M1) 한 번의 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$, (M2) $N$번의 실행이 상호 독립. 두 가정 아래 standard ensemble 논변은 $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1 - (1-p_{\min}(x))^N$을 준다(Appendix~\ref{app:passN_ensemble}). 같은 RSP를 모든 sample이 공유하면 (M2)가 깨져 누적이 사라지므로 \emph{독립}이 핵심이며, \S\ref{sec:experimental_analysis}는 바로 이 서명을 실험적으로 확인한다.
 
-Theorem~\ref{thm:decay}는 한 rollout 안에서 RSP가 얼마나 움직일 수 있는지를 설명한다. 남는 질문은 성능이다. 왜 \emph{새로운} RSP로 다시 실행할 때 하나의 고정된 prompt를 반복하는 것보다 이득이 누적되는가? 분포 측의 정당화와 task 측의 가정을 분리해 본다.
-
-먼저 분포 측. 어떤 방향이 의미 있는지 사전에 모를 때, 같은 분산 예산 안에서 worst-case 방향 분산을 최대화하는 것이 자연스러운 안전 선택이다.
-
-\begin{proposition}[방향 무관 미니맥스 커버리지]\label{thm:minimax_directional_coverage}
-$\mathbb{R}^d$ 위 평균 0 분포 $D$가 분산 예산 $\mathrm{tr}(\Sigma_D)\le\rho^2$를 만족하면 $\min_{\|b\|=1}\mathrm{Var}_{h\sim D}(b^\top h) = \lambda_{\min}(\Sigma_D) \le \rho^2/d$이고, 등호는 $\Sigma_D = (\rho^2/d)\mathbf{I}_d$일 때에만 성립한다.
-\end{proposition}
-
-가우시안 RSP는 \emph{임베딩에서 스케일만 빌리고 방향 기하는 버리는} 설계로 위 미니맥스의 등호 조건을 정확히 충족하며, $\mathbb{R}^d$ 전역에 양의 밀도(full support)를 가져 어떤 방향에도 사전 가중치를 두지 않는다(Appendix~\ref{app:why_random}).
-
-이 두 성질이 단발 분기를 함의한다. centered prompt $\bar h$ 근방에서 logit이 국소 affine이라면, baseline이 top-1로 두는 토큰을 떨어뜨리고 다른 토큰을 top-$K$로 들이는 $\bar h$ 영역은 \emph{열린} 영역이며, full support 가우시안은 어떤 비공집합 열린영역에도 양의 확률을 부여한다(Appendix~\ref{app:why_random}). 단조 변환인 temperature sampling은 토큰 순위를 보존하므로 같은 일을 만들 수 없다 — RSP의 \emph{rank-changing} 성질은 여기서 나온다.
-
-이제 task 측. 단발 분기를 task accuracy로 끌어올리려면 (M1) 한 번의 RSP 실행이 정답 trajectory를 만들 주변 확률 $p_{\min}(x)>0$이고 (M2) $N$번의 실행이 상호 독립이라는 두 가정이 필요하다. (M2)는 §\ref{sec:rsp_definition}의 매 rollout 독립 추첨이 직접 보장하고, (M1)은 위 분기 영역이 정답 근처를 포함할 때 유효하다 — 메커니즘으로 자동 보장되지 않는 task-side 사실이다. 두 가정 아래에서는 standard ensemble 논변이 $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1 - (1-p_{\min}(x))^N$을 주며, 이는 (M1, M2)를 만족하는 어떤 sampling 방법에도 적용되는 generic 사실이다. RSP의 contribution은 정리 자체가 아니라 (M1)에서 \emph{temperature가 못 만드는} rank-changing 진입에 양의 확률을 부여하고, (M2)를 매 rollout 독립 추첨으로 확보한 점에 있다.
-
-같은 RSP를 모든 sample이 공유하면 이 누적이 사라지므로 \emph{독립}이 핵심이다. §\ref{sec:experimental_analysis}는 바로 이 서명을 실험적으로 확인한다.

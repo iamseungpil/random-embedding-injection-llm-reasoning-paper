@@ -335,7 +335,7 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 \clearpage
 \section{이론에 필요한 Prompt 법칙의 성질}\label{app:why_random}
 
-이 부록은 본문에서 실제로 사용하는 성질만 남긴다: 중심성, 분산 예산 아래의 방향 무관 공분산, 그리고 모든 비공집합 열린집합에 대한 양의 확률이다. Section~\ref{sec:multipath}의 메커니즘에는 이 기하학적·측도론적 사실만 필요하므로, 더 강한 의미론적 해석은 쓰지 않는다.
+이 부록은 본문에서 실제로 사용하는 성질만 남긴다: 중심성, 분산 예산 아래의 방향 무관 공분산, 그리고 모든 비공집합 열린집합에 대한 양의 확률이다. Section~\ref{sec:improve}의 메커니즘에는 이 기하학적·측도론적 사실만 필요하므로, 더 강한 의미론적 해석은 쓰지 않는다.
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
@@ -409,7 +409,7 @@ $\sigma>0$이고 $\bar h \sim \mathcal{N}(0,\sigma^2\mathbf{I}_d)$라 하자. �
 는 $\mathbb{R}^d$의 모든 점에서 엄밀히 양수다. 모든 비공집합 열린집합은 양의 르베그 측도를 갖는 ball 하나를 포함하므로, 그 ball 위에서 양의 밀도를 적분하면 양의 확률이 얻어진다.
 \end{proof}
 
-이것이 \S\ref{sec:multipath}의 informal 분기 영역 논변과 Appendix~\ref{app:topk_entry}에서 쓰이는 유일한 support 성질이다.
+이것이 \S\ref{sec:improve}의 informal 분기 영역 논변과 Appendix~\ref{app:topk_entry}에서 쓰이는 유일한 support 성질이다.
 
 \clearpage
 \section{본문 이론 결과의 증명}\label{app:proofs}
@@ -511,11 +511,11 @@ Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, Coro
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
 \subsection{성능 향상: local admission에서 Pass@N까지}
 
-본문 §\ref{sec:multipath}는 1차 surrogate 위에서 두 가지를 주장한다. baseline 밖 토큰이 국소 top-$K$ 집합에 진입할 수 있다는 점과, 독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다는 점이다. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
+본문은 1차 surrogate 위에서 두 가지를 주장한다 — §\ref{sec:improve}의 ``baseline 밖 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 §\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]
-Section~\ref{sec:multipath}의 등방 가우시안 법칙은 Proposition~\ref{prop:gaussian_open_support}에 의해 (S1)을 만족한다.
+Section~\ref{sec:improve}의 등방 가우시안 법칙은 Proposition~\ref{prop:gaussian_open_support}에 의해 (S1)을 만족한다.
 
 \subsubsection{자기회귀 정식화}
 
@@ -539,7 +539,7 @@ z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h
 
 \subsubsection{Top-$K$ 진입 영역 (Remark)}\label{app:topk_entry}
 
-본문 \S\ref{sec:multipath}의 informal 논변을 보충한다. 진입 영역
+본문 \S\ref{sec:improve}의 informal 논변을 보충한다. 진입 영역
 \[
 \mathcal{G}_{i,K}
 \;:=\;
