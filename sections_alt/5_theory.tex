@@ -74,7 +74,7 @@ Applied at each layer $\ell$ to $w_{r,i}^{(\ell)}$ with gap $\Delta_i^{(\ell)}$,
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
+  \includegraphics[width=\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
   \caption{Per-token attention mass on Qwen2.5-Math-7B (\emph{suffix}, 500 MATH-500 problems, independent RSP per problem). (a) RSP-token attention decreases along the reasoning-position axis, matching Theorem~\ref{thm:decay}'s KV cache-growth bound; the additional layer-axis decrease is an empirical phenomenon (deeper layers sharpen the real-vs-random gap) outside Theorem~\ref{thm:decay}'s scope. (b) Question-token attention stays comparatively uniform. Reported quantity: per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
   \label{fig:attention_mass}
 \end{figure}
