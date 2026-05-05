@@ -19,7 +19,7 @@
 
 \begin{table}[!t]
 \centering
-\caption{모델 설정과 벤치마크별 정확도(\%). 괄호 안 값은 baseline 대비 변화량이다. Infix 포함 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다.}
+\caption{모델 설정과 벤치마크별 정확도(\%). 괄호 안 값은 baseline 대비 변화량이다. Prefix, Suffix 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다.}
 \label{tab:performance}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -50,13 +50,13 @@ Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}  
 \end{tabular}}
 \end{table}
 
-먼저 무작위 임베딩 주입이 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 Prefix와 Suffix 두 위치 결과를 보고한다(Infix 포함 전체 분해는 Appendix~\ref{app:ablation}).
+먼저 무작위 임베딩 주입이 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 Prefix와 Suffix 두 위치 결과를 보고한다(전체 분해는 Appendix~\ref{app:ablation}).
 
 instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. 가장 두드러지는 것은 형식 불일치 회복이다. chat 형식으로 학습되지 않은 base model에 ChatML template을 적용하면 Suffix(Qwen2.5-Math-7B에서 +18.2/+17.7\,pp)와 Prefix(Qwen2.5-Math-1.5B에서 +29.0/+29.6\,pp까지)가 손실을 회복한다(단순 노이즈였다면 추가 저하가 나타나야 한다). 한편 base raw-text 환경에서 Suffix는 큰 손해를 보이고($-$16.6/$-$30.0\,pp) Prefix는 손실이 작은데, base가 EOS 근접 무작위 신호를 종료/탈선 trigger로 처리한다는 가설과 정합한다. 즉 RSP의 직접적 정확도 이득은 \emph{misaligned 입력에서의 attractor 탈출}에서 주로 나오며 잘 정렬된 instruct에서는 ±몇 pp에 머문다. 본 논문이 강조하는 효과는 \S\ref{sec:diversity}의 token·trajectory·outcome diversity와 Pass@$N$ 이득이고, 정확도 회복은 부수적 결과다(정량 분석과 multi-seed 평가는 향후 과제).
 
 \begin{table}[!t]
 \centering
-\caption{기존 soft prompt 방법(TTSV, SoftCoT, LTPO)과의 통합 평가 비교. Baseline과 RSP 값은 Table~\ref{tab:performance}에서 가져왔다. \textbf{Bold}는 최고 성능, \underline{underline}은 두 번째 성능이다.}
+\caption{기존 soft prompt 방법(TTSV, SoftCoT, LTPO)과의 통합 평가 비교. \textbf{Baseline}은 Table~\ref{tab:performance}에서 가져왔고, \textbf{RSP}는 평가셋에서 위치 및 $L\in\{10,15,20\}$에 대한 best 값을 보고한다(위치별 분해는 Appendix~\ref{app:ablation}). \textbf{Bold}는 최고 성능, \underline{underline}은 두 번째 성능이다.}
 \label{tab:prior_comparison}
 \footnotesize
 \renewcommand{\arraystretch}{0.9}

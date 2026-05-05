@@ -7,7 +7,7 @@
 
 \section{Random Soft Prompt와 작동 원리}\label{sec:why_rsp_works}
 
-RSP는 hidden state에 직접 더해지지 않고 어텐션 가중치를 통해서만 들어간다. 그래서 한 attention head 안에서 RSP의 즉각적 영향은 RSP 토큰들에 배정된 \emph{어텐션 질량} $w$라는 단 하나의 스칼라로 환원되고, 이 절은 그 스칼라가 디코딩 동안 어떻게 변하는지를 추적한다. 디코딩 초반에는 이 양이 충분히 커서 hidden state를 여러 방향으로 분기시키고(\S\ref{sec:improve}), KV 캐시가 자라면 같은 스칼라의 상계가 자동으로 좁아져 응답이 목표로 수렴한다(\S\ref{sec:converge}). 무작위성의 역할은 임베딩 분포 모방이 아니라 rollout 사이에 \emph{독립} 섭동을 공급해 매번 새로운 분기를 여는 데 있다. 본문에는 핵심 명제와 직관만 두고, 추가 증명은 Appendix~\ref{app:proofs}에 있다.
+RSP는 hidden state에 직접 더해지지 않고 self-attention을 통해 들어간다. 한 attention head 안에서 RSP의 즉각적 영향은 RSP 토큰들에 배정된 \emph{어텐션 질량} $w$라는 단 하나의 스칼라로 환원되고, 이 절은 그 스칼라가 디코딩 동안 어떻게 변하는지를 추적한다. 디코딩 초반에는 이 양이 충분히 커서 hidden state를 여러 방향으로 분기시키고(\S\ref{sec:improve}), KV 캐시가 자라면 같은 스칼라의 상계가 자동으로 좁아져 응답이 목표로 수렴한다(\S\ref{sec:converge}). 무작위성의 역할은 임베딩 분포 모방이 아니라 rollout 사이에 \emph{독립} 섭동을 공급해 매번 새로운 분기를 여는 데 있다. 본문에는 핵심 명제와 직관만 두고, 추가 증명은 Appendix~\ref{app:proofs}에 있다.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}

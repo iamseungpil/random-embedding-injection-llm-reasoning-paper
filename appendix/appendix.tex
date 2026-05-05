@@ -6,7 +6,7 @@
 \clearpage
 \section{Experimental Setup and Full Accuracy Breakdown}\label{app:setup}\label{app:ablation}
 
-Table~\ref{tab:performance_full} provides the full per-position accuracy breakdown (Prefix, Infix, Suffix) corresponding to the best-across-positions results summarized in Table~\ref{tab:performance} in the main text. Table~\ref{tab:token_count} lists the number of RSP tokens $L$ used for each model--benchmark pair, selected from $\{10, 15, 20\}$. All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants).
+Table~\ref{tab:performance_full} provides the full per-position accuracy breakdown (Prefix, Suffix) corresponding to the best-across-positions results summarized in Table~\ref{tab:performance} in the main text. Table~\ref{tab:token_count} lists the number of RSP tokens $L$ used for each model--benchmark pair, selected from $\{10, 15, 20\}$. All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants).
 
 \begin{table}[ht]
 \centering
@@ -344,7 +344,7 @@ Let $z^{\text{Base}}_i$ denote the no-RSP output logit at vocab token $i$ and $z
 \[
 \Delta_{ij}^{\mathrm{lin}}(\bar{h}) \;:=\; \Delta_{ij} + b_{ij}^\top \bar{h},
 \]
-with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$; the same identity holds for the true gap $\Delta_{ij}(\bar h)$ up to a $O(\|\bar h\|^2)$ remainder absorbed by the Taylor expansion.
+with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$. For the true non-linear gap $\Delta_{ij}(\bar h)$, the first-order term has zero mean under centered perturbations, but the Taylor remainder $r_{ij}(\bar h) = O(\|\bar h\|^2)$ may contribute a second-order mean shift; we make no claim about its sign or magnitude.
 
 \begin{proposition}[No systematic first-order drift in the surrogate]\label{prop:centered_no_drift}
 If $\mathbb{E}[\bar{h}] = 0$, then
@@ -554,9 +554,9 @@ where each step is governed by a prefix-conditioned distribution. Any perturbati
 
 Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector from the RSP definition (Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition}), treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the arguments below isolate how one local perturbation can shift the logits. We model the perturbed logits as a function $z_i(\bar{h})$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
 \[
-z_i(\bar{h}) = z_i(0) + \nabla_h z_i(0)^\top \bar{h} + r_i(\bar{h}),
+z_i(\bar{h}) = z_i(0) + \nabla_{\bar h} z_i(0)^\top \bar{h} + r_i(\bar{h}),
 \]
-where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_h z_i(0)$, we obtain the local affine surrogate
+where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_{\bar h} z_i(0)$ and $z_i := z_i(0)$, we obtain the local affine surrogate
 \[
 z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
 \]
@@ -595,11 +595,11 @@ This appendix formalizes the per-token attention mass reported in Figure~\ref{fi
 
 \subsection{Per-Token Attention Mass}
 
-For each problem, we measure attention on the concatenated sequence $[\text{prompt}; \mathbf{H}; \text{generation}]$, where the generation is the trajectory produced by the same model under matching RSP injection. Let $\alpha^{(\ell, h)}_{i,j}$ denote the post-softmax attention weight at layer $\ell$, head $h$, from query position $i$ to key position $j$, satisfying $\sum_j \alpha^{(\ell, h)}_{i,j} = 1$ under the causal mask. Let $Q$ and $R$ denote the index sets of question and RSP tokens with sizes $|Q|$ and $|R| = L$, and let $H$ be the number of heads. The per-token attention mass that query $i$ directs to each group at layer $\ell$ is
+For each problem, we measure attention on the concatenated sequence $[\text{prompt}; \mathbf{H}; \text{generation}]$, where the generation is the trajectory produced by the same model under matching RSP injection. Let $\alpha^{(\ell, a)}_{i,j}$ denote the post-softmax attention weight at layer $\ell$, head index $a$ (using $a$ to avoid collision with the RSP matrix $\mathbf{H}$), from query position $i$ to key position $j$, satisfying $\sum_j \alpha^{(\ell, a)}_{i,j} = 1$ under the causal mask. Let $Q$ and $R$ denote the index sets of question and RSP tokens with sizes $|Q|$ and $|R| = L$, and let $N_{\text{head}}$ be the number of heads. The per-token attention mass that query $i$ directs to each group at layer $\ell$ is
 \begin{equation}
-\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q| H} \sum_{h=1}^{H} \sum_{j \in Q} \alpha^{(\ell, h)}_{i,j},
+\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, a)}_{i,j},
 \qquad
-\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R| H} \sum_{h=1}^{H} \sum_{j \in R} \alpha^{(\ell, h)}_{i,j}.
+\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, a)}_{i,j}.
 \label{eq:per_token_mass}
 \end{equation}
 Normalization by $|Q|$ and $|R|$ controls for group size, so both quantities express how much attention a single question (resp.\ RSP) token receives on average under the same softmax denominator. Question tokens thereby serve as a size-matched baseline that absorbs sequence-length effects common to both groups.
@@ -628,7 +628,7 @@ Excluding the final two layers keeps the heatmap focused on reasoning-phase dyna
 
 \subsection{Additional Suffix Heatmaps}
 
-Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under suffix injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows the layer-wise and sequence-wise decay predicted by Theorem~\ref{thm:decay}.
+Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under suffix injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows sequence-wise decay consistent with Theorem~\ref{thm:decay} alongside an empirical layer-wise attenuation that the theorem itself does not predict.
 
 \begin{figure}[ht]
   \centering
@@ -662,7 +662,7 @@ The vanilla GRPO objective \citep{shao2024deepseekmath} for a group of $G$ rollo
 \end{equation}
 with importance ratio $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, group-relative advantage $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, clipping range $\varepsilon$, and KL penalty $\beta\,D_{\text{KL}}$ against the reference $\pi_{\text{ref}}$.
 
-We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$, and (iv) KL terms removed. The resulting DAPO objective is
+We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) an implementation-side negative-advantage dual-clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$ (active only when $\hat{A}<0$; omitted from Eq.~\eqref{eq:dapo} below for readability), and (iv) KL terms removed. The resulting DAPO objective is
 \begin{equation}\label{eq:dapo}
 \mathcal{J}_{\text{DAPO}}(\theta)
 \;=\;
@@ -676,7 +676,7 @@ We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and impl
 
 \subsection{DAPO + RSP Implementation}\label{app:dapo_rsp_impl}
 
-For DAPO + RSP, we additionally inject a group-specific RSP $\mathbf{H}_g \in \mathbb{R}^{L \times d}$ ($L=20$) into each rollout. $\mathbf{H}_g$ is generated deterministically from a per-step group seed and injected via a forward hook; it is not a trainable parameter, so the learning signal is the policy adapting to arbitrary $\mathbf{H}_g$ rather than a learned prompt. Including $\mathbf{H}_g$ in the log-probabilities at both rollout and update time keeps the update on-policy with respect to the RSP-conditioned distribution (avoiding off-policy mismatch). With $G=8$ and $n=8$, each group contains a single response, so each rollout effectively sees a different $\mathbf{H}_g$.
+For DAPO + RSP, we additionally inject a per-rollout RSP $\mathbf{H}_i \in \mathbb{R}^{L \times d}$ ($L=20$) into each rollout. Each $\mathbf{H}_i$ is generated deterministically from a per-step rollout seed and injected via a forward hook; it is not a trainable parameter, so the learning signal is the policy adapting to arbitrary $\mathbf{H}_i$ rather than a learned prompt. Including $\mathbf{H}_i$ in the log-probabilities at both rollout and update time keeps the update on-policy with respect to the RSP-conditioned distribution (avoiding off-policy mismatch). With $G=8$ rollouts per prompt, each rollout receives an independently drawn $\mathbf{H}_i$.
 
 \subsection{Data, Batch, and Hyperparameters}
 
