@@ -6,7 +6,7 @@ As large language models (LLMs) scale, full fine-tuning becomes prohibitively ex
 \begin{figure}[!t]
   \centering
   \includegraphics[width=\textwidth]{img/main/main.pdf}
-  \caption{Conceptual overview of RSP-induced trajectory diversity. The hidden states shown are the final-layer outputs that drive the next-token distribution. (a) Early decoding: RSP induces a \textit{branching hidden state} (red; the \emph{branching state} formalized in \S\ref{sec:rsp_definition}) with a diverse output distribution. (b) Later decoding: KV cache growth attenuates the RSP attention mass, yielding a \textit{stabilized hidden state} (blue). (c) As generation proceeds, the multiple trajectories opened by early RSP perturbation gradually stabilize into goal-directed completions.}
+  \caption{Conceptual overview of RSP-induced trajectory diversity. The hidden states shown are the final-layer outputs that drive the next-token distribution. (a) Early decoding: RSP perturbation reaches a \emph{branching state} (red; formalized in \S\ref{sec:rsp_definition}), whose top-$K$ differs from the no-RSP baseline and induces a diverse output distribution. (b) Later decoding: as the KV cache grows, the bound on RSP attention mass narrows (Theorem~\ref{thm:decay}); branching events become rare and the hidden state (blue) commits to the branch already opened. (c) Across rollouts, the trajectories opened by early RSP perturbation accumulate into independent paths that converge to goal-directed completions.}
   \label{fig:main}
 \end{figure}
 

@@ -351,9 +351,9 @@ If $\mathbb{E}[\bar{h}] = 0$, then
 \[
 \mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar{h})\big] = \Delta_{ij}
 \]
-for every token pair $(i,j)$. If a deterministic prompt $h_0$ is reused across runs, then
+for every token pair $(i,j)$. If a deterministic centered prompt $\bar h_0$ is reused across runs, then
 \[
-\Delta_{ij}^{\mathrm{lin}}(h_0) - \Delta_{ij} = b_{ij}^\top h_0
+\Delta_{ij}^{\mathrm{lin}}(\bar h_0) - \Delta_{ij} = b_{ij}^\top \bar h_0
 \]
 is a fixed directional bias.
 \end{proposition}
@@ -656,18 +656,18 @@ This appendix complements Section~\ref{sec:application} with the DAPO loss modif
 
 \subsection{From GRPO to DAPO}\label{app:grpo}
 
-The vanilla GRPO objective \citep{shao2024deepseekmath} for a group of $G$ rollouts $\{o_i\}_{i=1}^G$ with rewards $\{R_i\}_{i=1}^G$ is
+The vanilla GRPO objective \citep{shao2024deepseekmath} for a group of $G$ rollouts $\{y_i\}_{i=1}^G$ (each $y_i = (y_{i,1},\dots,y_{i,|y_i|})$ a token sequence; we use $y$ rather than $o$ throughout this appendix to avoid collision with the head output $\mathbf{o}_i^{(\ell)}$ of \S\ref{sec:improve}) with rewards $\{R_i\}_{i=1}^G$ is
 \begin{equation}\label{eq:grpo}
-\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
+\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|y_i|}\sum_{t=1}^{|y_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
 \end{equation}
-with importance ratio $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, group-relative advantage $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, clipping range $\varepsilon$, and KL penalty $\beta\,D_{\text{KL}}$ against the reference $\pi_{\text{ref}}$.
+with importance ratio $r_{i,t} = \pi_\theta(y_{i,t}\mid q,y_{i,<t})/\pi_{\theta_{\text{old}}}(y_{i,t}\mid q,y_{i,<t})$, group-relative advantage $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, clipping range $\varepsilon$, and KL penalty $\beta\,D_{\text{KL}}$ against the reference $\pi_{\text{ref}}$.
 
-We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|o_i|$ instead of $1/|o_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) an implementation-side negative-advantage dual-clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$ (active only when $\hat{A}<0$; omitted from Eq.~\eqref{eq:dapo} below for readability), and (iv) KL terms removed. The resulting DAPO objective is
+We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and implement DAPO on top of VeRL \citep{sheng2024hybridflow}. DAPO modifies Eq.~\eqref{eq:grpo} in four ways: (i) token-level loss aggregation $1/\sum_i|y_i|$ instead of $1/|y_i|$, (ii) asymmetric clipping with $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) an implementation-side negative-advantage dual-clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ with $c=10$ (active only when $\hat{A}<0$; omitted from Eq.~\eqref{eq:dapo} below for readability), and (iv) KL terms removed. The resulting DAPO objective is
 \begin{equation}\label{eq:dapo}
 \mathcal{J}_{\text{DAPO}}(\theta)
 \;=\;
 \mathbb{E}\!\left[
-\frac{1}{\sum_i|o_i|}
+\frac{1}{\sum_i|y_i|}
 \sum_{i,t}
 \min\!\Big(r_{i,t}\hat{A}_{i,t},\,
 \text{clip}\big(r_{i,t},\,1{-}\varepsilon_{\text{low}},\,1{+}\varepsilon_{\text{high}}\big)\hat{A}_{i,t}\Big)
@@ -701,7 +701,7 @@ Rollout sampling & temperature $1.0$, top-$p$ $1.0$, top-$k$ $50$ \\
 \midrule
 $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})$ & $(0.2,\,0.28)$ \\
 Dual clip $c$ & $10.0$ \\
-Loss aggregation & token-mean ($1/\sum_i|o_i|$) \\
+Loss aggregation & token-mean ($1/\sum_i|y_i|$) \\
 KL terms & disabled \\
 Entropy coefficient & $0$ \\
 \midrule
