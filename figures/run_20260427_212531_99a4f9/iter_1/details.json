@@ -1,0 +1,7 @@
+{
+  "description": "## Figure Description: Layer-wise Mechanism of RSP\n\n**1. Overall Layout:**\nThe figure will be presented on a pure white background, maintaining a clean and schematic aesthetic suitable for a scientific publication. The central and most prominent feature, occupying approximately 70% of the total figure area, will be the **Main Energy Landscape Panel**. This panel will be flanked by three smaller, supporting inset panels:\n- A **Decomposition Inset** positioned in the top-right corner.\n- An **Annealing Schedule Inset** located in the bottom-right corner.\n- A **Minimax Annotation** text box situated in the top-left corner.\nThe overall flow within the main panel implicitly progresses from top to bottom (or front to back in the 3D perspective) as the layer index increases.\n\n**2. Components:**\n\n**I. Main Energy Landscape Panel (Central, Large):**\nThis panel depicts a stylized 3D-perspective view of the energy landscape, avoiding realistic rendering in favor of a clear",
+  "critique": {
+    "critic_suggestions": [],
+    "revised_description": null
+  }
+}

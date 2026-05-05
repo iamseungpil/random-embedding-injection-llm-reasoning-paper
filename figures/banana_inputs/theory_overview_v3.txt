@@ -1,0 +1,75 @@
+Layer-wise Energy Landscape Mechanism of Random Soft Prompts (RSP)
+
+CRITICAL CONTEXT (read first):
+- This figure is about LANGUAGE MODEL REASONING, not adversarial robustness, not optimization training.
+- The "energy" is the Modern Hopfield energy associated with each transformer LAYER's attention.
+- The "trajectory" is the hidden-state evolution across transformer LAYERS during a SINGLE forward pass.
+- DO NOT depict adversarial attacks. DO NOT depict gradient descent on a loss surface. DO NOT depict embedding scatter plots.
+- The figure must show TWO TRAJECTORIES on the SAME LAYER-INDEXED ENERGY LANDSCAPE: one without RSP (gets stuck), one with RSP (escapes via random kicks that automatically anneal).
+
+CORE MESSAGE:
+Without RSP, the transformer's deterministic layer-by-layer descent traps the hidden state in the basin of its initial state — a shallow local minimum corresponding to a suboptimal reasoning branch. With RSP, each layer adds a small stochastic kick whose magnitude decays as the model accumulates real-key context. Because the kick is isotropic (random in direction), it has positive probability of crossing any energy barrier, allowing the trajectory to reach deeper basins (better reasoning branches). The decay schedule prevents over-perturbation in late layers where commitment is desired.
+
+REQUIRED VISUAL ELEMENTS:
+
+(I) MAIN PANEL — A single large energy landscape view with depth axis.
+
+Set up a perspective/3D-style view with three axes:
+- Horizontal axis: 1D projection of hidden state space, labeled "hidden state σ"
+- Depth axis (going into the page or sliced into layers): "layer index l = 1, 2, ..., L"
+- Vertical axis: "Hopfield energy E^(l)(σ)"
+
+At several layers (say l = 1, 4, 8, 12), draw the energy curve E^(l)(σ) — a wavy line with two distinct local minima:
+- m1 (shallow, on the left) — labeled "shallow basin"
+- m2 (deeper, on the right) — labeled "deeper basin"
+A potential barrier of height B separates the two basins.
+
+(II) TRAJECTORY A — "Without RSP" (red/orange line):
+Starting at the top layer (l=1), draw a smooth descending line that:
+- Stays on the left side of the barrier
+- At each layer, descends to the local minimum nearest its current position (= m1)
+- By layer L, terminates at m1
+Annotation: "Deterministic descent (Theorem on basin trapping). Initial basin determines final minimum."
+
+(III) TRAJECTORY B — "With RSP" (green line):
+Starting at the same point, draw a noisy/jagged line that:
+- At each layer transition, has a small zigzag or arrow indicating the stochastic kick η
+- The kick magnitude visibly decreases with layer index (large arrows at l=1,2,3; small arrows at l=10,11,12)
+- At some intermediate layer (e.g., l=4 or l=5), the trajectory CROSSES THE BARRIER from m1 side to m2 side
+- After crossing, descends into m2 (deeper basin)
+- By layer L, terminates at m2
+Annotation: "RSP perturbation η at each layer; magnitude decays as w_r → 0. Random direction allows positive-probability barrier crossing."
+
+(IV) DECOMPOSITION INSET (small box, top-right):
+Show the equation:
+"σ^(l+1) = (1 - w_r^(l)) σ_tilde^(l+1) + η^(l)"
+Two arrows pointing from this equation:
+- "(1 - w_r) σ_tilde" → labeled "deterministic descent component"
+- "η ~ random" → labeled "stochastic kick (isotropic)"
+
+(V) ANNEALING SCHEDULE INSET (small box, bottom-right):
+A small line plot:
+- X-axis: layer index l (or equivalently, sequence position n)
+- Y-axis: w_r^(l)
+- Curve: monotonically decreasing
+- Formula displayed: "w_r ≤ k / (k + n exp(Δ/√d))"
+Annotation: "Kick magnitude anneals automatically."
+
+(VI) MINIMAX ANNOTATION (small text or box, top-left):
+"Why isotropic? Minimax over unknown barrier direction:
+λ_min(Σ_D) ≤ ρ²/d  (equality iff isotropic)."
+
+LAYOUT:
+- Main energy landscape occupies ~70% of figure area (center)
+- Three small insets around it for decomposition, annealing schedule, minimax
+- Color: green for "with RSP" trajectory, red/orange for "without RSP" trajectory, gray for energy surface, blue accents for formulas
+
+STYLE:
+- Clean, schematic, NeurIPS/ICML conference quality
+- NO realistic 3D rendering. Use simple line drawings or polygonal energy surfaces.
+- NO photographs. NO synthetic textures.
+- Black-on-white background with limited color palette.
+- Mathematical notation should be readable.
+
+CAUSAL STORY THE FIGURE TELLS:
+"At each transformer layer, attention performs a Hopfield energy descent. Without perturbation, the descent is fully deterministic and gets trapped in whatever basin the initial state belongs to. RSP injects an isotropic random perturbation η at each layer, decomposed via the same scalar w_r that also controls its dilution. Because η is random in direction, it has positive probability of crossing any barrier — including barriers separating shallow and deep basins. Because w_r decays as real-key context grows, the perturbation magnitude automatically shrinks toward late layers/positions, mimicking simulated annealing without an external schedule."

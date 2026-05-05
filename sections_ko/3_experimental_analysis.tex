@@ -5,13 +5,13 @@
 
 \section{실험적 확인}\label{sec:experimental_analysis}
 
-\S\ref{sec:why_rsp_works}는 세 가지 분리된 메커니즘을 예측한다 — RSP는 (i) 출력 분포를 평탄화·재배열해 \emph{token-level} branching을 열고, (ii) 그 branching이 디코딩 동안 의미적으로 다른 \emph{trajectory-level} 궤적으로 propagate되며, (iii) rollout 사이의 독립 재추첨이 그 분기들을 $N$번에 걸쳐 \emph{outcome-level} Pass@$N$으로 누적시킨다. 이 세 예측을 같은 순서로 검증한다 — \S\ref{sec:performance}는 RSP가 baseline 정확도를 보존하거나 회복하는 setting을 짚어 메커니즘이 동작할 \emph{대상 영역}을 확정하고, \S\ref{sec:entropy}는 (i)의 첫 측면인 \emph{출력 분포 평탄화}(entropy 상승, top-1 probability 감소, varentropy 증가)가 RSP와 다른 latent prompt 방법에서 공유되는지를 보며, \S\ref{sec:diversity}는 (i)의 두 번째 측면인 \emph{rank-changing} 변화(temperature가 만들 수 없는 순위 재배치), (ii) 의미적 trajectory diversity, (iii) \emph{독립} RSP에서만 누적되는 Pass@$N$을 차례로 검증한다.
+\S\ref{sec:why_rsp_works}는 세 가지 분리된 메커니즘을 예측한다. RSP는 (i) 출력 분포를 평탄화·재배열해 \emph{token-level} branching을 열고, (ii) 그 branching이 디코딩 동안 의미적으로 다른 \emph{trajectory-level} 궤적으로 propagate되며, (iii) rollout 사이의 독립 재추첨이 그 분기들을 $N$번에 걸쳐 \emph{outcome-level} Pass@$N$으로 누적시킨다. 이 세 예측을 같은 순서로 검증한다. \S\ref{sec:performance}는 RSP가 baseline 정확도를 보존하거나 회복하는 setting을 짚어 메커니즘이 동작할 \emph{대상 영역}을 확정하고, \S\ref{sec:entropy}는 (i)의 첫 측면인 \emph{출력 분포 평탄화}(entropy 상승, top-1 probability 감소, varentropy 증가)가 RSP와 다른 latent prompt 방법에서 공유되는지를 보며, \S\ref{sec:diversity}는 (i)의 두 번째 측면인 \emph{rank-changing} 변화(temperature가 만들 수 없는 순위 재배치), (ii) 의미적 trajectory diversity, (iii) \emph{독립} RSP에서만 누적되는 Pass@$N$을 차례로 검증한다.
 
 % ================================================================
 \subsection{실험 설정}\label{sec:setup}
 % ================================================================
 
-평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct·base·chat template 불일치 base까지 총 일곱 가지를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하고, fallback 기반 answer extraction pipeline으로 최종 답만 채점한다. RSP는 \S\ref{sec:rsp_definition}의 정의를 따르며 prefix/infix/suffix 한 위치에 매 배치마다 새로 추첨된 $\mathbf{H}$를 결합한다. Table~\ref{tab:performance}와 Table~\ref{tab:prior_comparison}이 보고하는 위치/$L$은 평가셋에서의 best 값이라 \emph{exploratory} 성격을 가지며 — held-out 기반 hyperparameter selection은 향후 과제 — \S\ref{sec:entropy}–\S\ref{sec:diversity}의 메커니즘 분석은 fixed $L=10$, suffix로 통일해 hyperparameter overfit 위험에서 분리했다. 전체 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
+평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct·base·chat template 불일치 base까지 총 일곱 가지를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하고, fallback 기반 answer extraction pipeline으로 최종 답만 채점한다. RSP는 \S\ref{sec:rsp_definition}의 정의를 따르며 prefix/infix/suffix 한 위치에 매 배치마다 새로 추첨된 $\mathbf{H}$를 결합한다. Table~\ref{tab:performance}와 Table~\ref{tab:prior_comparison}이 보고하는 위치/$L$은 평가셋에서의 best 값이라 \emph{exploratory} 성격을 가지며(held-out 기반 hyperparameter selection은 향후 과제), \S\ref{sec:entropy}–\S\ref{sec:diversity}의 메커니즘 분석은 fixed $L=10$, suffix로 통일해 hyperparameter overfit 위험에서 분리했다. 전체 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
 
 % ================================================================
 \subsection{RSP는 추론 성능을 개선할까?}\label{sec:performance}
@@ -19,7 +19,7 @@
 
 \begin{table}[!t]
 \centering
-\caption{모델 설정과 벤치마크별 정확도(\%). 괄호 안 값은 baseline 대비 변화량이다. Infix 포함 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다.}
+\caption{모델 설정과 벤치마크별 정확도(\%). 괄호 안 값은 baseline 대비 변화량이다. Prefix, Suffix 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다.}
 \label{tab:performance}
 \footnotesize
 \setlength{\tabcolsep}{3pt}
@@ -50,13 +50,13 @@ Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}  
 \end{tabular}}
 \end{table}
 
-먼저 무작위 임베딩 주입이 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 Prefix와 Suffix 두 위치 결과를 보고한다(Infix 포함 전체 분해는 Appendix~\ref{app:ablation}).
+먼저 무작위 임베딩 주입이 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 Prefix와 Suffix 두 위치 결과를 보고한다(전체 분해는 Appendix~\ref{app:ablation}).
 
-instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. 가장 두드러지는 것은 형식 불일치 회복이다 — chat 형식으로 학습되지 않은 base model에 ChatML template을 적용하면 Suffix(Qwen2.5-Math-7B에서 +18.2/+17.7\,pp)와 Prefix(Qwen2.5-Math-1.5B에서 +29.0/+29.6\,pp까지)가 손실을 회복한다(단순 노이즈였다면 추가 저하가 나타나야 한다). 한편 base raw-text 환경에서 Suffix는 큰 손해를 보이고($-$16.6/$-$30.0\,pp) Prefix는 손실이 작은데, base가 EOS 근접 무작위 신호를 종료/탈선 trigger로 처리한다는 가설과 정합한다. 즉 RSP의 직접적 정확도 이득은 \emph{misaligned 입력에서의 attractor 탈출}에서 주로 나오며 잘 정렬된 instruct에서는 ±몇 pp에 머문다 — 본 논문이 강조하는 효과는 \S\ref{sec:diversity}의 token·trajectory·outcome diversity와 Pass@$N$ 이득이고, 정확도 회복은 부수적 결과다(정량 분석과 multi-seed 평가는 향후 과제).
+instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. 가장 두드러지는 것은 형식 불일치 회복이다. chat 형식으로 학습되지 않은 base model에 ChatML template을 적용하면 Suffix(Qwen2.5-Math-7B에서 +18.2/+17.7\,pp)와 Prefix(Qwen2.5-Math-1.5B에서 +29.0/+29.6\,pp까지)가 손실을 회복한다(단순 노이즈였다면 추가 저하가 나타나야 한다). 한편 base raw-text 환경에서 Suffix는 큰 손해를 보이고($-$16.6/$-$30.0\,pp) Prefix는 손실이 작은데, base가 EOS 근접 무작위 신호를 종료/탈선 trigger로 처리한다는 가설과 정합한다. 즉 RSP의 직접적 정확도 이득은 \emph{misaligned 입력에서의 attractor 탈출}에서 주로 나오며 잘 정렬된 instruct에서는 ±몇 pp에 머문다. 본 논문이 강조하는 효과는 \S\ref{sec:diversity}의 token·trajectory·outcome diversity와 Pass@$N$ 이득이고, 정확도 회복은 부수적 결과다(정량 분석과 multi-seed 평가는 향후 과제).
 
 \begin{table}[!t]
 \centering
-\caption{기존 soft prompt 방법(TTSV, SoftCoT, LTPO)과의 통합 평가 비교. Baseline과 RSP 값은 Table~\ref{tab:performance}에서 가져왔다. \textbf{Bold}는 최고 성능, \underline{underline}은 두 번째 성능이다.}
+\caption{기존 soft prompt 방법(TTSV, SoftCoT, LTPO)과의 통합 평가 비교. \textbf{Baseline}은 Table~\ref{tab:performance}에서 가져왔고, \textbf{RSP}는 평가셋에서 위치 및 $L\in\{10,15,20\}$에 대한 best 값을 보고한다(위치별 분해는 Appendix~\ref{app:ablation}). \textbf{Bold}는 최고 성능, \underline{underline}은 두 번째 성능이다.}
 \label{tab:prior_comparison}
 \footnotesize
 \renewcommand{\arraystretch}{0.9}
@@ -75,7 +75,7 @@ instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. �
 \end{tabular}
 \end{table}
 
-또한 RSP를 TTSV, SoftCoT, LTPO처럼 서로 다른 목적 함수로 임베딩을 최적화하는 기존 soft prompt 방법과 비교했다. Table~\ref{tab:prior_comparison}은 공통 answer extraction pipeline(Appendix~\ref{app:extraction}) 아래에서 다시 평가한 결과를 보여 준다. 각 방법은 프롬프트 형식과 채점 규칙이 다르지만, fallback 기반 추출로 형식 민감도를 낮춘 비교를 수행했다. RSP는 일관된 우월성을 보이지 않는다 — 예컨대 Qwen2.5-Math-7B-Inst의 AIME24에서 TTSV가 23.30\%로 RSP의 16.67\%를 앞선다. 그러나 RSP가 \emph{추가 학습 없이도} 학습 기반 방법과 비교 가능한 범위에 도달한다는 사실 자체가, soft prompt 효과의 일정 부분이 학습된 의미가 아니라 \emph{주입 구조}에서 비롯될 수 있음을 가리키는 본 논문의 주된 증거가 된다.
+또한 RSP를 TTSV, SoftCoT, LTPO처럼 서로 다른 목적 함수로 임베딩을 최적화하는 기존 soft prompt 방법과 비교했다. Table~\ref{tab:prior_comparison}은 공통 answer extraction pipeline(Appendix~\ref{app:extraction}) 아래에서 다시 평가한 결과를 보여 준다. 각 방법은 프롬프트 형식과 채점 규칙이 다르지만, fallback 기반 추출로 형식 민감도를 낮춘 비교를 수행했다. RSP는 일관된 우월성을 보이지 않는다. 예컨대 Qwen2.5-Math-7B-Inst의 AIME24에서 TTSV가 23.30\%로 RSP의 16.67\%를 앞선다. 그러나 RSP가 \emph{추가 학습 없이도} 학습 기반 방법과 비교 가능한 범위에 도달한다는 사실 자체가, soft prompt 효과의 일정 부분이 학습된 의미가 아니라 \emph{주입 구조}에서 비롯될 수 있음을 가리키는 본 논문의 주된 증거가 된다.
 
 % ================================================================
 \subsection{RSP는 출력 분포를 어떻게 바꾸는가?}\label{sec:entropy}
@@ -90,9 +90,9 @@ instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. �
   \label{fig:entropy_first5}
 \end{figure}
 
-RSP를 포함한 latent prompt 방법들은 공통적으로 \emph{생성 초반 entropy 상승 → 후반 baseline 수렴}이라는 동일한 시그니처를 보인다. 메커니즘 측면에서 자연스러운 설명은 OOV(out-of-vocabulary) 효과다 — 어휘 바깥의 연속 임베딩이 입력으로 들어오면 모델은 익숙한 토큰 분포 위에서 한 번도 본 적 없는 키 위치를 attend해야 하므로 초반 next-token 분포가 자연히 평탄화된다. 세 RSP 주입 위치 모두에서 초반 entropy↑, top-1 probability↓, varentropy↑로 분포가 평평해지고 단일 우세 토큰에 대한 확신이 약해지며 다봉형 분포가 더 자주 나타난다 \citep{ahmed2026logitscope}. 변화가 생성 초반에 국한되고 중·후반에는 세 지표 모두 baseline 수준으로 stabilize된다는 점이 중요한데, 이는 \S\ref{sec:converge}의 cache-growth attenuation이 예측한 \emph{초반 영향력 → 캐시 성장에 따른 자동 감쇠} 패턴과 정합한다.
+RSP를 포함한 latent prompt 방법들은 공통적으로 \emph{생성 초반 entropy 상승 → 후반 baseline 수렴}이라는 동일한 시그니처를 보인다. 메커니즘 측면에서 자연스러운 설명은 OOV(out-of-vocabulary) 효과다. 어휘 바깥의 연속 임베딩이 입력으로 들어오면 모델은 익숙한 토큰 분포 위에서 한 번도 본 적 없는 키 위치를 attend해야 하므로 초반 next-token 분포가 자연히 평탄화된다. 세 RSP 주입 위치 모두에서 초반 entropy↑, top-1 probability↓, varentropy↑로 분포가 평평해지고 단일 우세 토큰에 대한 확신이 약해지며 다봉형 분포가 더 자주 나타난다 \citep{ahmed2026logitscope}. 변화가 생성 초반에 국한되고 중·후반에는 세 지표 모두 baseline 수준으로 stabilize된다는 점이 중요한데, 이는 \S\ref{sec:converge}의 cache-growth attenuation이 예측한 \emph{초반 영향력 → 캐시 성장에 따른 자동 감쇠} 패턴과 정합한다.
 
-서로 다른 목적 함수로 학습된 기존 방법(LTPO, SoftCoT, TTSV)도 같은 시그니처를 공유한다. 평균 entropy를 \emph{줄이는} 보상을 쓰는 TTSV조차 초반 구간만큼은 baseline과 비슷하거나 더 높다. 짚어 둘 것은 entropy 수치 자체가 quality score가 아니라는 점이다 — 높은 entropy가 무조건 좋다는 뜻이 아니라, 학습 목적과 무관하게 OOV 임베딩 주입이 같은 entropy 시그니처를 만든다는 \emph{공유 메커니즘}을 보여 줄 뿐이다. latent reasoning을 가능케 하는 핵심 요소가 학습된 의미가 아니라 \emph{주입 자체}에 있다는 가설을 이 시그니처가 직접 뒷받침한다.
+서로 다른 목적 함수로 학습된 기존 방법(LTPO, SoftCoT, TTSV)도 같은 시그니처를 공유한다. 평균 entropy를 \emph{줄이는} 보상을 쓰는 TTSV조차 초반 구간만큼은 baseline과 비슷하거나 더 높다. 짚어 둘 것은 entropy 수치 자체가 quality score가 아니라는 점이다. 높은 entropy가 무조건 좋다는 뜻이 아니라, 학습 목적과 무관하게 OOV 임베딩 주입이 같은 entropy 시그니처를 만든다는 \emph{공유 메커니즘}을 보여 줄 뿐이다. latent reasoning을 가능케 하는 핵심 요소가 학습된 의미가 아니라 \emph{주입 자체}에 있다는 가설을 이 시그니처가 직접 뒷받침한다.
 
 % ================================================================
 \subsection{RSP는 실제로 추론 궤적의 다양성을 만드는가?}\label{sec:diversity}
@@ -143,7 +143,7 @@ Table~\ref{tab:rsp_vs_temp}의 대비는 명확하다. RSP의 분포 변화 크�
     \bottomrule
   \end{tabular}
 \end{wraptable}
-한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau{=}1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 세 패턴을 동시에 드러낸다 — pairwise cosine distance가 1.4배로 커져 궤적 집합 전체가 의미적으로 더 다양해졌고, inter-cluster distance가 5.4배로 뛰어 궤적이 분리된 군집들로 갈라졌으며, intra-cluster distance는 거의 변하지 않아 군집 내부의 의미적 응집은 유지된다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
+한 단계 위인 궤적 수준에서는, 첫 토큰의 재배치가 실제로 의미적으로 다른 추론 경로를 여는지가 관건이다. 이를 위해 MATH-500에서 무작위로 64개 문제를 뽑고, Baseline과 RSP 두 조건에서 각 문제마다 temperature $\tau{=}1.0$으로 300개의 독립 궤적을 생성했다. 각 궤적은 BGE-M3 \citep{chen2024bge}로 임베딩한 뒤, 문제 내 평균 pairwise cosine distance, DBSCAN \citep{ester1996density} 클러스터 중심 사이의 inter-cluster distance, 그리고 intra-cluster distance를 계산했다. Table~\ref{tab:semantic_metrics}는 세 패턴을 동시에 드러낸다. pairwise cosine distance가 1.4배로 커져 궤적 집합 전체가 의미적으로 더 다양해졌고, inter-cluster distance가 5.4배로 뛰어 궤적이 분리된 군집들로 갈라졌으며, intra-cluster distance는 거의 변하지 않아 군집 내부의 의미적 응집은 유지된다. Pairwise distance 기준으로도 RSP는 64개 중 56개 문제(87.5\%)에서 baseline보다 컸다.
 
 \paragraph{결과 수준: Pass@$N$ 스케일링.}
 마지막 결과 수준에서는, 이러한 다양성이 실제 과제 성과로 이어지는지를 Pass@$N$로 본다($N$개의 샘플 중 적어도 하나가 정답일 확률). MATH-500과 AIME24에서 문제당 $N=16$, 네 조건을 비교한다. \textit{(i)} baseline + $\tau{=}1.0$, \textit{(ii)} RSP를 모든 샘플이 공유 + $\tau{=}1.0$, \textit{(iii)} 샘플마다 독립 RSP + greedy, \textit{(iv)} 샘플마다 독립 RSP + $\tau{=}1.0$.

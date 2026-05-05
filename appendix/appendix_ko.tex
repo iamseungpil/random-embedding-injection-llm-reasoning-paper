@@ -250,7 +250,7 @@ lr & 1e-2 & 5e-3 & 5e-2 \\
 \subsection{전체 엔트로피 곡선}\label{app:entropy_full}
 % ================================================================
 
-Figure~\ref{fig:app_full_entropy}는 entropy, top-1 probability, varentropy의 전체 정규화 생성 궤적(0--100\%)을 보여주고, Table~\ref{tab:entropy_full}는 그에 대응하는 스칼라 통계 — 전체 평균, 첫 5\% 평균, 그리고 문제당 평균 생성 토큰 수 — 를 보고한다. 모든 방법은 생성 초반 단계를 지나면 비슷한 수준으로 수렴하며, 이는 RSP가 유도하는 분포 변화가 초기 추론 단계에 국소화되어 있음을 다시 확인해 준다.
+Figure~\ref{fig:app_full_entropy}는 entropy, top-1 probability, varentropy의 전체 정규화 생성 궤적(0--100\%)을 보여주고, Table~\ref{tab:entropy_full}는 그에 대응하는 스칼라 통계(전체 평균, 첫 5\% 평균, 문제당 평균 생성 토큰 수)를 보고한다. 모든 방법은 생성 초반 단계를 지나면 비슷한 수준으로 수렴하며, 이는 RSP가 유도하는 분포 변화가 초기 추론 단계에 국소화되어 있음을 다시 확인해 준다.
 
 \begin{table}[ht]
 \centering
@@ -339,20 +339,20 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-토큰 $i,j$의 baseline logit gap을 $\Delta_{ij}$라 하고 1차 surrogate를
+$z^{\text{Base}}_i$를 RSP 없는 forward pass의 vocab 토큰 $i$ logit, $z^{\text{RSP}}_i(\bar h)$를 centered RSP 섭동이 $\bar h$일 때의 logit이라 하자. RSP 하 (참) vocab-logit gap은 $\Delta_{ij}(\bar h) := z^{\text{RSP}}_i(\bar h) - z^{\text{RSP}}_j(\bar h)$이며, no-RSP baseline gap $\Delta^{\text{Base}}_{ij} := z^{\text{Base}}_i - z^{\text{Base}}_j$와 구분된다. $\bar h = 0$은 centered RSP가 entrywise 평균일 때이지 no-RSP forward pass가 아니므로 일반적으로 $\Delta_{ij}(0) \ne \Delta^{\text{Base}}_{ij}$이다. transformer의 logit map은 $\bar h$에 대해 비선형이지만, $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
 \[
-\Delta_{ij}(\bar h) = \Delta_{ij} + b_{ij}^\top \bar h
+\Delta_{ij}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ij} + b_{ij}^\top \bar h
 \]
-로 두자.
+를 준다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$이다. 아래 명제는 surrogate $\Delta_{ij}^{\mathrm{lin}}$에 대한 진술이다. 참 비선형 gap $\Delta_{ij}(\bar h)$의 경우, centered 섭동 아래 1차 항은 평균 0이지만 Taylor 잔차 $r_{ij}(\bar h) = O(\|\bar h\|^2)$는 2차 평균 편향을 줄 수 있으며 그 부호·크기에 대해서는 주장하지 않는다.
 
-\begin{proposition}[체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
+\begin{proposition}[surrogate에서 체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
 $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar h)\big] = \Delta_{ij}
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big] = \Delta_{ij}
 \]
 가 성립한다. 반대로 결정적 prompt $h_0$를 모든 run에 재사용하면
 \[
-\Delta_{ij}(h_0)-\Delta_{ij} = b_{ij}^\top h_0
+\Delta_{ij}^{\mathrm{lin}}(h_0)-\Delta_{ij} = b_{ij}^\top h_0
 \]
 는 고정된 방향 편향이다.
 \end{proposition}
@@ -360,7 +360,7 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \begin{proof}
 중심화된 경우는 기대값의 선형성으로 바로 나온다.
 \[
-\mathbb{E}\big[\Delta_{ij}(\bar h)\big]
+\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big]
 =
 \Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar h]
 =
@@ -490,13 +490,13 @@ Corollary~\ref{cor:perturbation_magnitude}가 본문에 필요한 유일한 정�
 \subsection{Theorem~\ref{thm:decay}의 따름정리}
 
 \begin{corollary}[fixed-gap envelope의 시퀀스 방향 단조 감소]\label{cor:sequence_annealing}
-$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))$는 $n$에 대해 엄격히 감소하고 $n\to\infty$에서 0으로 수렴한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
+$L$과 $\Delta_i^{(\ell)}$를 고정하면, 상계 $f(n) = L/(L + n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}}))$는 $n$에 대해 엄격히 감소하고 $n\to\infty$에서 0으로 수렴한다. 따라서 \emph{같은 gap이 유지된다는 가정 아래}, cache 성장만으로 그 gap과 양립 가능한 최대 RSP attention mass의 envelope이 단조롭게 좁아진다.
 \end{corollary}
 
 \noindent 자기회귀 디코딩에서는 새 토큰이 생성될 때마다 query·key·hidden state가 함께 갱신되어 $\Delta_i^{(\ell)}$도 step별로 변하므로, ``실현된 mass가 매 step 단조 감소''가 아니라 ``같은 gap이 유지되는 한 가능한 최대 mass의 envelope이 단조 감소한다''가 정확한 진술이다.
 
 \begin{proof}
-$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt d)/(L + n\exp(\Delta_i^{(\ell)}/\sqrt d))^2 < 0$이므로 엄격히 감소한다. 또한 분자는 고정되어 있고 분모는 $n$에 대해 선형으로 발산하므로 $f(n)\to0$이다.
+$f'(n) = -L\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}})/(L + n\exp(\Delta_i^{(\ell)}/\sqrt{d_{\text{head}}}))^2 < 0$이므로 엄격히 감소한다. 또한 분자는 고정되어 있고 분모는 $n$에 대해 선형으로 발산하므로 $f(n)\to0$이다.
 \end{proof}
 
 \begin{corollary}[고정 gap envelope 아래의 RSP 기여 감쇠]\label{cor:vanishing_perturbation}
@@ -511,7 +511,7 @@ Corollary~\ref{cor:sequence_annealing}에서 $w_{r,i}^{(\ell)}\to 0$이고, Coro
 % autoregressive formulation, local linearization, Proposition 1/2 증명, trajectory-level implications
 \subsection{성능 향상: local admission에서 Pass@$N$까지}
 
-본문은 1차 surrogate 위에서 두 가지를 주장한다 — §\ref{sec:improve}의 ``baseline 밖 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 §\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
+이 절부터는 layer-wise 표기 $\ell$을 떼고 vocab logit·task 수준에서 작업한다. 본문은 1차 surrogate 위에서 두 가지를 주장한다: \S\ref{sec:improve}의 ``baseline 밖 vocab 토큰이 국소 top-$K$ 집합에 진입할 수 있다''와 \S\ref{sec:converge} 끝의 ``독립 재실행이 그런 국소 진입을 Pass@$N$ 이득으로 바꾼다''. 아래 증명은 centered prompt 법칙 $D$의 다음 support 조건만 사용한다.
 \[
 \textnormal{(S1)}\qquad D(U) > 0 \quad \text{for every nonempty open set } U \subseteq \mathbb{R}^d.
 \]
@@ -529,9 +529,9 @@ Section~\ref{sec:improve}의 등방 가우시안 법칙은 Proposition~\ref{prop
 
 이 소절에서 $\bar h\in\mathbb{R}^d$는 RSP 정의(Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition})에 등장하는 centered prompt 벡터 하나를 뜻한다. 실제 구현은 길이 $L$의 prompt $\mathbf{H}=(h_1,\dots,h_L)$를 사용하지만, 아래 논리는 개별 국소 섭동이 logits를 어떻게 움직일 수 있는지를 분리해서 본다. 섭동된 logits를 $z_i(\bar h)$로 두고 $\bar h=0$ 근방에서 국소 smoothness를 가정하면
 \[
-z_i(\bar h) = z_i(0) + \nabla_h z_i(0)^\top \bar h + r_i(\bar h),
+z_i(\bar h) = z_i(0) + \nabla_{\bar h} z_i(0)^\top \bar h + r_i(\bar h),
 \]
-여기서 $r_i(\bar h) = O(\|\bar h\|^2)$이다. $a_i := \nabla_h z_i(0)$라 두면 1차 affine surrogate는
+여기서 $r_i(\bar h) = O(\|\bar h\|^2)$이다. $a_i := \nabla_{\bar h} z_i(0)$, $z_i := z_i(0)$라 두면 1차 affine surrogate는
 \[
 z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h
 \]
@@ -569,11 +569,11 @@ RSP에 특이적이지 않은 generic 사실이며, RSP의 역할은 (M1, M2)를
 
 \subsection{토큰당 attention 질량}
 
-각 문제에서 attention은 연결된 시퀀스 $[\text{prompt}; \mathbf{H}; \text{generation}]$ 위에서 측정하며, generation은 같은 모델이 동일한 RSP 주입 설정 아래 생성한 궤적이다. $\alpha^{(\ell, h)}_{i,j}$를 layer $\ell$, head $h$에서 query 위치 $i$가 key 위치 $j$로 보내는 post-softmax attention weight라고 하자. 이는 causal mask 아래에서 $\sum_j \alpha^{(\ell, h)}_{i,j} = 1$을 만족한다. 질문 토큰과 RSP 토큰의 인덱스 집합을 각각 $Q$, $R$라 하고 크기를 $|Q|$, $|R| = L$, head 수를 $H$라 하자. 이때 query $i$가 각 그룹으로 보내는 layer $\ell$의 per-token attention mass는
+각 문제에서 attention은 연결된 시퀀스 $[\text{prompt}; \mathbf{H}; \text{generation}]$ 위에서 측정하며, generation은 같은 모델이 동일한 RSP 주입 설정 아래 생성한 궤적이다. $\alpha^{(\ell, a)}_{i,j}$를 layer $\ell$, head index $a$(RSP 행렬 $\mathbf{H}$와의 충돌을 피하기 위해 head 인덱스로 $a$를 사용)에서 query 위치 $i$가 key 위치 $j$로 보내는 post-softmax attention weight라고 하자. 이는 causal mask 아래에서 $\sum_j \alpha^{(\ell, a)}_{i,j} = 1$을 만족한다. 질문 토큰과 RSP 토큰의 인덱스 집합을 각각 $Q$, $R$라 하고 크기를 $|Q|$, $|R| = L$, head 수를 $N_{\text{head}}$라 하자. 이때 query $i$가 각 그룹으로 보내는 layer $\ell$의 per-token attention mass는
 \begin{equation}
-\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q| H} \sum_{h=1}^{H} \sum_{j \in Q} \alpha^{(\ell, h)}_{i,j},
+\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, a)}_{i,j},
 \qquad
-\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R| H} \sum_{h=1}^{H} \sum_{j \in R} \alpha^{(\ell, h)}_{i,j}.
+\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, a)}_{i,j}.
 \label{eq:per_token_mass}
 \end{equation}
 $|Q|$와 $|R|$로 나누는 정규화는 집합 크기 차이를 보정하므로, 두 양은 동일한 softmax 분모 아래에서 질문 토큰 또는 RSP 토큰 하나가 평균적으로 얼마나 많은 attention을 받는지를 나타낸다. 따라서 질문 토큰은 시퀀스 길이 효과를 흡수하는 크기 보정 baseline 역할을 한다.
@@ -636,7 +636,7 @@ Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.
 \end{equation}
 여기서 importance ratio는 $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, 그룹 상대 advantage는 $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, $\varepsilon$는 clipping 범위, $\beta\,D_{\text{KL}}$은 reference $\pi_{\text{ref}}$에 대한 KL 페널티다.
 
-학습 파이프라인은 SimpleRL-Zoo \citep{zeng2025simplerl}를 기반으로 하고 DAPO를 VeRL \citep{sheng2024hybridflow} 위에서 구현한다. DAPO는 Eq.~\eqref{eq:grpo}를 네 가지 측면에서 수정한다. (i) 토큰 단위 손실 집계 $1/\sum_i|o_i|$ ($1/|o_i|$ 대신), (ii) 비대칭 clipping $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) dual clipping safeguard $\max(L_{\text{clipped}},c\hat{A})$ ($c=10$), (iv) KL 항 제거. 결과적으로 DAPO 목적함수는
+학습 파이프라인은 SimpleRL-Zoo \citep{zeng2025simplerl}를 기반으로 하고 DAPO를 VeRL \citep{sheng2024hybridflow} 위에서 구현한다. DAPO는 Eq.~\eqref{eq:grpo}를 네 가지 측면에서 수정한다. (i) 토큰 단위 손실 집계 $1/\sum_i|o_i|$ ($1/|o_i|$ 대신), (ii) 비대칭 clipping $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) 음수 advantage 안전장치인 구현 측 dual-clipping $\max(L_{\text{clipped}},c\hat{A})$ ($c=10$, $\hat{A}<0$일 때만 발동; 가독성을 위해 아래 Eq.~\eqref{eq:dapo}에서는 생략), (iv) KL 항 제거. 결과적으로 DAPO 목적함수는
 \begin{equation}\label{eq:dapo}
 \mathcal{J}_{\text{DAPO}}(\theta)
 \;=\;
@@ -650,7 +650,7 @@ Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.
 
 \subsection{DAPO + RSP 구현}\label{app:dapo_rsp_impl}
 
-DAPO + RSP에서는 추가로 그룹별 RSP $\mathbf{H}_g \in \mathbb{R}^{L \times d}$ ($L=20$)를 각 rollout에 주입한다. $\mathbf{H}_g$는 step별 group seed로 결정적으로 생성하고 forward hook으로 주입하므로 학습 가능 파라미터가 아니다. 따라서 학습 신호는 학습된 prompt에서 오는 것이 아니라, policy가 임의의 $\mathbf{H}_g$에 적응하는 데서 온다. rollout 시점과 update 시점 모두에서 $\mathbf{H}_g$를 log-prob에 포함해 RSP-conditioned 분포에 대한 on-policy 업데이트를 유지한다(off-policy mismatch 회피). $G=8$, $n=8$이라 각 그룹에 응답이 하나뿐이므로 rollout마다 사실상 다른 $\mathbf{H}_g$를 본다.
+DAPO + RSP에서는 추가로 rollout별 RSP $\mathbf{H}_i \in \mathbb{R}^{L \times d}$ ($L=20$)를 각 rollout에 주입한다. 각 $\mathbf{H}_i$는 step별 rollout seed로 결정적으로 생성하고 forward hook으로 주입하므로 학습 가능 파라미터가 아니다. 따라서 학습 신호는 학습된 prompt에서 오는 것이 아니라, policy가 임의의 $\mathbf{H}_i$에 적응하는 데서 온다. rollout 시점과 update 시점 모두에서 $\mathbf{H}_i$를 log-prob에 포함해 RSP-conditioned 분포에 대한 on-policy 업데이트를 유지한다(off-policy mismatch 회피). prompt당 $G=8$ rollouts에서 각 rollout은 독립 추첨된 $\mathbf{H}_i$를 받는다.
 
 \subsection{데이터, 배치, 하이퍼파라미터}
 
@@ -723,7 +723,7 @@ GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
 
 \begin{table}[H]
 \centering
-\caption{체크포인트별 5-벤치마크 평균 정확도(\%) — GSM8K, MATH-500, College Math, Minerva Math, AIME 2024 기준. \textbf{굵게}는 각 방법의 peak.}
+\caption{체크포인트별 5-벤치마크 평균 정확도(\%): GSM8K, MATH-500, College Math, Minerva Math, AIME 2024 기준. \textbf{굵게}는 각 방법의 peak.}
 \label{tab:dapo_per_step}
 \footnotesize
 \setlength{\tabcolsep}{6pt}

@@ -1,0 +1,78 @@
+Layer-wise Energy Landscape: TWO TRAJECTORIES — With RSP vs Without RSP
+
+CRITICAL — read first:
+- This figure is about LANGUAGE MODEL REASONING via the Modern Hopfield interpretation of attention.
+- The "energy" is the Hopfield energy of attention at each transformer LAYER during a SINGLE forward pass.
+- The figure MUST show TWO trajectories on the SAME multi-layer energy landscape: a red/orange trajectory ("Without RSP") that gets STUCK in a shallow local minimum, and a green trajectory ("With RSP") that ESCAPES via stochastic kicks and reaches a DEEPER local minimum.
+- DO NOT depict adversarial attacks. DO NOT depict gradient descent training. DO NOT depict embedding scatter plots.
+- DO NOT collapse this into a single trajectory. The whole point is the COMPARISON.
+
+LAYOUT — single large panel:
+
+The main illustration is a STACKED SEQUENCE of 5 horizontal energy curves, drawn as a 2D side view (not 3D perspective). The vertical axis is the layer index, with layer 1 at the top and layer 12 at the bottom. Each layer shows a 1D energy curve E^(l)(σ) (along the horizontal axis) with TWO local minima:
+- m1 on the LEFT (shallow basin)
+- m2 on the RIGHT (deeper basin)
+Separated by a barrier of moderate height. The barrier height should be visually similar across layers but the position of m2 (deeper minimum) gets progressively lower in energy as you go down the layers.
+
+ON THIS LANDSCAPE, draw two distinct trajectories:
+
+TRAJECTORY A — "Without RSP" (red/orange, dashed or solid red):
+- Starts at the top layer (layer 1) at a position slightly to the left of the m1 basin
+- At each subsequent layer, descends DETERMINISTICALLY into m1 (the nearest minimum)
+- Stays on the LEFT SIDE of the barrier in every layer
+- By layer 12, terminates at m1 — clearly trapped in the SHALLOW basin
+- Annotate: "Without RSP: deterministic descent, trapped in initial basin (Theorem on basin trapping)"
+
+TRAJECTORY B — "With RSP" (green, solid):
+- Starts at the SAME initial position as Trajectory A
+- At each layer transition, draw a small WIGGLE or ZIGZAG indicating the random kick η
+- The wiggle amplitude must visibly DECREASE as layer index grows (large wiggles in layers 1-3, small wiggles in layers 9-12)
+- At some intermediate layer (e.g., layer 4 or 5), the trajectory CROSSES THE BARRIER from left to right
+- After crossing, descends into m2 (deeper basin)
+- By layer 12, terminates at m2 — clearly settled in the DEEPER basin
+- Annotate: "With RSP: stochastic kicks η (random direction, decaying magnitude) → barrier crossing possible"
+
+CRITICAL: Both trajectories MUST be visible on the SAME figure, not in separate panels. Their starting points should coincide, their endpoints should differ (m1 vs m2).
+
+INSETS (small boxes around the main panel):
+
+Inset 1 (top-right) — "Decomposition":
+Show the equation:
+σ^(l+1) = (1 − w_r^(l)) σ̃^(l+1) + η^(l)
+With two arrows and labels:
+- "(1 − w_r^(l)) σ̃: deterministic descent component"
+- "η^(l): isotropic stochastic kick"
+
+Inset 2 (bottom-right) — "Annealing schedule":
+A small line plot showing w_r vs n (or l):
+- Y-axis: w_r (attention mass on random tokens)
+- X-axis: real-token count n (or layer index l)
+- Curve: monotonically decreasing from ~1 down to ~0
+- Label: "w_r ≤ k / (k + n exp(Δ/√d))"
+- Annotation: "Kick magnitude anneals automatically"
+
+Inset 3 (top-left) — "Why isotropic":
+A small 2D circle with:
+- Random direction arrow (showing η is isotropic)
+- Text: "Minimax: λ_min(Σ_D) ≤ ρ²/d (= iff isotropic)"
+- Subtext: "Random direction crosses any barrier with positive probability"
+
+CAPTION TEXT (to be embedded as figure caption):
+"Schematic mechanism of RSP. Layer-wise Hopfield-attention dynamics produce a deterministic trajectory (red) that is trapped in the basin of its initial state. RSP injects an isotropic random kick η at each layer, decomposed via the same scalar w_r^(l) that also controls its dilution. Because η is random in direction (Theorem 1: minimax coverage), it has positive probability of crossing any barrier; because w_r anneals as real-key context grows, kick magnitude decays automatically toward later layers. The result is simulated-annealing-like exploration that can reach deeper basins (green trajectory ending at m2) without an external schedule. We illustrate the qualitative mechanism; we do not claim a formal escape rate."
+
+STYLE:
+- Clean, schematic, NeurIPS / ICML conference quality
+- 2D drawing, NOT 3D perspective
+- Energy curves as smooth wavy lines, layers stacked vertically
+- Color palette: ORANGE/RED for "Without RSP" trajectory, GREEN for "With RSP" trajectory, gray for energy curves, blue accents for formulas
+- Clear label "m1: shallow basin" and "m2: deeper basin" on the bottom-most layer
+- The barrier should be clearly visible
+- TWO distinct trajectories, both visible, with clearly different endpoints
+
+NEGATIVE INSTRUCTIONS:
+- NO adversarial attack imagery
+- NO 3D perspective view
+- NO single-trajectory illustration
+- NO embedding scatter plots
+- NO photographs or rendered surfaces
+- NO claim of "global minimum" — the deeper basin m2 is a LOCAL minimum, just deeper than m1

@@ -1,0 +1,37 @@
+Theoretical Mechanism of Random Soft Prompts (RSP) — IMPORTANT: This is about EXPLORATION in language model decoding, NOT about adversarial robustness. Do NOT include any "vulnerable representation," "robustness," or "adversarial attack" content.
+
+The figure must have THREE horizontal panels (a), (b), (c).
+
+PANEL (a) — "Why Random, Not a Fixed Token"
+A 2D unit circle in embedding space.
+Left half: a single thick blue arrow pointing toward one specific direction labeled "Semantic Anchor". Caption "Fixed token e_s: maximally aligned with one direction".
+Right half: ~16 thin green arrows uniformly radiating in all directions of the circle. Caption "Random prompt h_bar: isotropic, covers all directions equally".
+Bottom annotation: "Minimax directional coverage: lambda_min(Sigma_D) <= rho^2/d (equality iff isotropic)".
+
+PANEL (b) — "Attention Anneals the Perturbation Automatically"
+A 2D line plot.
+X-axis: number of generated real tokens, n (values 1, 5, 10, 20, 50, 100).
+Y-axis: w_r (attention mass on random tokens), range 0 to 1.
+A monotonically decreasing curve from high to near-zero, labeled "w_r <= k / (k + n exp(Delta/sqrt(d)))".
+Shade the early region (small n) in light orange and label it "Exploration phase: w_r large".
+Shade the late region (large n) in light blue and label it "Exploitation phase: w_r → 0".
+Below the plot: a small inset showing "x_i^(l+1) = (1 - w_r) x_tilde + eta" with arrows indicating w_r controls both injection AND dilution.
+
+PANEL (c) — "Pre-Softmax Rank Flip vs Temperature"
+This panel compares TWO strategies on the SAME vocabulary logits. NO ADVERSARIAL CONTENT.
+
+Left side: "Temperature Scaling".
+Show a bar chart with 6 token candidates (Token A, B, C, D, E, F) sorted by logit, top bar tallest. Above it, a duplicated bar chart with the SAME ordering but flatter/sharper bars. Caption: "Same ranking. Cannot promote excluded tokens."
+
+Right side: "RSP (pre-softmax perturbation)".
+Show the same baseline bar chart (Tokens A>B>C>D>E>F) on top. Below it, a new bar chart where the order has been shuffled — for example Token D and Token E (originally low) are now in the top-K, with Token D highlighted in red and an upward arrow indicating it was previously outside top-K. Caption: "Rank flip. Previously excluded tokens enter top-K (support expansion)."
+
+Add a small box at the bottom of (c) with the formula:
+"z_i(h_bar) ≈ z_i + a_i^T h_bar  ⇒  Pr(rank flip) > 0".
+
+GLOBAL LAYOUT:
+Three panels arranged horizontally, equal width.
+Use a flowchart arrow connecting (a) → (b) → (c) at the top of the figure to indicate the causal chain: directional coverage → automatic annealing → branch opening.
+Style: clean, schematic, NeurIPS / ICML conference quality.
+Color palette: green for "random/RSP", blue for "deterministic/baseline", orange for "exploration", red for "rank flip" only.
+NO adversarial attack imagery. NO robustness claims. NO embedding scatter plots.
