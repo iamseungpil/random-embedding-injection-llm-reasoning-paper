@@ -350,9 +350,9 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \[
 \mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big] = \Delta_{ij}
 \]
-가 성립한다. 반대로 결정적 prompt $h_0$를 모든 run에 재사용하면
+가 성립한다. 반대로 결정적 centered prompt $\bar h_0$을 모든 run에 재사용하면
 \[
-\Delta_{ij}^{\mathrm{lin}}(h_0)-\Delta_{ij} = b_{ij}^\top h_0
+\Delta_{ij}^{\mathrm{lin}}(\bar h_0)-\Delta_{ij} = b_{ij}^\top \bar h_0
 \]
 는 고정된 방향 편향이다.
 \end{proposition}
@@ -630,18 +630,18 @@ Figure~\ref{fig:app_attention_additional}는 suffix 주입에서 Qwen2.5-Math-1.
 
 \subsection{GRPO에서 DAPO로}\label{app:grpo}
 
-원본 GRPO \citep{shao2024deepseekmath}는 보상 $\{R_i\}_{i=1}^G$를 갖는 $G$개 rollout $\{o_i\}_{i=1}^G$에 대해 다음 목적함수를 사용한다.
+원본 GRPO \citep{shao2024deepseekmath}는 보상 $\{R_i\}_{i=1}^G$를 갖는 $G$개 rollout $\{y_i\}_{i=1}^G$(각 $y_i = (y_{i,1},\dots,y_{i,|y_i|})$는 토큰 시퀀스다. \S\ref{sec:improve}의 head output $\mathbf{o}_i^{(\ell)}$와의 표기 충돌을 피하려고 본 부록 전반에서 $o$ 대신 $y$를 쓴다)에 대해 다음 목적함수를 사용한다.
 \begin{equation}\label{eq:grpo}
-\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_i|}\sum_{t=1}^{|o_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
+\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}\!\left[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|y_i|}\sum_{t=1}^{|y_i|}\!\left(\min\!\big(r_{i,t}\hat{A}_{i,t},\,\text{clip}(r_{i,t},1{-}\varepsilon,1{+}\varepsilon)\hat{A}_{i,t}\big) - \beta\,D_{\text{KL}}(\pi_\theta\|\pi_{\text{ref}})\right)\right],
 \end{equation}
-여기서 importance ratio는 $r_{i,t} = \pi_\theta(o_{i,t}\mid q,o_{i,<t})/\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})$, 그룹 상대 advantage는 $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, $\varepsilon$는 clipping 범위, $\beta\,D_{\text{KL}}$은 reference $\pi_{\text{ref}}$에 대한 KL 페널티다.
+여기서 importance ratio는 $r_{i,t} = \pi_\theta(y_{i,t}\mid q,y_{i,<t})/\pi_{\theta_{\text{old}}}(y_{i,t}\mid q,y_{i,<t})$, 그룹 상대 advantage는 $\hat{A}_{i,t} = (R_i - \mathrm{mean}(\{R_i\}))/\mathrm{std}(\{R_i\})$, $\varepsilon$는 clipping 범위, $\beta\,D_{\text{KL}}$은 reference $\pi_{\text{ref}}$에 대한 KL 페널티다.
 
-학습 파이프라인은 SimpleRL-Zoo \citep{zeng2025simplerl}를 기반으로 하고 DAPO를 VeRL \citep{sheng2024hybridflow} 위에서 구현한다. DAPO는 Eq.~\eqref{eq:grpo}를 네 가지 측면에서 수정한다. (i) 토큰 단위 손실 집계 $1/\sum_i|o_i|$ ($1/|o_i|$ 대신), (ii) 비대칭 clipping $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) 음수 advantage 안전장치인 구현 측 dual-clipping $\max(L_{\text{clipped}},c\hat{A})$ ($c=10$, $\hat{A}<0$일 때만 발동; 가독성을 위해 아래 Eq.~\eqref{eq:dapo}에서는 생략), (iv) KL 항 제거. 결과적으로 DAPO 목적함수는
+학습 파이프라인은 SimpleRL-Zoo \citep{zeng2025simplerl}를 기반으로 하고 DAPO를 VeRL \citep{sheng2024hybridflow} 위에서 구현한다. DAPO는 Eq.~\eqref{eq:grpo}를 네 가지 측면에서 수정한다. (i) 토큰 단위 손실 집계 $1/\sum_i|y_i|$ ($1/|y_i|$ 대신), (ii) 비대칭 clipping $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})=(0.2,0.28)$, (iii) 음수 advantage 안전장치인 구현 측 dual-clipping $\max(L_{\text{clipped}},c\hat{A})$ ($c=10$, $\hat{A}<0$일 때만 발동; 가독성을 위해 아래 Eq.~\eqref{eq:dapo}에서는 생략), (iv) KL 항 제거. 결과적으로 DAPO 목적함수는
 \begin{equation}\label{eq:dapo}
 \mathcal{J}_{\text{DAPO}}(\theta)
 \;=\;
 \mathbb{E}\!\left[
-\frac{1}{\sum_i|o_i|}
+\frac{1}{\sum_i|y_i|}
 \sum_{i,t}
 \min\!\Big(r_{i,t}\hat{A}_{i,t},\,
 \text{clip}\big(r_{i,t},\,1{-}\varepsilon_{\text{low}},\,1{+}\varepsilon_{\text{high}}\big)\hat{A}_{i,t}\Big)
@@ -675,7 +675,7 @@ Rollout sampling & temperature $1.0$, top-$p$ $1.0$, top-$k$ $50$ \\
 \midrule
 $(\varepsilon_{\text{low}},\varepsilon_{\text{high}})$ & $(0.2,\,0.28)$ \\
 Dual clip $c$ & $10.0$ \\
-손실 집계 & token-mean ($1/\sum_i|o_i|$) \\
+손실 집계 & token-mean ($1/\sum_i|y_i|$) \\
 KL 항 & 사용 안 함 \\
 Entropy 계수 & $0$ \\
 \midrule

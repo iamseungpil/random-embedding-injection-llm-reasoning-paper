@@ -6,12 +6,12 @@
 
 \S\ref{sec:why_rsp_works}--\ref{sec:experimental_analysis}는 RSP가 무엇을 하는지(어텐션 매개의 분기 개방)와 추론 시점에서 어떻게 동작하는지(Pass@$N$ 향상, temperature로는 도달할 수 없는 rank-changing 다양성)를 정립했다. 이 효과를 학습 시점에서도 활용해볼 수 있을까? sampling 기반 RL의 학습 결과를 좌우하는 핵심 요소는 rollout 다양성이며, DAPO \citep{yu2025dapo}는 이를 손실 단에서 보존하도록 설계된 최근의 GRPO \citep{shao2024deepseekmath} 변형이다. 우리는 이를 까다로운 testbed로 사용한다. 입력 단 분기 개방이 손실 단 다양성 보존과 결합해 추가 이득을 만드는가? 구현 세부와 step별 결과는 Appendix~\ref{app:dapo}에 있다.
 
-DAPO는 GRPO의 손실 항을 수정해 긴 chain-of-thought RL 학습 동안 rollout 다양성을 손실 단에서 유지하며, rollout의 가중과 clip 방식을 다듬어 다양성을 형성한다. 반면 RSP는 손실 계산 \emph{이전} 단계에서 rollout 분포 자체에 섭동을 주어 입력 단에서 다양성을 유발한다(\S\ref{sec:diversity}). 각 rollout $o_i$는 독립 추첨된 RSP $\mathbf{H}_i$를 받으며, update 시점에도 같은 $\mathbf{H}_i$를 재사용해 policy 업데이트가 RSP-conditioned 분포에 대해 on-policy를 유지하게 한다. 중요도 비를 $r_{i,t}(\theta) = \pi_\theta(o_{i,t}\mid q, \mathbf{H}_i, o_{i,<t}) / \pi_{\theta_{\text{old}}}(o_{i,t}\mid q, \mathbf{H}_i, o_{i,<t})$, 그룹 상대 advantage를 $\hat{A}_{i,t}$, 비대칭 clip 범위를 $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$라 하면 DAPO + RSP의 목적함수는
+DAPO는 GRPO의 손실 항을 수정해 긴 chain-of-thought RL 학습 동안 rollout 다양성을 손실 단에서 유지하며, rollout의 가중과 clip 방식을 다듬어 다양성을 형성한다. 반면 RSP는 손실 계산 \emph{이전} 단계에서 rollout 분포 자체에 섭동을 주어 입력 단에서 다양성을 유발한다(\S\ref{sec:diversity}). 각 rollout의 토큰 시퀀스를 $y_i = (y_{i,1},\dots,y_{i,|y_i|})$로 적고(\S\ref{sec:improve}의 head output $\mathbf{o}_i^{(\ell)}$와의 표기 충돌을 피하기 위해 $y$를 사용한다), rollout마다 독립 추첨된 RSP $\mathbf{H}_i$와 짝지운다. update 시점에도 같은 $\mathbf{H}_i$를 재사용해 policy 업데이트가 RSP-conditioned 분포에 대해 on-policy를 유지하게 한다. 중요도 비를 $r_{i,t}(\theta) = \pi_\theta(y_{i,t}\mid q, \mathbf{H}_i, y_{i,<t}) / \pi_{\theta_{\text{old}}}(y_{i,t}\mid q, \mathbf{H}_i, y_{i,<t})$, 그룹 상대 advantage를 $\hat{A}_{i,t}$, 비대칭 clip 범위를 $(\varepsilon_{\text{low}}, \varepsilon_{\text{high}})$라 하면 DAPO + RSP의 목적함수는
 \begin{equation}\label{eq:dapo_rsp}
 \mathcal{J}_{\text{DAPO+RSP}}(\theta)
 \;=\;
 \mathbb{E}\!\left[
-\frac{1}{\sum_i |o_i|}
+\frac{1}{\sum_i |y_i|}
 \sum_{i,t}
 \min\!\Big(r_{i,t}\hat{A}_{i,t},\,
 \text{clip}\big(r_{i,t},\,1{-}\varepsilon_{\text{low}},\,1{+}\varepsilon_{\text{high}}\big)\hat{A}_{i,t}\Big)
