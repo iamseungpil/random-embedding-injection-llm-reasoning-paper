@@ -6,7 +6,7 @@
 \clearpage
 \section{Experimental Setup and Full Accuracy Breakdown}\label{app:setup}\label{app:ablation}
 
-Table~\ref{tab:performance_full} provides the full per-position accuracy breakdown (Prefix, Infix, Suffix) corresponding to the best-across-positions results summarized in Table~\ref{tab:performance} in the main text. Table~\ref{tab:token_count} lists the number of RSP tokens $L$ used for each model--benchmark pair, selected from $\{10, 15, 20\}$. All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants).
+Table~\ref{tab:performance_full} provides the full per-position accuracy breakdown (\emph{prefix}, \emph{infix}, \emph{suffix}) corresponding to the best-across-positions results summarized in Table~\ref{tab:performance} in the main text. Table~\ref{tab:token_count} lists the number of RSP tokens $L$ used for each model--benchmark pair, selected from $\{10, 15, 20\}$. All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants).
 
 \begin{table}[ht]
 \centering
@@ -21,36 +21,36 @@ Table~\ref{tab:performance_full} provides the full per-position accuracy breakdo
 \multicolumn{5}{l}{\textit{Instruct Models}} \\
 \midrule
 \multirow{3}{*}{LLaMA-3.1-8B-Instruct} & Baseline & \textbf{52.20} & 85.75 & \underline{6.67} \\
- & Prefix & 45.00 {\scriptsize($-$7.2)} & 76.35 {\scriptsize($-$9.4)} & 3.33 {\scriptsize($-$3.3)} \\
- & Suffix & \underline{49.40} {\scriptsize($-$2.8)} & \textbf{86.73} {\scriptsize(+1.0)} & \textbf{10.00} {\scriptsize(+3.3)} \\
+ & \emph{Prefix} & 45.00 {\scriptsize($-$7.2)} & 76.35 {\scriptsize($-$9.4)} & 3.33 {\scriptsize($-$3.3)} \\
+ & \emph{Suffix} & \underline{49.40} {\scriptsize($-$2.8)} & \textbf{86.73} {\scriptsize(+1.0)} & \textbf{10.00} {\scriptsize(+3.3)} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-7B-Instruct} & Baseline & 83.20 & 95.45 & \underline{13.33} \\
- & Prefix & 81.40 {\scriptsize($-$1.8)} & 94.92 {\scriptsize($-$0.5)} & \underline{13.33} {\scriptsize(+0.0)} \\
- & Suffix & \textbf{83.40} {\scriptsize(+0.2)} & \textbf{95.68} {\scriptsize(+0.2)} & \textbf{16.67} {\scriptsize(+3.3)} \\
+ & \emph{Prefix} & 81.40 {\scriptsize($-$1.8)} & 94.92 {\scriptsize($-$0.5)} & \underline{13.33} {\scriptsize(+0.0)} \\
+ & \emph{Suffix} & \textbf{83.40} {\scriptsize(+0.2)} & \textbf{95.68} {\scriptsize(+0.2)} & \textbf{16.67} {\scriptsize(+3.3)} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-1.5B-Instruct} & Baseline & 73.00 & \underline{85.29} & 10.00 \\
- & Prefix & \textbf{74.80} {\scriptsize(+1.8)} & \underline{85.29} {\scriptsize(+0.0)} & \underline{13.33} {\scriptsize(+3.3)} \\
- & Suffix & 74.20 {\scriptsize(+1.2)} & 84.69 {\scriptsize($-$0.6)} & \textbf{20.00} {\scriptsize(+10.0)} \\
+ & \emph{Prefix} & \textbf{74.80} {\scriptsize(+1.8)} & \underline{85.29} {\scriptsize(+0.0)} & \underline{13.33} {\scriptsize(+3.3)} \\
+ & \emph{Suffix} & 74.20 {\scriptsize(+1.2)} & 84.69 {\scriptsize($-$0.6)} & \textbf{20.00} {\scriptsize(+10.0)} \\
 \midrule
 \multicolumn{5}{l}{\textit{Base Models (Raw Text)}} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-7B} & Baseline & \textbf{72.20} & \underline{84.15} & 6.67 \\
- & Prefix & \underline{71.60} {\scriptsize($-$0.6)} & \textbf{84.31} {\scriptsize(+0.2)} & \textbf{16.67} {\scriptsize(+10.0)} \\
- & Suffix & 55.60 {\scriptsize($-$16.6)} & 54.13 {\scriptsize($-$30.0)} & \underline{13.33} {\scriptsize(+6.7)} \\
+ & \emph{Prefix} & \underline{71.60} {\scriptsize($-$0.6)} & \textbf{84.31} {\scriptsize(+0.2)} & \textbf{16.67} {\scriptsize(+10.0)} \\
+ & \emph{Suffix} & 55.60 {\scriptsize($-$16.6)} & 54.13 {\scriptsize($-$30.0)} & \underline{13.33} {\scriptsize(+6.7)} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-1.5B} & Baseline & \underline{61.40} & \textbf{77.86} & \textbf{16.67} \\
- & Prefix & \textbf{64.40} {\scriptsize(+3.0)} & \underline{74.30} {\scriptsize($-$3.6)} & \underline{10.00} {\scriptsize($-$6.7)} \\
- & Suffix & 54.60 {\scriptsize($-$6.8)} & 58.61 {\scriptsize($-$19.3)} & 3.33 {\scriptsize($-$13.3)} \\
+ & \emph{Prefix} & \textbf{64.40} {\scriptsize(+3.0)} & \underline{74.30} {\scriptsize($-$3.6)} & \underline{10.00} {\scriptsize($-$6.7)} \\
+ & \emph{Suffix} & 54.60 {\scriptsize($-$6.8)} & 58.61 {\scriptsize($-$19.3)} & 3.33 {\scriptsize($-$13.3)} \\
 \midrule
 \multicolumn{5}{l}{\textit{Base Models + ChatML (Format Mismatch)}} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-7B} & Baseline & 52.20 & 58.30 & \textbf{23.33} \\
- & Prefix & 59.20 {\scriptsize(+7.0)} & 56.41 {\scriptsize($-$1.9)} & \underline{3.33} {\scriptsize($-$20.0)} \\
- & Suffix & \textbf{70.40} {\scriptsize(+18.2)} & \textbf{75.97} {\scriptsize(+17.7)} & \textbf{23.33} {\scriptsize(+0.0)} \\
+ & \emph{Prefix} & 59.20 {\scriptsize(+7.0)} & 56.41 {\scriptsize($-$1.9)} & \underline{3.33} {\scriptsize($-$20.0)} \\
+ & \emph{Suffix} & \textbf{70.40} {\scriptsize(+18.2)} & \textbf{75.97} {\scriptsize(+17.7)} & \textbf{23.33} {\scriptsize(+0.0)} \\
 \midrule
 \multirow{3}{*}{Qwen2.5-Math-1.5B} & Baseline & 34.40 & 37.45 & \underline{13.33} \\
- & Prefix & \textbf{63.40} {\scriptsize(+29.0)} & \textbf{67.02} {\scriptsize(+29.6)} & \textbf{20.00} {\scriptsize(+6.7)} \\
- & Suffix & \underline{51.00} {\scriptsize(+16.6)} & \underline{50.64} {\scriptsize(+13.2)} & \underline{13.33} {\scriptsize(+0.0)} \\
+ & \emph{Prefix} & \textbf{63.40} {\scriptsize(+29.0)} & \textbf{67.02} {\scriptsize(+29.6)} & \textbf{20.00} {\scriptsize(+6.7)} \\
+ & \emph{Suffix} & \underline{51.00} {\scriptsize(+16.6)} & \underline{50.64} {\scriptsize(+13.2)} & \underline{13.33} {\scriptsize(+0.0)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -220,7 +220,7 @@ Extracted answers are normalized by removing \texttt{\$}, \texttt{\textbackslash
 
 All prior methods are reproduced on Qwen2.5-Math-1.5B-Instruct and Qwen2.5-Math-7B-Instruct, evaluated with greedy decoding (temperature $= 0$) and our unified answer extraction pipeline.
 
-\paragraph{TTSV.} Prefix length 20, trained for 20 epochs with AdamW optimizer, batch size 2, gradient accumulation 8 steps, and linear learning rate schedule. Learning rate is 1e-3 for Qwen-1.5B and 1e-5 for Qwen-7B.
+\paragraph{TTSV.} \emph{Prefix} length 20, trained for 20 epochs with AdamW optimizer, batch size 2, gradient accumulation 8 steps, and linear learning rate schedule. Learning rate is 1e-3 for Qwen-1.5B and 1e-5 for Qwen-7B.
 
 \paragraph{LTPO.} Table~\ref{tab:hp_ltpo} reports the per-benchmark hyperparameters.
 
@@ -261,7 +261,7 @@ Figure~\ref{fig:app_full_entropy} shows the full normalized (0--100\%) generatio
 \renewcommand{\arraystretch}{0.9}
 \begin{tabular}{lccccccc}
 \toprule
-\textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{Prefix} & \cellcolor{blue!10}\textbf{Infix} & \cellcolor{blue!10}\textbf{Suffix} & \textbf{LTPO} & \textbf{SoftCoT} & \textbf{TTSV} \\
+\textbf{Metric} & \textbf{Baseline} & \cellcolor{blue!10}\textbf{\emph{Prefix}} & \cellcolor{blue!10}\textbf{\emph{Infix}} & \cellcolor{blue!10}\textbf{\emph{Suffix}} & \textbf{LTPO} & \textbf{SoftCoT} & \textbf{TTSV} \\
 \midrule
 Tokens (mean)            & 575.7  & \cellcolor{blue!10}558.4  & \cellcolor{blue!10}549.9  & \cellcolor{blue!10}573.3  & 592.3  & 594.4  & 577.4  \\
 \midrule
@@ -282,7 +282,7 @@ Varentropy (overall)     & 0.1353 & \cellcolor{blue!10}0.1375 & \cellcolor{blue!
   \includegraphics[width=0.85\textwidth]{img/entropy/full_entropy.pdf}\\[0.4em]
   \includegraphics[width=0.85\textwidth]{img/entropy/full_top1prob.pdf}\\[0.4em]
   \includegraphics[width=0.85\textwidth]{img/entropy/full_varentropy.pdf}
-  \caption{Mean entropy (top), top-1 probability (middle), and varentropy (bottom) over the full normalized generation trajectory (0--100\%). Averaged over MATH-500, shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: existing soft prompt methods. All methods converge after the initial stage.}
+  \caption{Mean entropy (top), top-1 probability (middle), and varentropy (bottom) over the full normalized generation trajectory (0--100\%). Averaged over MATH-500, shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: prior soft prompt methods. All methods converge after the initial stage.}
   \label{fig:app_full_entropy}
 \end{figure}
 
@@ -301,7 +301,7 @@ This appendix complements the semantic diversity results reported in Section~\re
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{img/diversity/appendix_tsne_grid.pdf}
-  \caption{t-SNE projections of BGE-M3 embeddings for 48 out of the 64 evaluated MATH-500 problems (6$\times$8 grid). Each subplot shows 300 baseline (red) and 300 RSP suffix (blue) samples under $\tau=1.0$ with Qwen2.5-Math-1.5B-Instruct; filled markers denote correct answers and open markers denote incorrect. Subplot titles indicate \texttt{subject/problem\_id}. Across most problems, RSP trajectories spread across multiple distinct regions while baseline samples concentrate in a single dominant cluster.}
+  \caption{t-SNE projections of BGE-M3 embeddings for 48 out of the 64 evaluated MATH-500 problems (6$\times$8 grid). Each subplot shows 300 baseline (red) and 300 RSP \emph{suffix} (blue) samples under $\tau=1.0$ with Qwen2.5-Math-1.5B-Instruct; filled markers denote correct answers and open markers denote incorrect. Subplot titles indicate \texttt{subject/problem\_id}. Across most problems, RSP trajectories spread across multiple distinct regions while baseline samples concentrate in a single dominant cluster.}
   \label{fig:app_tsne_grid}
 \end{figure}
 \fi
@@ -627,22 +627,22 @@ Excluding the final two layers keeps the heatmap focused on reasoning-phase dyna
 
 \subsection{Additional Suffix Heatmaps}
 
-Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under suffix injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows the layer-wise and sequence-wise decay predicted by Theorem~\ref{thm:decay}.
+Figure~\ref{fig:app_attention_additional} reports the same per-token RSP attention analysis under \emph{suffix} injection for Qwen2.5-Math-1.5B-Instruct and LLaMA-3.1-8B-Instruct. For the late-layer reasons discussed above, the pattern does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows the layer-wise and sequence-wise decay predicted by Theorem~\ref{thm:decay}.
 
 \begin{figure}[ht]
   \centering
   \begin{subfigure}[b]{\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/attention/heatmap_qwen1.5b_suffix.pdf}
-    \caption{Qwen2.5-Math-1.5B-Instruct, suffix}
+    \caption{Qwen2.5-Math-1.5B-Instruct, \emph{suffix}}
   \end{subfigure}
   \\[0.5em]
   \begin{subfigure}[b]{\textwidth}
     \centering
     \includegraphics[width=\textwidth]{img/attention/heatmap_llama8b_suffix.pdf}
-    \caption{LLaMA-3.1-8B-Instruct, suffix}
+    \caption{LLaMA-3.1-8B-Instruct, \emph{suffix}}
   \end{subfigure}
-  \caption{Per-token RSP attention mass under suffix injection for the remaining two models (500 MATH-500 samples each). Axes and preprocessing match Figure~\ref{fig:attention_mass}: x-axis is reasoning position binned into five quantiles, y-axis is layer depth binned into five quantiles (top = shallow), color encodes the 500-sample mean per-token attention assigned to RSP tokens, and tokens inside \texttt{\textbackslash boxed\{\}} spans and the last two layers are excluded.}
+  \caption{Per-token RSP attention mass under \emph{suffix} injection for the remaining two models (500 MATH-500 samples each). Axes and preprocessing match Figure~\ref{fig:attention_mass}: x-axis is reasoning position binned into five quantiles, y-axis is layer depth binned into five quantiles (top = shallow), color encodes the 500-sample mean per-token attention assigned to RSP tokens, and tokens inside \texttt{\textbackslash boxed\{\}} spans and the last two layers are excluded.}
   \label{fig:app_attention_additional}
 \end{figure}
 
@@ -708,7 +708,7 @@ Optimizer & AdamW, learning rate $5\times10^{-7}$ (constant), no warmup \\
 Total training & \textasciitilde 10 epochs, $\geq 80$ optimization steps \\
 Save / eval frequency & every 10 steps \\
 \midrule
-RSP (DAPO + RSP only) & suffix injection, $L=20$, freshly drawn per rollout \\
+RSP (DAPO + RSP only) & \emph{suffix} injection, $L=20$, freshly drawn per rollout \\
 \midrule
 Hardware & $4 \times$ NVIDIA B200 GPUs \\
 Wall-clock training time & $\sim$$12$ hours per run \\

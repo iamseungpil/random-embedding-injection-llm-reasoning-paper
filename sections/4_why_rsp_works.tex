@@ -16,7 +16,7 @@ We start with the object being analyzed. Let $\mathbf{W}_E \in \mathbb{R}^{V\tim
 \begin{equation}\label{eq:rsp_def}
 h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,\dots,L.
 \end{equation}
-The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The main text uses the \emph{suffix} form $[\mathbf{X};\mathbf{H}]$ as the default; other positions (prefix, infix \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}) are reported as ablations in \S\ref{sec:performance} and Appendix~\ref{app:ablation}. RSP is not a learnable parameter, so it receives no gradient and is freshly drawn for each rollout.
+The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. The main text uses the \emph{suffix} form $[\mathbf{X};\mathbf{H}]$ as the default; other positions (\emph{prefix}, \emph{infix} \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}) are reported as ablations in \S\ref{sec:performance} and Appendix~\ref{app:ablation}. RSP is not a learnable parameter, so it receives no gradient and is freshly drawn for each rollout.
 
 Call step $\ell$ a \emph{branching event}, and $h^{(\ell)}$ a \emph{branching state}, if the next-token top-$K$ set produced by $h^{(\ell)}$ differs from the top-$K$ produced by the no-RSP baseline $\bar h^{(\ell)}$ (the red dots of Figure~\ref{fig:main}).\footnote{$K$ covers any candidate-set definition, including top-$K$ and top-$p$ nucleus.} \S\ref{sec:improve} asks \emph{when} a branching event is reachable, and \S\ref{sec:converge} asks \emph{how} that reachability fades.
 
@@ -86,7 +86,7 @@ Two mechanisms sit in this line: $L$ in the numerator caps maximum influence, wh
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.9\textwidth]{img/attention/heatmap_qwen7b_suffix.pdf}
-  \caption{Per-token attention mass on Qwen2.5-Math-7B (suffix, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the KV cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
+  \caption{Per-token attention mass on Qwen2.5-Math-7B (\emph{suffix}, 500 MATH-500 problems, each with an independently sampled RSP). (a) RSP-token attention decreases along the reasoning-position axis, consistent with the KV cache-growth bound of Theorem~\ref{thm:decay}. The additional decrease along the layer axis is a separate empirical phenomenon suggesting that deeper layers sharpen the real-vs-random logit gap; it does not follow from Theorem~\ref{thm:decay} alone. (b) Question-token attention remains comparatively uniform. The reported quantity is the per-token mass of Appendix~\ref{app:attention_mass}, equal to $w_{r,i}^{(\ell)}/L$ averaged over heads and samples.}
   \label{fig:attention_mass}
 \end{figure}
 

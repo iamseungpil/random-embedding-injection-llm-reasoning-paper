@@ -37,7 +37,7 @@ DAPO~+~RSP          & \textbf{87.7} & \textbf{78.6} & \textbf{42.2} & \textbf{39
 \end{tabular}
 \end{table}
 
-We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) with SimpleRL-Zoo \citep{zeng2025simplerl} under Eq.~\eqref{eq:dapo_rsp}: each step uses $G=8$ rollouts per prompt at $\tau{=}1.0$, batch $1{,}024$, $4$ PPO mini-batches of $256$, for $100$ steps. \emph{DAPO} is compared against \emph{DAPO\,+\,RSP}, where suffix RSP ($L{=}20$) is applied during rollouts only and evaluation uses no RSP. We evaluate on five math benchmarks (GSM8K \citep{cobbe2021training}, MATH-500 \citep{lightman2024lets}, College Math, Minerva Math \citep{lewkowycz2022minerva}, AIME 2024) and report the unweighted mean; AIME 2024 uses Avg@32 at $\tau{=}1.0$, the others greedy.
+We train Qwen2.5-Math-7B on a MATH Level-3--5 subset (\textasciitilde 8.5K prompts) with SimpleRL-Zoo \citep{zeng2025simplerl} under Eq.~\eqref{eq:dapo_rsp}: each step uses $G=8$ rollouts per prompt at $\tau{=}1.0$, batch $1{,}024$, $4$ PPO mini-batches of $256$, for $100$ steps. \emph{DAPO} is compared against \emph{DAPO\,+\,RSP}, where \emph{suffix} RSP ($L{=}20$) is applied during rollouts only and evaluation uses no RSP. We evaluate on five math benchmarks (GSM8K \citep{cobbe2021training}, MATH-500 \citep{lightman2024lets}, College Math, Minerva Math \citep{lewkowycz2022minerva}, AIME 2024) and report the unweighted mean; AIME 2024 uses Avg@32 at $\tau{=}1.0$, the others greedy.
 
 \begin{wrapfigure}{r}{0.42\textwidth}
   \vspace{-1.0em}
