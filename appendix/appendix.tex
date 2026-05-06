@@ -6,9 +6,9 @@
 \clearpage
 \section{Experimental Setup and Full Accuracy Breakdown}\label{app:setup}\label{app:ablation}
 
-All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants). The RSP token count $L$ is selected per (model, benchmark) pair from $\{10, 15, 20\}$ (Table~\ref{tab:token_count}); the per-position breakdown across \emph{prefix} ($[\mathbf{H};\mathbf{X}]$), \emph{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), and \emph{suffix} ($[\mathbf{X};\mathbf{H}]$) is in Table~\ref{tab:performance_full}.
+All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy decoding, a maximum generation length of 3{,}072 tokens for MATH-500 and GSM8K, and 4{,}096 tokens for AIME24. Batch size is fixed per model (16 for LLaMA-3.1-8B-Instruct and Qwen2.5-Math-7B variants, 32 for Qwen2.5-Math-1.5B variants). The RSP token count $L$ is selected per (model, benchmark) pair from $\{10, 15, 20\}$ (Table~\ref{tab:token_count}); the per-position breakdown across \emph{prefix} ($[\mathbf{H};\mathbf{X}]$), \emph{infix} ($\mathbf{H}$ inserted within $\mathbf{X}$), and \emph{suffix} ($[\mathbf{X};\mathbf{H}]$) is in Table~\ref{tab:performance_full}. The RSP injection harness used for these experiments is released anonymously at \url{https://github.com/rsp-anon-2026/RandomSoftPrompt}, with run commands documented in the repository README.
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \caption{Accuracy (\%) across model configurations, injection positions, and benchmarks. Values in parentheses indicate the difference from the baseline. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
 \label{tab:performance_full}
@@ -62,7 +62,7 @@ All experiments are conducted on a single NVIDIA A6000 40GB GPU with greedy deco
 \end{tabular}
 \end{table}
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \caption{Number of RSP tokens ($L$) used for each model and benchmark.}
 \label{tab:token_count}
@@ -222,7 +222,7 @@ The final answer is extracted from the model output through a fallback chain. Ea
 Extracted answers are normalized by removing \texttt{\$}, \texttt{\textbackslash left}, \texttt{\textbackslash right}, and unit strings. Grading is performed via symbolic equivalence checking: exact string match, numerical comparison (\texttt{math.isclose}, \texttt{rel\_tol=1e-4}), and SymPy symbolic simplification.
 
 % ================================================================
-\subsection{Reproduced Prior Work Hyperparameters}
+\subsection{Reproduced Prior Work Hyperparameters}\label{app:prior_hp}
 % ================================================================
 
 All prior methods are reproduced on Qwen2.5-Math-1.5B-Instruct and Qwen2.5-Math-7B-Instruct, evaluated with greedy decoding (temperature $= 0$) and our unified answer extraction pipeline.
@@ -231,7 +231,7 @@ All prior methods are reproduced on Qwen2.5-Math-1.5B-Instruct and Qwen2.5-Math-
 
 \paragraph{LTPO.} Table~\ref{tab:hp_ltpo} reports the per-benchmark hyperparameters.
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \caption{LTPO hyperparameters.}
 \label{tab:hp_ltpo}
@@ -259,7 +259,7 @@ lr & 1e-2 & 5e-3 & 5e-2 \\
 
 Figure~\ref{fig:app_full_entropy} shows the full normalized (0--100\%) generation trajectories for entropy, top-1 probability, and varentropy, and Table~\ref{tab:entropy_full} reports the corresponding scalar statistics including overall means, first-5\% means, and the average number of generated tokens per problem. All methods converge to similar levels after the initial generation stage, confirming that the distributional changes induced by RSP are localized to the early reasoning phase.
 
-\begin{table}[ht]
+\begin{table}[H]
 \centering
 \caption{Per-step statistics for Qwen2.5-Math-1.5B-Instruct on MATH-500 across the full generation and the first 5\% of generation steps, together with the average number of generated tokens per problem. Top-1 Prob (overall) is reported as a weighted average over the first-10\%/middle/last-10\% segment means with weights $0.1/0.8/0.1$. Extension of Figure~\ref{fig:entropy_first5} (main text) and Figure~\ref{fig:app_full_entropy}.}
 \label{tab:entropy_full}
@@ -284,7 +284,7 @@ Varentropy (overall)     & 0.1353 & \cellcolor{blue!10}0.1375 & \cellcolor{blue!
 \end{tabular}
 \end{table}
 
-\begin{figure}[ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=0.85\textwidth]{img/entropy/full_entropy.pdf}\\[0.4em]
   \includegraphics[width=0.85\textwidth]{img/entropy/full_top1prob.pdf}\\[0.4em]
@@ -300,12 +300,11 @@ Varentropy (overall)     & 0.1353 & \cellcolor{blue!10}0.1375 & \cellcolor{blue!
 % sometimes surfaces language artifacts that may be confused with
 % reasoning-trajectory diversity. Restore when this confound is resolved.
 % =====================================================================
-\clearpage
 \section{Additional Semantic Diversity Analysis}\label{app:semantic}
 
 This appendix complements the semantic diversity results reported in Section~\ref{sec:diversity}. We include per-problem t-SNE plots across a broader set of problems.
 
-\begin{figure}[ht]
+\begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{img/diversity/appendix_tsne_grid.pdf}
   \caption{t-SNE projections of BGE-M3 embeddings for 48 out of the 64 evaluated MATH-500 problems (6$\times$8 grid). Each subplot shows 300 baseline (red) and 300 RSP \emph{suffix} (blue) samples under $\tau=1.0$ with Qwen2.5-Math-1.5B-Instruct; filled markers denote correct answers and open markers denote incorrect. Subplot titles indicate \texttt{subject/problem\_id}. Across most problems, RSP trajectories spread across multiple distinct regions while baseline samples concentrate in a single dominant cluster.}
@@ -313,7 +312,6 @@ This appendix complements the semantic diversity results reported in Section~\re
 \end{figure}
 \fi
 
-\clearpage
 \section{Token-Level Distribution Metrics}\label{app:token_metrics}
 
 This appendix provides formal definitions for the metrics used in Section~\ref{sec:diversity}. Numerical results are reported in Table~\ref{tab:rsp_vs_temp} of the main text. We extract first-token logits via a single forward pass (no autoregressive generation) and store the top-100 token ids and logit values per problem. Temperature conditions reuse the baseline logits scaled by $1/\tau$, requiring no separate inference. RSP draws 16 independent seeds per problem (MATH-500), and reported metrics are the mean across the 16 seeds. Pass@1 accuracy is computed over 16 samples per problem, with the baseline at $\tau{=}1.0$ reaching $73.92 \pm 0.78\%$. Let $P_{\text{base}}$ denote the baseline next-token distribution at $\tau{=}1.0$ and $P_{\text{target}}$ the candidate distribution being compared (e.g., baselines at $\tau{=}2.0, 3.0$ or RSP at $\tau{=}1.0$). All metrics are computed analytically from saved logits at the first generation step.
@@ -339,8 +337,6 @@ The symmetrized, bounded version of Kullback--Leibler divergence:
 \end{equation}
 We use base-2 logarithms so that $\mathrm{JS} \in [0, 1]$. Tokens absent from the stored top-100 are assigned a sentinel logit ($-10^9$) before softmax, which is negligible for our setting.
 
-\clearpage
-\clearpage
 \section{Prompt-Law Properties Used by the Theory}\label{app:why_random}
 
 This appendix isolates the only properties of the RSP law used in the main text: centeredness, direction-agnostic covariance under a variance budget, and positive probability on every nonempty open set. We avoid stronger semantic claims because Section~\ref{sec:multipath} needs only these geometric and measure-theoretic facts.
@@ -422,7 +418,6 @@ is strictly positive at every point of $\mathbb{R}^d$. Every nonempty open set c
 
 This is the only support property used in the informal branching argument of \S\ref{sec:improve} and in Appendix~\ref{app:topk_entry}.
 
-\clearpage
 \section{Proofs for the Transformer-Level Mechanism}\label{app:proofs}
 
 This appendix follows the same order as the main theory section: exploration, annealing, and performance gain. The prompt-law facts used before these proofs are collected in Appendix~\ref{app:why_random}.
@@ -592,7 +587,6 @@ The bound $\Pr(\mathrm{Pass@}N \text{ on } x) \ge 1-(1-p_{\min}(x))^N$ in the ma
 \]
 This is a generic fact, not specific to RSP; RSP's role is to make branch opening possible and to support (M2) through independent resampling, while whether a branch satisfies the task-side correctness condition (M1) remains task-dependent.
 
-\clearpage
 % ================================================================
 % ================================================================
 \section{Attention Mass Analysis}\label{app:attention_mass}
@@ -637,7 +631,7 @@ Excluding the final two layers keeps the heatmap focused on reasoning-phase dyna
 
 For the late-layer reasons discussed above, the pattern in Figure~\ref{fig:app_attention_additional} does not generalize uniformly across every cell; nevertheless, the overall trend is consistent across both models: question-token attention varies broadly across layers, whereas RSP attention shows sequence-wise decay consistent with Theorem~\ref{thm:decay} alongside an empirical layer-wise attenuation that the theorem itself does not predict.
 
-\begin{figure}[ht]
+\begin{figure}[H]
   \centering
   \begin{subfigure}[b]{\textwidth}
     \centering
@@ -654,12 +648,11 @@ For the late-layer reasons discussed above, the pattern in Figure~\ref{fig:app_a
   \label{fig:app_attention_additional}
 \end{figure}
 
-\clearpage
 % ================================================================
 \section{DAPO Implementation}\label{app:dapo}
 % ================================================================
 
-This appendix complements Section~\ref{sec:application} with the DAPO loss modifications relative to GRPO, the DAPO~+~RSP implementation, and full per-step results.
+This appendix complements Section~\ref{sec:application} with the DAPO loss modifications relative to GRPO, the DAPO~+~RSP implementation, and full per-step results. The training code is included in the same anonymized repository at \url{https://github.com/rsp-anon-2026/RandomSoftPrompt}, and pretrained DAPO and DAPO\,+\,RSP checkpoints across training steps 10--100 are released on Hugging Face at \url{https://huggingface.co/rsp-anonymous-2026/RandomSoftPrompt}, allowing the per-step results in Table~\ref{tab:dapo_per_step} to be reproduced without re-running the training stage.
 
 \subsection{From GRPO to DAPO}\label{app:grpo}
 
@@ -684,6 +677,34 @@ We build on the SimpleRL-Zoo \citep{zeng2025simplerl} training pipeline and impl
 \subsection{DAPO + RSP Implementation}\label{app:dapo_rsp_impl}
 
 For DAPO + RSP, we additionally inject a per-rollout RSP $\mathbf{H}_i \in \mathbb{R}^{L \times d}$ ($L=20$) into each rollout. Each $\mathbf{H}_i$ is generated deterministically from a per-step rollout seed and injected via a forward hook; it is not a trainable parameter, so the learning signal is the policy adapting to arbitrary $\mathbf{H}_i$ rather than a learned prompt. Including $\mathbf{H}_i$ in the log-probabilities at both rollout and update time keeps the update on-policy with respect to the RSP-conditioned distribution (avoiding off-policy mismatch). With $G=8$ rollouts per prompt, each rollout receives an independently drawn $\mathbf{H}_i$.
+
+\subsection{Evaluation Protocol}
+
+Each saved checkpoint is converted to HuggingFace format and evaluated using the SimpleRL-Zoo \texttt{eval\_math\_nodes.sh} pipeline, which selects sampling parameters per benchmark to reduce variance on the smaller competition sets:
+
+\begin{table}[H]
+\centering
+\caption{Per-benchmark evaluation protocol used by SimpleRL-Zoo \texttt{sh/eval.sh}.}
+\label{tab:dapo_eval_protocol}
+\footnotesize
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{0.9}
+\begin{tabular}{lcccl}
+\toprule
+\textbf{Benchmark} & \textbf{\# Problems} & \textbf{Temperature} & \textbf{$n_{\text{sampling}}$} & \textbf{Metric} \\
+\midrule
+AIME 2024       & 30    & 1.0 & 32 & Avg@32 \\
+AMC 2023        & 40    & 1.0 & 32 & Avg@32 \\
+MATH-500        & 500   & 0.0 & 1  & accuracy (mean@1) \\
+GSM8K           & 1{,}319 & 0.0 & 1  & accuracy \\
+OlympiadBench   & 675   & 0.0 & 1  & accuracy \\
+Minerva Math    & 272   & 0.0 & 1  & accuracy \\
+GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The maximum number of generated tokens is $16{,}000$ across all benchmarks. The reported average is the unweighted mean over the five benchmarks (GSM8K, MATH-500, College Math, Minerva Math, AIME 2024).
 
 \subsection{Data, Batch, and Hyperparameters}
 
@@ -724,34 +745,6 @@ Wall-clock training time & $\sim$$12$ hours per run \\
 \end{tabular}
 \end{table}
 
-\subsection{Evaluation Protocol}
-
-Each saved checkpoint is converted to HuggingFace format and evaluated using the SimpleRL-Zoo \texttt{eval\_math\_nodes.sh} pipeline, which selects sampling parameters per benchmark to reduce variance on the smaller competition sets:
-
-\begin{table}[H]
-\centering
-\caption{Per-benchmark evaluation protocol used by SimpleRL-Zoo \texttt{sh/eval.sh}.}
-\label{tab:dapo_eval_protocol}
-\footnotesize
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{0.9}
-\begin{tabular}{lcccl}
-\toprule
-\textbf{Benchmark} & \textbf{\# Problems} & \textbf{Temperature} & \textbf{$n_{\text{sampling}}$} & \textbf{Metric} \\
-\midrule
-AIME 2024       & 30    & 1.0 & 32 & Avg@32 \\
-AMC 2023        & 40    & 1.0 & 32 & Avg@32 \\
-MATH-500        & 500   & 0.0 & 1  & accuracy (mean@1) \\
-GSM8K           & 1{,}319 & 0.0 & 1  & accuracy \\
-OlympiadBench   & 675   & 0.0 & 1  & accuracy \\
-Minerva Math    & 272   & 0.0 & 1  & accuracy \\
-GaoKao 2023-EN  & 385   & 0.0 & 1  & accuracy \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The maximum number of generated tokens is $16{,}000$ across all benchmarks. The reported average is the unweighted mean over the five benchmarks (GSM8K, MATH-500, College Math, Minerva Math, AIME 2024).
-
 \subsection{Per-Step Average Accuracy}
 
 \begin{table}[H]
@@ -780,7 +773,6 @@ The maximum number of generated tokens is $16{,}000$ across all benchmarks. The 
 \end{tabular}
 \end{table}
 
-\clearpage
 % ================================================================
 \section{Broader Impacts}\label{app:broader_impacts}
 % ================================================================
