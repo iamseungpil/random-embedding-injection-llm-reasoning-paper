@@ -6,19 +6,19 @@
 
 \section{Empirical Validation}\label{sec:experimental_analysis}
 
-We document three empirical patterns produced by RSP injection: whether RSPs preserve baseline accuracy and even recover it in some settings (\S\ref{sec:performance}); whether the early diversification and later stabilization promised by Figure~\ref{fig:main} actually appear in generated tokens (\S\ref{sec:entropy}); and whether Pass@$N$ depends on \emph{independence} of the RSP draw across samples (\S\ref{sec:diversity}). \S\ref{sec:why_rsp_works} then explains these patterns mechanistically.
+RSP injection produces three empirical patterns: it preserves and sometimes recovers baseline accuracy (\S\ref{sec:performance}); it reshapes early-generation entropy as Figure~\ref{fig:main} predicts (\S\ref{sec:entropy}); and Pass@$N$ accumulates only under \emph{independent} resampling (\S\ref{sec:diversity}). \S\ref{sec:why_rsp_works} explains these mechanistically.
 
 % ================================================================
 \subsection{Random Soft Prompt}\label{sec:rsp_definition}
 % ================================================================
 
-We start with the object being analyzed. Let $\mathbf{W}_E \in \mathbb{R}^{V\times d}$ denote the pretrained token-embedding matrix, with $V$ the vocabulary size and $d$ the hidden dimension. Write its entrywise statistics as $\mu_E := \tfrac{1}{V\cdot d}\sum_{i,k}[\mathbf{W}_E]_{i,k}$ (the arithmetic mean over all $V\cdot d$ entries) and $\sigma_E := \mathrm{std}(\mathbf{W}_E)$. An RSP of length $L$ is a sequence of continuous vectors $\mathbf{H} = [h_1,\dots,h_L]\in\mathbb{R}^{L\times d}$ drawn independently from
+Let $\mathbf{W}_E \in \mathbb{R}^{V\times d}$ denote the pretrained token-embedding matrix ($V$ vocab size, $d$ hidden dim). Write its entrywise statistics as $\mu_E := \tfrac{1}{V\cdot d}\sum_{i,k}[\mathbf{W}_E]_{i,k}$ and $\sigma_E := \mathrm{std}(\mathbf{W}_E)$. An RSP of length $L$ is a sequence of continuous vectors $\mathbf{H} = [h_1,\dots,h_L]\in\mathbb{R}^{L\times d}$ drawn independently from
 \begin{equation}\label{eq:rsp_def}
 h_j \;\sim\; \mathcal{N}(\mu_E\mathbf{1}_d,\;\sigma_E^2\mathbf{I}_d), \quad j=1,\dots,L.
 \end{equation}
-The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. Letting $\mathbf{X} \in \mathbb{R}^{T\times d}$ denote the input token-embedding sequence (the $T$ rows of $\mathbf{W}_E$ corresponding to the prompt tokens), the main text uses the \emph{suffix} form $[\mathbf{X};\mathbf{H}] \in \mathbb{R}^{(T+L)\times d}$ as the default; other positions (prefix, infix \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}) are reported as ablations in \S\ref{sec:performance} and Appendix~\ref{app:ablation}. RSP is not a learnable parameter, so it receives no gradient and is freshly drawn for each rollout.
+The centered form $\bar h_j := h_j - \mu_E\mathbf{1}_d \sim \mathcal{N}(0,\sigma_E^2\mathbf{I}_d)$ is a zero-mean isotropic Gaussian. With $\mathbf{X} \in \mathbb{R}^{T\times d}$ the input token-embedding sequence ($T$ prompt tokens, rows from $\mathbf{W}_E$), the main text uses the \emph{suffix} form $[\mathbf{X};\mathbf{H}] \in \mathbb{R}^{(T+L)\times d}$; other positions (prefix, infix \citep{kang2025model, xu2025softcot, ye2025thinking, zhang2025memgen}) are reported as ablations in \S\ref{sec:performance} and Appendix~\ref{app:ablation}. RSP is not learnable, so it receives no gradient and is freshly drawn per rollout.
 
-For the analysis in \S\ref{sec:why_rsp_works}, call decoding step $t$ a \emph{branching event} and the last-layer hidden state $\mathbf{s}^{(t)}$ a \emph{branching state} when its top-$K$ differs from that of the no-RSP baseline $\bar{\mathbf{s}}^{(t)}$ (Figure~\ref{fig:main}, red).\footnote{Italic $h_j$: RSP input. Bold $\mathbf{s}^{(t)}$: hidden state. $K$ denotes the cardinality in top-$K$ analyses; nucleus sampling uses a separate threshold $p$. $t$ indexes decoding step, $\ell$ indexes self-attention layer.}
+Call decoding step $t$ a \emph{branching event} and the last-layer hidden state $\mathbf{s}^{(t)}$ a \emph{branching state} when its top-$K$ differs from the no-RSP baseline $\bar{\mathbf{s}}^{(t)}$ (Figure~\ref{fig:main}, red).\footnote{Italic $h_j$: RSP input. Bold $\mathbf{s}^{(t)}$: hidden state. $K$ denotes the cardinality in top-$K$ analyses; nucleus sampling uses a separate threshold $p$. $t$ indexes decoding step, $\ell$ self-attention layer.} \S\ref{sec:why_rsp_works} uses this terminology.
 
 % ================================================================
 \subsection{Experimental Setup}\label{sec:setup}
