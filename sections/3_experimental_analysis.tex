@@ -58,7 +58,7 @@ RSP's \emph{direct accuracy gains} concentrate in misaligned-input recovery and 
 
 \begin{table}[H]
 \centering
-\caption{Comparison with prior soft prompt methods (TTSV, SoftCoT, LTPO) under unified evaluation. Baseline and RSP values are from Table~\ref{tab:performance}. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
+\caption{Comparison with prior \textit{soft prompt} methods (TTSV, SoftCoT, LTPO) under unified evaluation. Baseline and RSP values are from Table~\ref{tab:performance}. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
 \label{tab:prior_comparison}
 \footnotesize
 \renewcommand{\arraystretch}{0.9}
@@ -77,18 +77,18 @@ RSP's \emph{direct accuracy gains} concentrate in misaligned-input recovery and 
 \end{tabular}
 \end{table}
 
-We further compare RSP with TTSV, SoftCoT, and LTPO --- prior soft prompt methods that optimize embeddings under different objectives. Table~\ref{tab:prior_comparison} reports a unified evaluation under the same fallback-based answer-extraction pipeline (Appendix~\ref{app:extraction}). RSP does not consistently dominate the trained methods --- TTSV, for instance, beats RSP on AIME24 with Qwen2.5-Math-7B-Instruct ($23.30\%$ vs $16.67\%$). What we want to highlight is precisely the converse claim: even without training, RSP reaches a comparable range, and that fact is itself this paper's main evidence that part of the soft-prompt effect comes from the \emph{structure of injection} rather than the learned content.
+We further compare RSP with TTSV, SoftCoT, and LTPO --- prior \textit{soft prompt} methods that optimize embeddings under different objectives. Table~\ref{tab:prior_comparison} reports a unified evaluation under the same fallback-based answer-extraction pipeline (Appendix~\ref{app:extraction}). RSP does not consistently dominate the trained methods --- TTSV, for instance, beats RSP on AIME24 with Qwen2.5-Math-7B-Instruct ($23.30\%$ vs $16.67\%$). What we want to highlight is precisely the converse claim: even without training, RSP reaches a comparable range, and that fact is itself this paper's main evidence that part of the \textit{soft-prompt} effect comes from the \emph{structure of injection} rather than the learned content.
 
 % ================================================================
 \subsection{How Does RSP Affect the Output Distribution?}\label{sec:entropy}
 % ================================================================
 
-We next examine how RSP injection reshapes the output distribution. The setting is Qwen2.5-Math-1.5B-Instruct on MATH-500, and we measure per-token entropy, top-1 probability, and varentropy across generation steps. Figure~\ref{fig:entropy_first5} compares these metrics for the first 5\% of generation steps across RSP variants and prior soft prompt methods (LTPO, SoftCoT, TTSV); full curves are in Appendix~\ref{app:entropy_full}.
+We next examine how RSP injection reshapes the output distribution. The setting is Qwen2.5-Math-1.5B-Instruct on MATH-500, and we measure per-token entropy, top-1 probability, and varentropy across generation steps. Figure~\ref{fig:entropy_first5} compares these metrics for the first 5\% of generation steps across RSP variants and prior \textit{soft prompt} methods (LTPO, SoftCoT, TTSV); full curves are in Appendix~\ref{app:entropy_full}.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{img/entropy/entropy_first5pct_zoom.pdf}
-  \caption{Mean entropy, top-1 probability, and varentropy during the first 5\% of generation steps (Qwen2.5-Math-1.5B-Instruct, MATH-500). Shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: prior soft prompt methods (LTPO, SoftCoT, TTSV).}
+  \caption{Mean entropy, top-1 probability, and varentropy during the first 5\% of generation steps (Qwen2.5-Math-1.5B-Instruct, MATH-500). Shading indicates $\pm$1 SEM. Solid lines: RSP variants and the baseline. Dashed lines: prior \textit{soft prompt} methods (LTPO, SoftCoT, TTSV).}
   \label{fig:entropy_first5}
 \end{figure}
 
