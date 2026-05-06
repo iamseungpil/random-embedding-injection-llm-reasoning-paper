@@ -339,20 +339,20 @@ Kullback--Leibler divergence의 대칭적이고 bounded된 형태는 다음과 �
 
 \subsection{중심화된 섭동은 체계적인 1차 드리프트를 만들지 않는다}
 
-$z^{\text{Base}}_i$를 RSP 없는 forward pass의 vocab 토큰 $i$ logit, $z^{\text{RSP}}_i(\bar h)$를 centered RSP 섭동이 $\bar h$일 때의 logit이라 하자. RSP 하 (참) vocab-logit gap은 $\Delta_{ij}(\bar h) := z^{\text{RSP}}_i(\bar h) - z^{\text{RSP}}_j(\bar h)$이며, no-RSP baseline gap $\Delta^{\text{Base}}_{ij} := z^{\text{Base}}_i - z^{\text{Base}}_j$와 구분된다. $\bar h = 0$은 centered RSP가 entrywise 평균일 때이지 no-RSP forward pass가 아니므로 일반적으로 $\Delta_{ij}(0) \ne \Delta^{\text{Base}}_{ij}$이다. transformer의 logit map은 $\bar h$에 대해 비선형이지만, $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
+$z^{\text{Base}}_a$를 RSP 없는 forward pass의 vocab 토큰 $a$ logit, $z^{\text{RSP}}_a(\bar h)$를 centered RSP 섭동이 $\bar h$일 때의 logit이라 하자. RSP 하 (참) vocab-logit gap은 $\Delta_{ab}(\bar h) := z^{\text{RSP}}_a(\bar h) - z^{\text{RSP}}_b(\bar h)$이며, no-RSP baseline gap $\Delta^{\text{Base}}_{ab} := z^{\text{Base}}_a - z^{\text{Base}}_b$와 구분된다. $\bar h = 0$은 centered RSP가 entrywise 평균일 때이지 no-RSP forward pass가 아니므로 일반적으로 $\Delta_{ab}(0) \ne \Delta^{\text{Base}}_{ab}$이다. transformer의 logit map은 $\bar h$에 대해 비선형이지만, $\bar h = 0$ 주변의 1차 Taylor 전개는 국소 surrogate
 \[
-\Delta_{ij}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ij} + b_{ij}^\top \bar h
+\Delta_{ab}^{\mathrm{lin}}(\bar h) \;:=\; \Delta_{ab} + b_{ab}^\top \bar h
 \]
-를 준다. 여기서 $\Delta_{ij} := \Delta_{ij}(0)$이고 $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$이다. 아래 명제는 surrogate $\Delta_{ij}^{\mathrm{lin}}$에 대한 진술이다. 참 비선형 gap $\Delta_{ij}(\bar h)$의 경우, centered 섭동 아래 1차 항은 평균 0이지만 Taylor 잔차 $r_{ij}(\bar h) = O(\|\bar h\|^2)$는 2차 평균 편향을 줄 수 있으며 그 부호·크기에 대해서는 주장하지 않는다.
+를 준다. 여기서 $\Delta_{ab} := \Delta_{ab}(0)$이고 $b_{ab} := \nabla_{\bar h}(z^{\text{RSP}}_a - z^{\text{RSP}}_b)|_{\bar h = 0}$이다. 아래 명제는 surrogate $\Delta_{ab}^{\mathrm{lin}}$에 대한 진술이다. 참 비선형 gap $\Delta_{ab}(\bar h)$의 경우, centered 섭동 아래 1차 항은 평균 0이지만 Taylor 잔차 $r_{ab}(\bar h) = O(\|\bar h\|^2)$는 2차 평균 편향을 줄 수 있으며 그 부호·크기에 대해서는 주장하지 않는다.
 
 \begin{proposition}[surrogate에서 체계적인 1차 드리프트의 부재]\label{prop:centered_no_drift}
-$\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
+$\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(a,b)$에 대해
 \[
-\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big] = \Delta_{ij}
+\mathbb{E}\big[\Delta_{ab}^{\mathrm{lin}}(\bar h)\big] = \Delta_{ab}
 \]
 가 성립한다. 반대로 결정적 centered prompt $\bar h_0$을 모든 run에 재사용하면
 \[
-\Delta_{ij}^{\mathrm{lin}}(\bar h_0)-\Delta_{ij} = b_{ij}^\top \bar h_0
+\Delta_{ab}^{\mathrm{lin}}(\bar h_0)-\Delta_{ab} = b_{ab}^\top \bar h_0
 \]
 는 고정된 방향 편향이다.
 \end{proposition}
@@ -360,11 +360,11 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 \begin{proof}
 중심화된 경우는 기대값의 선형성으로 바로 나온다.
 \[
-\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar h)\big]
+\mathbb{E}\big[\Delta_{ab}^{\mathrm{lin}}(\bar h)\big]
 =
-\Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar h]
+\Delta_{ab} + b_{ab}^\top \mathbb{E}[\bar h]
 =
-\Delta_{ij}.
+\Delta_{ab}.
 \]
 결정적 경우는 그대로 대입하면 된다.
 \end{proof}
@@ -373,7 +373,7 @@ $\mathbb{E}[\bar h]=0$이면 모든 토큰 쌍 $(i,j)$에 대해
 
 \subsection{Proposition~\ref{thm:minimax_directional_coverage}의 증명}
 
-본문의 local linear logit surrogate에 직접 등장하는 양은 단위벡터 $b$에 대한 1차 섭동 에너지 $\mathrm{Var}_{h\sim D}(b^\top h)=b^\top\Sigma_D b$이다. 따라서 최악 방향의 에너지는 $\Sigma_D$의 최소 Rayleigh quotient와 같다.
+본문의 local linear logit surrogate에 직접 등장하는 양은 단위벡터 $u$에 대한 1차 섭동 에너지 $\mathrm{Var}_{h\sim D}(u^\top h)=u^\top\Sigma_D u$이다. 따라서 최악 방향의 에너지는 $\Sigma_D$의 최소 Rayleigh quotient와 같다.
 
 \begin{proof}[Proposition~\ref{thm:minimax_directional_coverage}의 증명]
 $\Sigma_D$의 고윳값을 $\lambda_1,\dots,\lambda_d$라 하면,
@@ -527,13 +527,13 @@ Section~\ref{sec:improve}의 등방 가우시안 법칙은 Proposition~\ref{prop
 
 \subsubsection{RSP 하에서의 logits 국소 선형화}
 
-이 소절에서 $\bar h\in\mathbb{R}^d$는 RSP 정의(Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition})에 등장하는 centered prompt 벡터 하나를 뜻한다. 실제 구현은 길이 $L$의 prompt $\mathbf{H}=(h_1,\dots,h_L)$를 사용하지만, 아래 논리는 개별 국소 섭동이 logits를 어떻게 움직일 수 있는지를 분리해서 본다. 섭동된 logits를 $z_i(\bar h)$로 두고 $\bar h=0$ 근방에서 국소 smoothness를 가정하면
+이 소절에서 $\bar h\in\mathbb{R}^d$는 RSP 정의(Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition})에 등장하는 centered prompt 벡터 하나를 뜻한다. 실제 구현은 길이 $L$의 prompt $\mathbf{H}=(h_1,\dots,h_L)$를 사용하지만, 아래 논리는 개별 국소 섭동이 logits를 어떻게 움직일 수 있는지를 분리해서 본다. 섭동된 logits를 vocab 토큰 $a$에서 $z_a(\bar h)$로 두고 $\bar h=0$ 근방에서 국소 smoothness를 가정하면
 \[
-z_i(\bar h) = z_i(0) + \nabla_{\bar h} z_i(0)^\top \bar h + r_i(\bar h),
+z_a(\bar h) = z_a(0) + \nabla_{\bar h} z_a(0)^\top \bar h + r_a(\bar h),
 \]
-여기서 $r_i(\bar h) = O(\|\bar h\|^2)$이다. $a_i := \nabla_{\bar h} z_i(0)$, $z_i := z_i(0)$라 두면 1차 affine surrogate는
+여기서 $r_a(\bar h) = O(\|\bar h\|^2)$이다. $c_a := \nabla_{\bar h} z_a(0)$, $z_a := z_a(0)$라 두면 1차 affine surrogate는
 \[
-z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h
+z_a^{\mathrm{lin}}(\bar h) := z_a + c_a^\top \bar h
 \]
 가 된다. 이는 branch opening을 설명하는 1차 surrogate이지, transformer logits 전체의 정확한 전역 모델은 아니다.
 
@@ -541,11 +541,11 @@ z_i^{\mathrm{lin}}(\bar h) := z_i + a_i^\top \bar h
 
 본문 \S\ref{sec:improve}의 informal 논변을 보충한다. 진입 영역
 \[
-\mathcal{G}_{i,K}
+\mathcal{G}_{a,K}
 \;:=\;
-\bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
+\bigl\{\bar h \in \mathbb{R}^d : \#\{b\neq a : z_b^{\mathrm{lin}}(\bar h) > z_a^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}
 \]
-이 비공집합 열린집합 $U$를 포함하면 (S1)에 의해 $D(U)>0$이고, $U \subseteq \mathcal{G}_{i,K}$이므로 $\Pr_{\bar h}(\bar h \in \mathcal{G}_{i,K}) \ge D(U) > 0$이다. 실용적 충분조건은 어떤 $\bar h_0$에서 토큰 $i$가 많아야 $K-1$개의 토큰만 자신보다 앞서도록 엄격한 마진을 만드는 경우이며, 연속성에 의해 그 근방 비공집합 열린집합이 $\mathcal{G}_{i,K}$에 포함된다. 이는 단조 변환인 temperature sampling으로는 도달할 수 없는 rank-changing 사건이지만, (M1)을 자동으로 도출하지는 않는다.
+이 비공집합 열린집합 $U$를 포함하면 (S1)에 의해 $D(U)>0$이고, $U \subseteq \mathcal{G}_{a,K}$이므로 $\Pr_{\bar h}(\bar h \in \mathcal{G}_{a,K}) \ge D(U) > 0$이다. 실용적 충분조건은 어떤 $\bar h_0$에서 토큰 $a$가 많아야 $K-1$개의 토큰만 자신보다 앞서도록 엄격한 마진을 만드는 경우이며, 연속성에 의해 그 근방 비공집합 열린집합이 $\mathcal{G}_{a,K}$에 포함된다. 이는 단조 변환인 temperature sampling으로는 도달할 수 없는 rank-changing 사건이지만, (M1)을 자동으로 도출하지는 않는다.
 
 \subsubsection{Pass@$N$ Ensemble 식 (Remark)}\label{app:passN_ensemble}
 
@@ -569,11 +569,11 @@ RSP에 특이적이지 않은 generic 사실이며, RSP의 역할은 분기 도�
 
 \subsection{토큰당 attention 질량}
 
-각 문제에서 attention은 연결된 시퀀스 $[\text{prompt}; \mathbf{H}; \text{generation}]$ 위에서 측정하며, generation은 같은 모델이 동일한 RSP 주입 설정 아래 생성한 궤적이다. $\alpha^{(\ell, a)}_{i,j}$를 layer $\ell$, head index $a$(RSP 행렬 $\mathbf{H}$와의 충돌을 피하기 위해 head 인덱스로 $a$를 사용)에서 query 위치 $i$가 key 위치 $j$로 보내는 post-softmax attention weight라고 하자. 이는 causal mask 아래에서 $\sum_j \alpha^{(\ell, a)}_{i,j} = 1$을 만족한다. 질문 토큰과 RSP 토큰의 인덱스 집합을 각각 $Q$, $R$라 하고 크기를 $|Q|$, $|R| = L$, head 수를 $N_{\text{head}}$라 하자. 이때 query $i$가 각 그룹으로 보내는 layer $\ell$의 per-token attention mass는
+각 문제에서 attention은 연결된 시퀀스 $[\text{prompt}; \mathbf{H}; \text{generation}]$ 위에서 측정하며, generation은 같은 모델이 동일한 RSP 주입 설정 아래 생성한 궤적이다. $\alpha^{(\ell, m)}_{i,j}$를 layer $\ell$, head index $m$(\S\ref{sec:improve}의 vocab 토큰 $a$ 및 RSP 행렬 $\mathbf{H}$와의 충돌을 피하기 위해 head 인덱스로 $m$을 사용)에서 query 위치 $i$가 key 위치 $j$로 보내는 post-softmax attention weight라고 하자. 이는 causal mask 아래에서 $\sum_j \alpha^{(\ell, m)}_{i,j} = 1$을 만족한다. 질문 토큰과 RSP 토큰의 인덱스 집합을 각각 $Q$, $R$라 하고 크기를 $|Q|$, $|R| = L$, head 수를 $N_{\text{head}}$라 하자. 이때 query $i$가 각 그룹으로 보내는 layer $\ell$의 per-token attention mass는
 \begin{equation}
-\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, a)}_{i,j},
+\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{m=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, m)}_{i,j},
 \qquad
-\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, a)}_{i,j}.
+\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{m=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, m)}_{i,j}.
 \label{eq:per_token_mass}
 \end{equation}
 $|Q|$와 $|R|$로 나누는 정규화는 집합 크기 차이를 보정하므로, 두 양은 동일한 softmax 분모 아래에서 질문 토큰 또는 RSP 토큰 하나가 평균적으로 얼마나 많은 attention을 받는지를 나타낸다. 따라서 질문 토큰은 시퀀스 길이 효과를 흡수하는 크기 보정 baseline 역할을 한다.

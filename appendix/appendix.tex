@@ -340,20 +340,20 @@ This appendix isolates the only properties of the RSP law used in the main text:
 
 \subsection{Centered Perturbations Do Not Impose Systematic First-Order Drift}
 
-Let $z^{\text{Base}}_i$ denote the no-RSP output logit at vocab token $i$ and $z^{\text{RSP}}_i(\bar h)$ the corresponding logit when the centered RSP perturbation takes value $\bar h$. The (true) vocab-logit gap under RSP is $\Delta_{ij}(\bar h) := z^{\text{RSP}}_i(\bar h) - z^{\text{RSP}}_j(\bar h)$, distinct from the no-RSP baseline gap $\Delta^{\text{Base}}_{ij} := z^{\text{Base}}_i - z^{\text{Base}}_j$. Note that $\bar h = 0$ corresponds to the centered RSP at its entrywise mean rather than to the no-RSP forward pass, so in general $\Delta_{ij}(0) \ne \Delta^{\text{Base}}_{ij}$. The transformer's logit map is non-linear in $\bar h$, but a first-order Taylor expansion around $\bar h = 0$ yields the local surrogate
+Let $z^{\text{Base}}_a$ denote the no-RSP output logit at vocab token $a$ and $z^{\text{RSP}}_a(\bar h)$ the corresponding logit when the centered RSP perturbation takes value $\bar h$. The (true) vocab-logit gap under RSP is $\Delta_{ab}(\bar h) := z^{\text{RSP}}_a(\bar h) - z^{\text{RSP}}_b(\bar h)$, distinct from the no-RSP baseline gap $\Delta^{\text{Base}}_{ab} := z^{\text{Base}}_a - z^{\text{Base}}_b$. Note that $\bar h = 0$ corresponds to the centered RSP at its entrywise mean rather than to the no-RSP forward pass, so in general $\Delta_{ab}(0) \ne \Delta^{\text{Base}}_{ab}$. The transformer's logit map is non-linear in $\bar h$, but a first-order Taylor expansion around $\bar h = 0$ yields the local surrogate
 \[
-\Delta_{ij}^{\mathrm{lin}}(\bar{h}) \;:=\; \Delta_{ij} + b_{ij}^\top \bar{h},
+\Delta_{ab}^{\mathrm{lin}}(\bar{h}) \;:=\; \Delta_{ab} + b_{ab}^\top \bar{h},
 \]
-with $\Delta_{ij} := \Delta_{ij}(0)$ and $b_{ij} := \nabla_{\bar h}(z^{\text{RSP}}_i - z^{\text{RSP}}_j)|_{\bar h = 0}$. The proposition below is stated for the surrogate $\Delta_{ij}^{\mathrm{lin}}$. For the true non-linear gap $\Delta_{ij}(\bar h)$, the first-order term has zero mean under centered perturbations, but the Taylor remainder $r_{ij}(\bar h) = O(\|\bar h\|^2)$ may contribute a second-order mean shift; we make no claim about its sign or magnitude.
+with $\Delta_{ab} := \Delta_{ab}(0)$ and $b_{ab} := \nabla_{\bar h}(z^{\text{RSP}}_a - z^{\text{RSP}}_b)|_{\bar h = 0}$. The proposition below is stated for the surrogate $\Delta_{ab}^{\mathrm{lin}}$. For the true non-linear gap $\Delta_{ab}(\bar h)$, the first-order term has zero mean under centered perturbations, but the Taylor remainder $r_{ab}(\bar h) = O(\|\bar h\|^2)$ may contribute a second-order mean shift; we make no claim about its sign or magnitude.
 
 \begin{proposition}[No systematic first-order drift in the surrogate]\label{prop:centered_no_drift}
 If $\mathbb{E}[\bar{h}] = 0$, then
 \[
-\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar{h})\big] = \Delta_{ij}
+\mathbb{E}\big[\Delta_{ab}^{\mathrm{lin}}(\bar{h})\big] = \Delta_{ab}
 \]
-for every token pair $(i,j)$. If a deterministic centered prompt $\bar h_0$ is reused across runs, then
+for every token pair $(a,b)$. If a deterministic centered prompt $\bar h_0$ is reused across runs, then
 \[
-\Delta_{ij}^{\mathrm{lin}}(\bar h_0) - \Delta_{ij} = b_{ij}^\top \bar h_0
+\Delta_{ab}^{\mathrm{lin}}(\bar h_0) - \Delta_{ab} = b_{ab}^\top \bar h_0
 \]
 is a fixed directional bias.
 \end{proposition}
@@ -361,11 +361,11 @@ is a fixed directional bias.
 \begin{proof}
 The centered case is immediate from linearity of expectation:
 \[
-\mathbb{E}\big[\Delta_{ij}^{\mathrm{lin}}(\bar{h})\big]
+\mathbb{E}\big[\Delta_{ab}^{\mathrm{lin}}(\bar{h})\big]
 =
-\Delta_{ij} + b_{ij}^\top \mathbb{E}[\bar{h}]
+\Delta_{ab} + b_{ab}^\top \mathbb{E}[\bar{h}]
 =
-\Delta_{ij}.
+\Delta_{ab}.
 \]
 The deterministic case follows by substitution.
 \end{proof}
@@ -374,12 +374,12 @@ This proposition rules out a run-averaged first-order bias. It does not say that
 
 \subsection{Proof of Proposition~\ref{thm:minimax_directional_coverage}}
 
-For a unit vector $b$, the first-order perturbation energy available along $b$ is $\mathrm{Var}_{h\sim D}(b^\top h)=b^\top \Sigma_D b$. The worst-case directional energy is therefore the minimum Rayleigh quotient of $\Sigma_D$.
+For a unit vector $u$, the first-order perturbation energy available along $u$ is $\mathrm{Var}_{h\sim D}(u^\top h)=u^\top \Sigma_D u$. The worst-case directional energy is therefore the minimum Rayleigh quotient of $\Sigma_D$.
 
 \begin{proof}
 For any symmetric covariance matrix $\Sigma_D$,
 \[
-\min_{\|b\|=1} b^\top \Sigma_D b = \lambda_{\min}(\Sigma_D).
+\min_{\|u\|=1} u^\top \Sigma_D u = \lambda_{\min}(\Sigma_D).
 \]
 Let the eigenvalues of $\Sigma_D$ be $\lambda_1,\dots,\lambda_d$. Then
 \[
@@ -552,13 +552,13 @@ where each step is governed by a prefix-conditioned distribution. Any perturbati
 
 \subsubsection{Local Linearization of Logits under RSP}
 
-Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector from the RSP definition (Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition}), treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the arguments below isolate how one local perturbation can shift the logits. We model the perturbed logits as a function $z_i(\bar{h})$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
+Throughout this subsection, $\bar h\in\mathbb{R}^d$ denotes \emph{one} centered prompt vector from the RSP definition (Eq.~\eqref{eq:rsp_def} in §\ref{sec:rsp_definition}), treated as a per-token surrogate. The actual implementation uses a length-$L$ prompt $\mathbf{H}=(h_1,\dots,h_L)$ with $L$ independent draws; the arguments below isolate how one local perturbation can shift the logits. We model the perturbed logits as a function $z_a(\bar{h})$ at vocab token $a$, assuming local smoothness in a neighborhood of $\bar{h}=0$:
 \[
-z_i(\bar{h}) = z_i(0) + \nabla_{\bar h} z_i(0)^\top \bar{h} + r_i(\bar{h}),
+z_a(\bar{h}) = z_a(0) + \nabla_{\bar h} z_a(0)^\top \bar{h} + r_a(\bar{h}),
 \]
-where $r_i(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $a_i := \nabla_{\bar h} z_i(0)$ and $z_i := z_i(0)$, we obtain the local affine surrogate
+where $r_a(\bar{h}) = O(\|\bar{h}\|^2)$. Defining $c_a := \nabla_{\bar h} z_a(0)$ and $z_a := z_a(0)$, we obtain the local affine surrogate
 \[
-z_i^{\mathrm{lin}}(\bar{h}) := z_i + a_i^\top \bar{h}.
+z_a^{\mathrm{lin}}(\bar{h}) := z_a + c_a^\top \bar{h}.
 \]
 This approximation is used as a first-order surrogate for branch opening, not as an exact global model of the transformer logits.
 
@@ -566,11 +566,11 @@ This approximation is used as a first-order surrogate for branch opening, not as
 
 This complements the informal branching argument in \S\ref{sec:improve}. Define the entry region
 \[
-\mathcal{G}_{i,K}
+\mathcal{G}_{a,K}
 \;:=\;
-\bigl\{\bar h \in \mathbb{R}^d : \#\{j\neq i : z_j^{\mathrm{lin}}(\bar h) > z_i^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}.
+\bigl\{\bar h \in \mathbb{R}^d : \#\{b\neq a : z_b^{\mathrm{lin}}(\bar h) > z_a^{\mathrm{lin}}(\bar h)\} \le K-1\bigr\}.
 \]
-If $\mathcal{G}_{i,K}$ contains a nonempty open set $U$, then by (S1) $D(U)>0$, and $U\subseteq\mathcal{G}_{i,K}$ gives $\Pr_{\bar h}(\bar h\in\mathcal{G}_{i,K})\ge D(U)>0$. A useful sufficient condition is the existence of some $\bar h_0$ at which token $i$ strictly outranks all but at most $K-1$ other tokens in the affine surrogate; by continuity, a neighborhood of $\bar h_0$ is then contained in $\mathcal{G}_{i,K}$. This is a rank-changing event unreachable by the monotone temperature transform, but it does not by itself imply (M1).
+If $\mathcal{G}_{a,K}$ contains a nonempty open set $U$, then by (S1) $D(U)>0$, and $U\subseteq\mathcal{G}_{a,K}$ gives $\Pr_{\bar h}(\bar h\in\mathcal{G}_{a,K})\ge D(U)>0$. A useful sufficient condition is the existence of some $\bar h_0$ at which token $a$ strictly outranks all but at most $K-1$ other tokens in the affine surrogate; by continuity, a neighborhood of $\bar h_0$ is then contained in $\mathcal{G}_{a,K}$. This is a rank-changing event unreachable by the monotone temperature transform, but it does not by itself imply (M1).
 
 \subsubsection{Pass@$N$ ensemble bound (Remark)}\label{app:passN_ensemble}
 
@@ -595,11 +595,11 @@ This appendix formalizes the per-token attention mass reported in Figure~\ref{fi
 
 \subsection{Per-Token Attention Mass}
 
-For each problem, we measure attention on the concatenated sequence $[\text{prompt}; \mathbf{H}; \text{generation}]$, where the generation is the trajectory produced by the same model under matching RSP injection. Let $\alpha^{(\ell, a)}_{i,j}$ denote the post-softmax attention weight at layer $\ell$, head index $a$ (using $a$ to avoid collision with the RSP matrix $\mathbf{H}$), from query position $i$ to key position $j$, satisfying $\sum_j \alpha^{(\ell, a)}_{i,j} = 1$ under the causal mask. Let $Q$ and $R$ denote the index sets of question and RSP tokens with sizes $|Q|$ and $|R| = L$, and let $N_{\text{head}}$ be the number of heads. The per-token attention mass that query $i$ directs to each group at layer $\ell$ is
+For each problem, we measure attention on the concatenated sequence $[\text{prompt}; \mathbf{H}; \text{generation}]$, where the generation is the trajectory produced by the same model under matching RSP injection. Let $\alpha^{(\ell, m)}_{i,j}$ denote the post-softmax attention weight at layer $\ell$, head index $m$ (using $m$ to avoid collision with the vocab token $a$ of \S\ref{sec:improve} and the RSP matrix $\mathbf{H}$), from query position $i$ to key position $j$, satisfying $\sum_j \alpha^{(\ell, m)}_{i,j} = 1$ under the causal mask. Let $Q$ and $R$ denote the index sets of question and RSP tokens with sizes $|Q|$ and $|R| = L$, and let $N_{\text{head}}$ be the number of heads. The per-token attention mass that query $i$ directs to each group at layer $\ell$ is
 \begin{equation}
-\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, a)}_{i,j},
+\mathrm{PTM}_{Q}[\ell, i] = \frac{1}{|Q|\,N_{\text{head}}} \sum_{m=1}^{N_{\text{head}}} \sum_{j \in Q} \alpha^{(\ell, m)}_{i,j},
 \qquad
-\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{a=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, a)}_{i,j}.
+\mathrm{PTM}_{R}[\ell, i] = \frac{1}{|R|\,N_{\text{head}}} \sum_{m=1}^{N_{\text{head}}} \sum_{j \in R} \alpha^{(\ell, m)}_{i,j}.
 \label{eq:per_token_mass}
 \end{equation}
 Normalization by $|Q|$ and $|R|$ controls for group size, so both quantities express how much attention a single question (resp.\ RSP) token receives on average under the same softmax denominator. Question tokens thereby serve as a size-matched baseline that absorbs sequence-length effects common to both groups.

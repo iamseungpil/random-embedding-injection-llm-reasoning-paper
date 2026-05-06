@@ -11,48 +11,13 @@
 \subsection{실험 설정}\label{sec:setup}
 % ================================================================
 
-평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct·base·chat template 불일치 base를 비교한다. 모든 실험은 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용한다. RSP는 \S\ref{sec:rsp_definition}의 정의를 따르며 기본 \emph{suffix} 위치에 batch마다 새로 추첨된 $\mathbf{H}$를 결합한다. Theorem~\ref{thm:decay}이 RSP 길이 $L$을 최대 섭동 영향력을 정하는 설계 파라미터로 식별하므로, 모델별로 $L \in \{10,15,20\}$를 ablate해 적절한 섭동 강도를 찾는다. Table~\ref{tab:performance}와 Table~\ref{tab:prior_comparison}는 모델별로 선택된 $L$의 결과를 보고한다. \S\ref{sec:entropy}–\S\ref{sec:diversity}의 메커니즘 분석은 fixed $L=10$, \emph{suffix}로 통일해 selection effect에서 분리했다. 전체 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
+평가는 세 가지 수학 추론 벤치마크 MATH-500 \citep{lightman2024lets}, GSM8K \citep{cobbe2021training}, AIME24에서 수행한다. 모델은 LLaMA-3.1-8B-Instruct \citep{grattafiori2024llama}와 Qwen2.5-Math 계열 \citep{yang2024qwen25math}을 쓰며, instruct·base·chat template 불일치 base를 비교한다. Table~\ref{tab:performance}와 Table~\ref{tab:prior_comparison}는 sampling 자체의 무작위성과 RSP 효과를 분리하기 위해 greedy decoding을 사용하며, \S\ref{sec:diversity}의 다양성·Pass@$N$ 실험은 해당 절에 명시된 sampling 설정을 따른다. RSP는 \S\ref{sec:rsp_definition}의 정의를 따르며 기본 \emph{suffix} 위치에 rollout마다 새로 추첨된 $\mathbf{H}$를 결합한다. Theorem~\ref{thm:decay}이 RSP 길이 $L$을 최대 섭동 영향력을 정하는 설계 파라미터로 식별하므로, 모델별로 $L \in \{10,15,20\}$를 ablate해 적절한 섭동 강도를 찾는다. Table~\ref{tab:performance}와 Table~\ref{tab:prior_comparison}는 모델별로 선택된 $L$의 결과를 보고한다. \S\ref{sec:entropy}–\S\ref{sec:diversity}의 메커니즘 분석은 fixed $L=10$, \emph{suffix}로 통일해 selection effect에서 분리했다. 전체 설정과 위치별 결과는 Appendix~\ref{app:setup}에 있다.
 
 % ================================================================
 \subsection{RSP는 추론 성능을 개선할까?}\label{sec:performance}
 % ================================================================
 
-\begin{table}[!t]
-\centering
-\caption{모델 설정과 벤치마크별 정확도(\%). 괄호 안 값은 baseline 대비 변화량이다. \emph{infix}를 포함한 위치별 전체 결과는 Appendix~\ref{app:ablation}에 있다.}
-\label{tab:performance}
-\footnotesize
-\setlength{\tabcolsep}{3pt}
-\renewcommand{\arraystretch}{0.9}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{l ccc ccc ccc}
-\toprule
- & \multicolumn{3}{c}{\textbf{MATH-500}} & \multicolumn{3}{c}{\textbf{GSM8K}} & \multicolumn{3}{c}{\textbf{AIME24}} \\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
-\textbf{Model} & Baseline & \cellcolor{blue!10}RSP(\textit{prefix}) & \cellcolor{blue!10}RSP(\textit{suffix}) & Baseline & \cellcolor{blue!10}RSP(\textit{prefix}) & \cellcolor{blue!10}RSP(\textit{suffix}) & Baseline & \cellcolor{blue!10}RSP(\textit{prefix}) & \cellcolor{blue!10}RSP(\textit{suffix}) \\
-\midrule
-\multicolumn{10}{l}{\textit{Instruct Models}} \\
-\midrule
-LLaMA-3.1-8B-Inst      & 52.20 & \cellcolor{blue!10}45.00 {\scriptsize($-$7.2)}  & \cellcolor{blue!10}49.40 {\scriptsize($-$2.8)}  & 85.75 & \cellcolor{blue!10}76.35 {\scriptsize($-$9.4)}  & \cellcolor{blue!10}86.73 {\scriptsize(+1.0)}  & 6.67  & \cellcolor{blue!10}3.33  {\scriptsize($-$3.3)}  & \cellcolor{blue!10}10.00 {\scriptsize(+3.3)}  \\
-Qwen2.5-Math-7B-Inst   & 83.20 & \cellcolor{blue!10}81.40 {\scriptsize($-$1.8)}  & \cellcolor{blue!10}83.40 {\scriptsize(+0.2)}    & 95.45 & \cellcolor{blue!10}94.92 {\scriptsize($-$0.5)}  & \cellcolor{blue!10}95.68 {\scriptsize(+0.2)}  & 13.33 & \cellcolor{blue!10}13.33 {\scriptsize(+0.0)}    & \cellcolor{blue!10}16.67 {\scriptsize(+3.3)}  \\
-Qwen2.5-Math-1.5B-Inst & 73.00 & \cellcolor{blue!10}74.80 {\scriptsize(+1.8)}    & \cellcolor{blue!10}74.20 {\scriptsize(+1.2)}    & 85.29 & \cellcolor{blue!10}85.29 {\scriptsize(+0.0)}    & \cellcolor{blue!10}84.69 {\scriptsize($-$0.6)} & 10.00 & \cellcolor{blue!10}13.33 {\scriptsize(+3.3)}    & \cellcolor{blue!10}20.00 {\scriptsize(+10.0)} \\
-\midrule
-\multicolumn{10}{l}{\textit{Base Models (Raw Text)}} \\
-\midrule
-Qwen2.5-Math-7B        & 72.20 & \cellcolor{blue!10}71.60 {\scriptsize($-$0.6)}  & \cellcolor{blue!10}55.60 {\scriptsize($-$16.6)} & 84.15 & \cellcolor{blue!10}84.31 {\scriptsize(+0.2)}    & \cellcolor{blue!10}54.13 {\scriptsize($-$30.0)} & 6.67  & \cellcolor{blue!10}16.67 {\scriptsize(+10.0)}   & \cellcolor{blue!10}13.33 {\scriptsize(+6.7)}  \\
-Qwen2.5-Math-1.5B      & 61.40 & \cellcolor{blue!10}64.40 {\scriptsize(+3.0)}    & \cellcolor{blue!10}54.60 {\scriptsize($-$6.8)}  & 77.86 & \cellcolor{blue!10}74.30 {\scriptsize($-$3.6)}  & \cellcolor{blue!10}58.61 {\scriptsize($-$19.3)} & 16.67 & \cellcolor{blue!10}10.00 {\scriptsize($-$6.7)}  & \cellcolor{blue!10}3.33  {\scriptsize($-$13.3)} \\
-\midrule
-\multicolumn{10}{l}{\textit{Base Models + ChatML (Format Mismatch)}} \\
-\midrule
-Qwen2.5-Math-7B        & 52.20 & \cellcolor{blue!10}59.20 {\scriptsize(+7.0)}    & \cellcolor{blue!10}70.40 {\scriptsize(+18.2)}   & 58.30 & \cellcolor{blue!10}56.41 {\scriptsize($-$1.9)}  & \cellcolor{blue!10}75.97 {\scriptsize(+17.7)} & 23.33 & \cellcolor{blue!10}3.33  {\scriptsize($-$20.0)} & \cellcolor{blue!10}23.33 {\scriptsize(+0.0)}  \\
-Qwen2.5-Math-1.5B      & 34.40 & \cellcolor{blue!10}63.40 {\scriptsize(+29.0)}   & \cellcolor{blue!10}51.00 {\scriptsize(+16.6)}   & 37.45 & \cellcolor{blue!10}67.02 {\scriptsize(+29.6)}   & \cellcolor{blue!10}50.64 {\scriptsize(+13.2)} & 13.33 & \cellcolor{blue!10}20.00 {\scriptsize(+6.7)}    & \cellcolor{blue!10}13.33 {\scriptsize(+0.0)}  \\
-\bottomrule
-\end{tabular}}
-\end{table}
-
-먼저 무작위 임베딩 주입이 추론 성능에 어떤 영향을 주는지 본다. Table~\ref{tab:performance}는 기본 \emph{suffix} 위치와 \emph{prefix} ablation 결과를 보고한다.
-
-instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. 가장 두드러지는 것은 형식 불일치 회복이다. chat 형식으로 학습되지 않은 base model에 ChatML template을 적용하면 \emph{Suffix}(Qwen2.5-Math-7B에서 +18.2/+17.7\,pp)와 \emph{prefix}(Qwen2.5-Math-1.5B에서 +29.0/+29.6\,pp까지)가 손실을 회복한다 --- 단순 노이즈였다면 추가 저하가 나타나야 한다. 한편 base raw-text 환경에서 \emph{suffix}는 큰 손해를 보이고($-$16.6/$-$30.0\,pp) \emph{prefix}는 손실이 작은데, base가 EOS 인접 신호를 탈선 trigger로 처리하고 \emph{prefix}가 그것을 회피한다고 볼 수 있다. 즉 RSP의 직접적 정확도 이득은 misaligned 입력 회복에 집중되고 잘 정렬된 instruct에서는 ±몇 pp에 머문다. 본 논문이 강조하는 효과는 \S\ref{sec:diversity}의 token·trajectory·outcome diversity이고, 정확도 회복은 부수적 결과다.
+Table~\ref{tab:performance}(\S\ref{sec:why_rsp_works}에 배치)의 위치별 세부 패턴을 본다. instruct model에서 RSP는 baseline 대비 ±몇 \%p 안에서 거동한다. 가장 두드러지는 것은 형식 불일치 회복이다. chat 형식으로 학습되지 않은 base model에 ChatML template을 적용하면 \emph{Suffix}(Qwen2.5-Math-7B에서 +18.2/+17.7\,pp)와 \emph{prefix}(Qwen2.5-Math-1.5B에서 +29.0/+29.6\,pp까지)가 손실을 회복한다 --- 단순 노이즈였다면 추가 저하가 나타나야 한다. 한편 base raw-text 환경에서 \emph{suffix}는 큰 손해를 보이고($-$16.6/$-$30.0\,pp) \emph{prefix}는 손실이 작은데, base가 EOS 인접 신호를 탈선 trigger로 처리하고 \emph{prefix}가 그것을 회피한다고 볼 수 있다. 즉 RSP의 직접적 정확도 이득은 misaligned 입력 회복에 집중되고 잘 정렬된 instruct에서는 ±몇 pp에 머문다. 본 논문이 강조하는 효과는 \S\ref{sec:diversity}의 token·trajectory·outcome diversity이고, 정확도 회복은 부수적 결과다.
 
 \begin{table}[!t]
 \centering
