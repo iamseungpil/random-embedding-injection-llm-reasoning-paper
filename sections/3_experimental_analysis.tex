@@ -5,7 +5,7 @@
 
 \section{Empirical Validation}\label{sec:experimental_analysis}
 
-The mechanism of \S\ref{sec:why_rsp_works} runs from early \emph{branching} through KV cache-growth narrowing to Pass@$N$ accumulation under independent resampling. We verify this flow across three scenes. First, \S\ref{sec:performance} tests whether RSPs preserve baseline accuracy and even recover it in some settings. Next, \S\ref{sec:entropy} examines whether the predicted early diversification and later stabilization appear in entropy and attention signals. Finally, \S\ref{sec:diversity} asks whether the Pass@$N$ gain depends on \emph{independence} of the RSP draw.
+The mechanism of \S\ref{sec:why_rsp_works} runs from early \emph{branching} through KV cache-growth narrowing to Pass@$N$ accumulation under independent resampling. We verify this flow across three scenes. First, \S\ref{sec:performance} tests whether RSPs preserve baseline accuracy and even recover it in some settings. Next, \S\ref{sec:entropy} examines whether the predicted early diversification and later stabilization appear in entropy and attention signals. \S\ref{sec:diversity} asks whether the Pass@$N$ gain depends on \emph{independence} of the RSP draw. Finally, \S\ref{sec:application} extends the same perturbation from inference to RL training, where rollout diversity is critical.
 
 % ================================================================
 \subsection{Experimental Setup}\label{sec:setup}
@@ -21,7 +21,7 @@ We unpack the per-configuration patterns of Table~\ref{tab:performance} (present
 
 RSP's \emph{direct accuracy gains} concentrate in misaligned-input recovery and stay within $\pm$a few percentage points on well-aligned instruct models. The effects this paper centers on are the token-, trajectory-, and outcome-level diversity in \S\ref{sec:diversity}, with accuracy recovery as a secondary outcome.
 
-\begin{table}[H]
+\begin{table}[!t]
 \centering
 \caption{Comparison with prior \textit{soft prompt} methods (TTSV, SoftCoT, LTPO) under unified evaluation. Baseline and RSP values are from Table~\ref{tab:performance}. \textbf{Bold} denotes the best result and \underline{underline} denotes the second best for each model--benchmark pair.}
 \label{tab:prior_comparison}
@@ -42,7 +42,7 @@ RSP's \emph{direct accuracy gains} concentrate in misaligned-input recovery and 
 \end{tabular}
 \end{table}
 
-We further compare RSP with TTSV, SoftCoT, and LTPO --- prior \textit{soft prompt} methods that optimize embeddings under different objectives. Table~\ref{tab:prior_comparison} reports a unified evaluation under the same fallback-based answer-extraction pipeline (Appendix~\ref{app:extraction}). RSP does not consistently dominate the trained methods --- TTSV, for instance, beats RSP on AIME24 with Qwen2.5-Math-7B-Instruct ($23.30\%$ vs $16.67\%$). What we want to highlight is precisely the converse claim: even without training, RSP reaches a comparable range, and that fact is itself this paper's main evidence that part of the \textit{soft-prompt} effect comes from the \emph{structure of injection} rather than the learned content.
+Compared with three optimized methods --- TTSV, SoftCoT, LTPO --- under a unified pipeline (Appendix~\ref{app:extraction}), RSP lands in the same accuracy band without any training, optimization, or task-specific tuning. It wins outright on several model--benchmark cells and shows meaningful gains even on the challenging AIME24 setting. What we want to highlight is the converse: a fixed, training-free distribution reaching this range is the paper's central evidence that part of the \textit{soft-prompt} effect comes less from learned content than from the random directional perturbation that injection induces --- maximin coverage (\S\ref{sec:improve}) at a magnitude bounded by the KV cache (\S\ref{sec:converge}).
 
 % ================================================================
 \subsection{How Does RSP Affect the Output Distribution?}\label{sec:entropy}
@@ -68,6 +68,8 @@ Prior methods trained under different objectives (LTPO, SoftCoT, TTSV) share thi
 Section~\ref{sec:entropy} empirically established that RSP reshapes the early-stage output distribution. We now examine whether this shift translates into reasoning diversity at three complementary levels of analysis: token rankings, semantic content of trajectories, and task-level outcomes. The three analyses converge on a directional picture: RSP's first-token perturbation propagates into semantically more diverse reasoning trajectories, which in turn yields greater output diversity at the task level. All three analyses share the setting: Qwen2.5-Math-1.5B-Instruct, MATH-500, \emph{suffix} injection, and $L=10$.
 
 \paragraph{Token-level: distribution beyond temperature.}
+We quantify how much RSP shifts the first-token distribution --- the critical forking point for reasoning trajectories \citep{wang2025beyond}. Using the baseline at $\tau{=}1.0$ as reference, we compare baselines at $\tau{=}2.0,3.0$ (16 samples per problem) against RSP at $\tau{=}1.0$ (averaged over 16 seeds) on three metrics: Spearman rank correlation $\rho$ to detect rank reorganization, the probability mass placed outside the baseline's top-10 to measure support expansion, and Jensen--Shannon divergence to quantify the overall magnitude of distributional change.
+
 \begin{wraptable}{r}{0.55\textwidth}
   \vspace{-1.2em}
   \centering
@@ -87,7 +89,7 @@ Section~\ref{sec:entropy} empirically established that RSP reshapes the early-st
     \bottomrule
   \end{tabular}
 \end{wraptable}
-We quantify how much RSP shifts the first-token distribution --- the critical forking point for reasoning trajectories \citep{wang2025beyond}. Using the baseline at $\tau{=}1.0$ as reference, we compare baselines at $\tau{=}2.0,3.0$ (16 samples per problem) against RSP at $\tau{=}1.0$ (averaged over 16 seeds) on three metrics: Spearman rank correlation $\rho$ to detect rank reorganization, the probability mass placed outside the baseline's top-10 to measure support expansion, and Jensen--Shannon divergence to quantify the overall magnitude of distributional change (formal definitions in Appendix~\ref{app:token_metrics}). Table~\ref{tab:rsp_vs_temp} shows the contrast: RSP's distributional shift falls between $\tau{=}2.0$ and $\tau{=}3.0$ in magnitude, but the mechanism differs --- temperature is a monotone transform that preserves ranking ($\rho=1$ at any $\tau$), while RSP partially preserves but reranks ($\rho=0.709$). The Pass@1 row exposes the cost: matching RSP's magnitude with temperature toward $\tau{=}3.0$ collapses accuracy to $1.42\%$, whereas RSP preserves $73.30\%$. Thus, RSP produces a fundamentally different perturbation than temperature scaling. Moreover, RSP's accuracy variability across 16 seeds at $\tau{=}1.0$ is $\pm 1.07$, comparable to the $\pm 1.47$ that temperature sampling produces across 16 samples at $\tau{=}2.0$.
+Table~\ref{tab:rsp_vs_temp} shows the contrast: RSP's distributional shift falls between $\tau{=}2.0$ and $\tau{=}3.0$ in magnitude, but the mechanism differs --- temperature is a monotone transform that preserves ranking ($\rho=1$ at any $\tau$), while RSP partially preserves but reranks ($\rho=0.709$). The Pass@1 row exposes the cost: matching RSP's magnitude with temperature toward $\tau{=}3.0$ collapses accuracy to $1.42\%$, whereas RSP preserves $73.30\%$. Thus, RSP produces a fundamentally different perturbation than temperature scaling. Moreover, RSP's accuracy variability across 16 seeds at $\tau{=}1.0$ is $\pm 1.07$, comparable to the $\pm 1.47$ that temperature sampling produces across 16 samples at $\tau{=}2.0$ (detailed definitions in Appendix~\ref{app:token_metrics}).
 
 % =====================================================================
 % Reranking-by-position analysis (commented out for now; may be added back).
