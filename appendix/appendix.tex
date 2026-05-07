@@ -373,11 +373,11 @@ Let $\mathcal{B}$ be the set of rectangular boxes with surface area $54$ and vol
 \end{tcolorbox}
 Ground truth: $\boxed{721}$, with the optimal box at $a = b = 2$, $c = 23/4$ giving $r^2 = 657/64$.
 
-\paragraph{Aggregate result.} Baseline produces 0/16 correct; RSP produces 1/16 correct (RSP draw 0). Baseline's 16 wrong final answers span 10 distinct values, with the modal answer $31$ appearing in 4/16 samples; the correct value $721$ does not appear. RSP's 16 samples produce 11 distinct values and include $721$ exactly once (RSP draw 0).
+\paragraph{Aggregate result.} Baseline produces 0/16 correct; RSP produces 1/16 correct. Baseline's 16 wrong final answers span 10 distinct values, with the modal answer $31$ appearing in 4/16 samples; the correct value $721$ does not appear. RSP's 16 samples produce 11 distinct values and include $721$ exactly once.
 
-\paragraph{Failure mode (Baseline).} Baseline's representative trajectory (sample 0, final answer 49) opens with an \emph{algebraic identity} frame and never solves for the actual box dimensions.
+\paragraph{Failure mode (Baseline).} Baseline's representative trajectory (final answer 49) opens with an \emph{algebraic identity} frame and never solves for the actual box dimensions.
 
-\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={Baseline trajectory (sample 0, final answer 49) --- excerpts}]
+\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={Baseline trajectory (final answer 49) --- excerpts}]
 \textbf{Opening:} To solve the problem, we start by defining the dimensions of a rectangular box as $a$, $b$, and $c$. The surface area and volume of the box are given by $2(ab + bc + ca) = 54$ and $abc = 23$. We need to find the radius $r$ of the smallest sphere that can contain the box, given by $r = \tfrac{1}{2}\sqrt{a^2 + b^2 + c^2}$. First, we need to find the expression for $a^2 + b^2 + c^2$ in terms of the given equations.
 
 \textbf{Identity manipulation:} Squaring the surface area equation yields $(ab + bc + ca)^2 = 2916$, which expands to $a^2b^2 + b^2c^2 + c^2a^2 + 2abc(a + b + c) = 2916$. Substituting $2abc = 46$ and $(a+b+c)^2 = x + 54$ where $x := a^2 + b^2 + c^2$, then attempting to express $a^4 + b^4 + c^4$ in terms of $x$, the manipulation collapses to the tautology $x^2 = x^2 - 2y + 2y$.
@@ -387,9 +387,9 @@ Ground truth: $\boxed{721}$, with the optimal box at $a = b = 2$, $c = 23/4$ giv
 
 \textbf{Diagnosis.} The trajectory frames the task as \emph{find the closed form of $a^2+b^2+c^2$ from the given constraints} and never attempts to solve for the actual dimensions. Two consecutive identity manipulations collapse to a tautology that does not yield $x$, after which the trajectory commits to $x = 45$ without justification (``After solving, we find''). This pattern --- identity manipulation, tautology, terminal guess --- recurs across Baseline's 16 samples; the constraint set under-determines $a^2 + b^2 + c^2$ in closed form, and the algebraic-identity framing has no path to the correct value.
 
-\paragraph{Success mode (RSP).} The correct RSP trajectory (RSP draw 0, final answer 721) opens with an \emph{optimization} frame and a symmetry assumption that reduces the system to a single cubic.
+\paragraph{Success mode (RSP).} The correct RSP trajectory (final answer 721) opens with an \emph{optimization} frame and a symmetry assumption that reduces the system to a single cubic.
 
-\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={RSP trajectory (RSP draw 0, final answer 721) --- excerpts}]
+\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={RSP trajectory (final answer 721) --- excerpts}]
 \textbf{Opening:} To solve the problem, we need to find the dimensions of the rectangular box that \emph{minimizes} the radius of the smallest sphere that can contain it, given the surface area and volume constraints. The radius is $r = \tfrac{1}{2}\sqrt{a^2 + b^2 + c^2}$. To minimize $r$, we minimize $a^2 + b^2 + c^2$.
 
 \textbf{Symmetry reduction:} A more straightforward approach is to use symmetry: $a^2 + b^2 + c^2$ is minimized when $a$, $b$, $c$ are as close to each other as possible. Assume $a = b$ and solve for $c$: $2a^2 + 2ac = 27$ and $a^2 c = 23$. From $a^2 c = 23$, $c = 23/a^2$. Substituting: $2a^2 + 46/a = 27$, multiplying through by $a$ gives $2a^3 - 27a + 46 = 0$.
@@ -415,13 +415,13 @@ Find the sum of the squares of all the items in the list.
 \end{tcolorbox}
 Ground truth: $\boxed{236}$, corresponding to $\{5, 7, 9, 9\}$ with median $\frac{7+9}{2} = 8$.
 
-\paragraph{Aggregate result.} Baseline produces 0/16 correct; RSP produces 3/16 correct (RSP draws 5, 7, 10). Baseline's 16 samples produce 16 distinct final answers (no two agree); the correct value 236 does not appear. RSP's 16 samples concentrate slightly more, with 236 (3 times) and 248 (3 times) tied as modal answers and the remaining mass spread across 10 distinct values.
+\paragraph{Aggregate result.} Baseline produces 0/16 correct; RSP produces 3/16 correct. Baseline's 16 samples produce 16 distinct final answers (no two agree); the correct value 236 does not appear. RSP's 16 samples concentrate slightly more, with 236 (3 times) and 248 (3 times) tied as modal answers and the remaining mass spread across 10 distinct values.
 
 \paragraph{Structural-assumption split.} The constraint ``the median is a positive integer that does not appear in the list'' \emph{requires} an even-length list: for an odd-length list the median is by definition an element of the list. Across Baseline's 16 samples, 6 commit to an odd-length list (typically 5 elements) at the opening and only 3 consider an even-length list. Across RSP's 16 samples, 8 commit to odd and 6 consider even. The shift in the even-length consideration rate (3/16 $\to$ 6/16) is the structural correlate of RSP's accuracy gain.
 
-\paragraph{Failure mode (Baseline).} Baseline's representative trajectory (sample 0, final answer 224) commits to an odd-length list \emph{at the opening} and never reconsiders.
+\paragraph{Failure mode (Baseline).} Baseline's representative trajectory (final answer 224) commits to an odd-length list \emph{at the opening} and never reconsiders.
 
-\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={Baseline trajectory (sample 0, final answer 224) --- excerpts}]
+\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={Baseline trajectory (final answer 224) --- excerpts}]
 \textbf{Opening commitment:} ``Let's start by assuming the list has an odd number of elements. If the list has $2k+1$ elements, the median is the $(k+1)$-th element. Let's try with the smallest possible odd number\dots''
 
 \textbf{Construction:} 5 elements, $a_1 + a_2 + 9 + a_4 + 9 = 30$ so $a_1 + a_2 + a_4 = 12$. Try $a_1 = 2$, $a_2 = 3$, $a_4 = 7$: list $\{2, 3, 7, 9, 9\}$, median $7$, ``which does not appear in the list, so this is a valid candidate.''
@@ -431,9 +431,9 @@ Ground truth: $\boxed{236}$, corresponding to $\{5, 7, 9, 9\}$ with median $\fra
 
 \textbf{Diagnosis.} Two errors compound: (i) the trajectory \emph{defaults to odd length} at the opening without justification, and the constraint ``median not in the list'' forces even length, which the trajectory never derives; (ii) the median value $7$ is verified as a positive integer but \emph{not} verified as absent from the list ($7$ is in fact an element). The same structural assumption recurs across most of Baseline's 16 samples; the elements vary, but the odd-length commitment and the incomplete constraint check are constant.
 
-\paragraph{Success mode (RSP).} The correct RSP trajectory (RSP draw 10, final answer 236) considers $n = 4$ from the outset and treats the median formula by parity.
+\paragraph{Success mode (RSP).} The correct RSP trajectory (final answer 236) considers $n = 4$ from the outset and treats the median formula by parity.
 
-\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={RSP trajectory (RSP draw 10, final answer 236) --- excerpts}]
+\begin{tcolorbox}[colback=gray!5, colframe=black!60, arc=3pt, boxrule=0.5pt, fontupper=\footnotesize, breakable, title={RSP trajectory (final answer 236) --- excerpts}]
 \textbf{Opening (Step 2: median by parity).} ``If the list has an odd number of elements, the median is the middle element. If the list has an even number of elements, the median is the average of the two middle elements. Since the median is a positive integer that does not appear in the list, it must be an integer and not equal to any of the other numbers in the list.''
 
 \textbf{Step 3: starting at $n = 4$.} ``$n \ge 4$ (at least two 9's). Case 1: $n = 4$. Sum: $9 + 9 + x + y = 30$, so $x + y = 12$.''
@@ -441,7 +441,7 @@ Ground truth: $\boxed{236}$, corresponding to $\{5, 7, 9, 9\}$ with median $\fra
 \textbf{Construction:} Try $x = 5$, $y = 7$: list $\{5, 7, 9, 9\}$, median $\tfrac{7+9}{2} = 8$ (integer, not in list). All conditions satisfied; sum of squares $= 25 + 49 + 81 + 81 = \boxed{236}$.
 \end{tcolorbox}
 
-\textbf{Diagnosis.} Three properties distinguish this trajectory: \textbf{(i)} \emph{even length is considered first} ($n = 4$ enumerated as the initial case); \textbf{(ii)} the median is computed as an arithmetic mean for even length, producing $8 \notin \{5, 7, 9, 9\}$; \textbf{(iii)} the constraint check is performed against the candidate \emph{value} ($8$), not against the structural position. The other two correct RSP samples (draws 5 and 7) reach 236 through partially incorrect intermediate reasoning, suggesting that some RSP samples that begin with the same odd-length assumption as Baseline can still arrive at the correct numerical answer.
+\textbf{Diagnosis.} Three properties distinguish this trajectory: \textbf{(i)} \emph{even length is considered first} ($n = 4$ enumerated as the initial case); \textbf{(ii)} the median is computed as an arithmetic mean for even length, producing $8 \notin \{5, 7, 9, 9\}$; \textbf{(iii)} the constraint check is performed against the candidate \emph{value} ($8$), not against the structural position. The other two correct RSP samples reach 236 through partially incorrect intermediate reasoning, suggesting that some RSP samples that begin with the same odd-length assumption as Baseline can still arrive at the correct numerical answer.
 
 \paragraph{Interpretation.} Baseline's failure is rooted in the \emph{first structural assumption} after the conditions are listed: the trajectory commits to an odd-length list within its first few hundred tokens and never reconsiders. RSP's perturbation increases the fraction of samples that consider $n = 4$ from 3/16 to 6/16, and one of these reaches the correct constraint check. The split between odd-length and even-length openings is the empirical fingerprint of the template-selection shift; on a small fraction of samples, the alternative template happens to be the structurally consistent one.
 
